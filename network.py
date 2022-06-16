@@ -2,6 +2,7 @@ import numpy as np
 import random
 from scipy.stats import pareto
 from bank import BankAgent
+from tqdm import tqdm
 
 
 class InterBankNetwork:
@@ -16,6 +17,8 @@ class InterBankNetwork:
         initial_l2s=3.0,
         collateral_value=1.0,
         init="constant",
+        shock_method="log-normal",
+        constant_dirichlet=1,
     ):
         self.banks = []
         self.deposits = np.zeros(n_banks)
@@ -46,55 +49,84 @@ class InterBankNetwork:
         self.collateral = 1.0
         self.adj_matrix = np.zeros((n_banks, n_banks))
         self.sigma_shock = perc_deposit_shock / 3.0
+        self.shock_method = shock_method
+        self.constant_dirichlet = constant_dirichlet
 
     def step_network(self):
-        dispatch = np.random.dirichlet(self.deposits / self.deposits.sum())
-        deposits = 0.9 * self.deposits + (0.1 * self.deposits).sum() * dispatch
-        shocks = deposits - self.deposits
+
+        if self.shock_method == "dirichlet":
+            # dirichlet approach
+            dispatch = np.random.dirichlet(
+                self.deposits * self.constant_dirichlet
+            )
+            deposits = self.deposits.sum() * dispatch
+            shocks = deposits - self.deposits
+
+        elif self.shock_method == "log-normal":
+            # log-normal approach
+            deposits = (
+                np.random.lognormal(size=len(self.banks)) * self.deposits
+            )
+            deposits - np.mean(deposits)
+            shocks = deposits - self.deposits
+
         # print("Minimum shock is :", min(self.deposits + shocks))
         # print("Sum of shocks is {}".format(round(shocks.sum(), 2)))
         # print("Shocks : ", shocks)
         assert abs(shocks.sum()) < 1e-8, "Shock doesn't sum to zero"
 
-        for i, bank in enumerate(self.banks):
-            bank.set_shock(shocks[i])
-            bank.set_collateral(self.collateral)
-            bank.lcr_step()
-        random.shuffle(self.banks)
-        for i, bank in enumerate(self.banks):
-            bank.step_end_repos_chain()
-        random.shuffle(self.banks)
-        for i, bank in enumerate(self.banks):
-            bank.step_repos()
+        ix = np.arange(len(self.banks))
+        for i in ix:
+            self.banks[i].set_shock(shocks[i])
+            self.banks[i].set_collateral(self.collateral)
+            self.banks[i].lcr_step()
+        ix = np.random.permutation(ix)
+        for i in ix:
+            self.banks[i].step_end_repos_chain()
+        ix = np.random.permutation(ix)
+        for i in ix:
+            self.banks[i].step_repos()
         excess_liquidity = 0.0
         total_deposits = 0.0
         total_securities = 0.0
         total_cash = 0.0
         total_loans = 0.0
         total_mro = 0.0
-        for i, bank in enumerate(self.banks):
-            bank.assert_minimal_reserve()
-            bank.assert_alm()
-            bank.assert_lcr()
-            bank.steps += 1
-            self.adj_matrix[int(bank.id) - 1, :] = np.array(
-                list(bank.reverse_repos.values())
+        for i in ix:
+            self.banks[i].assert_minimal_reserve()
+            self.banks[i].assert_alm()
+            self.banks[i].assert_lcr()
+            self.banks[i].steps += 1
+            self.adj_matrix[ix[i], :] = np.array(
+                list(self.banks[i].reverse_repos.values())
             )
-            self.deposits[i] = bank.liabilities["Deposits"]
+            self.deposits[i] = self.banks[i].liabilities["Deposits"]
             excess_liquidity += (
-                bank.assets["Cash"] - bank.alpha * bank.liabilities["Deposits"]
+                self.banks[i].assets["Cash"]
+                - self.banks[i].alpha * self.banks[i].liabilities["Deposits"]
             )
-            total_deposits += bank.liabilities["Deposits"]
+            total_deposits += self.banks[i].liabilities["Deposits"]
             total_securities += (
-                bank.assets["Securities Usable"]
-                + bank.off_balance["Securities Collateral"]
+                self.banks[i].assets["Securities Usable"]
+                + self.banks[i].off_balance["Securities Collateral"]
             )
-            total_cash += bank.assets["Cash"]
-            total_mro += bank.liabilities["MROs"]
-            total_loans += bank.assets["Loans"]
+            total_cash += self.banks[i].assets["Cash"]
+            total_mro += self.banks[i].liabilities["MROs"]
+            total_loans += self.banks[i].assets["Loans"]
         # print("Total Loans - Total MROs is {}".format(total_loans - total_mro))
         # print("Excess Liquidity is {}".format(excess_liquidity))
         # print("Total Deposits is {}".format(total_deposits))
         # print("Total Securities is {}".format(total_securities))
         # print("Total Cash is {}".format(total_cash))
         # print(self.adj_matrix)
+
+    def simulate(self, time_steps):
+        for _ in tqdm(range(time_steps)):
+            self.step_network()
+        # for bank in self.banks:
+        #     print(bank)
+        #     print(
+        #         "Bank Deposits {} Bank Cash {}".format(
+        #             bank.liabilities["Deposits"], bank.assets["Cash"]
+        #         )
+        #     )
