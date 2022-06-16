@@ -2,6 +2,7 @@ import numpy as np
 import random
 from scipy.stats import pareto
 from bank import BankAgent
+from tqdm import tqdm
 
 
 class InterBankNetwork:
@@ -98,3 +99,14 @@ class InterBankNetwork:
         # print("Total Securities is {}".format(total_securities))
         # print("Total Cash is {}".format(total_cash))
         # print(self.adj_matrix)
+
+    def simulate(self, time_steps):
+        for _ in tqdm(range(time_steps)):
+            self.step_network()
+        for bank in self.banks:
+            print(bank)
+            print(
+                "Bank Deposits {} Bank Cash {}".format(
+                    bank.liabilities["Deposits"], bank.assets["Cash"]
+                )
+            )

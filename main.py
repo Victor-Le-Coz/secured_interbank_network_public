@@ -13,12 +13,4 @@ if __name__ == "__main__":
         collateral_value=1.0,
         init="constant",
     )
-    for i in tqdm(range(1000)):
-        network.step_network()
-    for bank in network.banks:
-        print(bank)
-        print(
-            "Bank Deposits {} Bank Cash {}".format(
-                bank.liabilities["Deposits"], bank.assets["Cash"]
-            )
-        )
+    network.simulate(100)

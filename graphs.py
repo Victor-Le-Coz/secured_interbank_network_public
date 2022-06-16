@@ -15,14 +15,16 @@ class Graphics:
         """
         self.network = network
 
-    def loan_size_path(self): # to be updated !
+    def loan_size_path(self):  # to be updated !
         """
         Plot the time serrie of the average loan size.
         """
         # create a vector of the average loan size
         average_loan_size = np.zeros(self.dynamics.T)
         for t in np.arange(self.dynamics.T):
-            average_loan_size[t] = np.mean(self.dynamics.sample_path[t].wl)  # mean across 2 directions i and j
+            average_loan_size[t] = np.mean(
+                self.dynamics.sample_path[t].wl
+            )  # mean across 2 directions i and j
 
         # plot the average loan size
         plt.xlabel("time")
@@ -30,14 +32,16 @@ class Graphics:
         plt.plot(np.arange(self.dynamics.T), average_loan_size)
         plt.show()
 
-    def search_cost_path(self): # to be updated !
+    def search_cost_path(self):  # to be updated !
         """
         Plot the time serrie of the average search cost.
         """
         # create a vector of the average search cost
         average_search_cost = np.zeros(self.dynamics.T)
         for t in np.arange(self.dynamics.T):
-            average_search_cost[t] = np.mean(self.dynamics.sample_path[t].s)  # mean across 2 directions i and j
+            average_search_cost[t] = np.mean(
+                self.dynamics.sample_path[t].s
+            )  # mean across 2 directions i and j
 
         # plot the average search cost
         plt.xlabel("time")
@@ -53,10 +57,15 @@ class Graphics:
         adj = self.network.adj_matrix
 
         # build a network from an adjency matrix
-        bank_network = nx.from_numpy_matrix(adj, parallel_edges=False, create_using=nx.DiGraph)
+        bank_network = nx.from_numpy_matrix(
+            adj, parallel_edges=False, create_using=nx.DiGraph
+        )
 
         # define the weight list from the weight information
-        weights = [bank_network[node1][node2]['weight'] for node1, node2 in bank_network.edges()]
+        weights = [
+            bank_network[node1][node2]["weight"]
+            for node1, node2 in bank_network.edges()
+        ]
 
         # define the position of the nodes
         pos = nx.spring_layout(bank_network)
