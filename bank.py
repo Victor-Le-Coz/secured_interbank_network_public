@@ -291,6 +291,7 @@ class BankAgent:
             assert (
                 self.assets["Securities Usable"]
                 + self.off_balance["Securities Collateral"]
+                + 1e-8
                 > repo_ask - rest
             ), self.__str__() + "\nNot Enough Collateral for bank {}".format(
                 self.id
@@ -338,6 +339,9 @@ class BankAgent:
     def ask_for_repo(self, bank_id, amount):
         reverse_accept = (
             self.assets["Cash"] - self.alpha * self.liabilities["Deposits"]
+        )
+        assert self.id != bank_id, "Bank {} is lending to itself".format(
+            self.id
         )
         # print(
         #     "Repo ask {}:{} => {}:{}".format(
