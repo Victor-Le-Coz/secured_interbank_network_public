@@ -15,14 +15,20 @@ class InterBankNetwork:
         initial_mr=1.0,
         initial_l2s=3.0,
         collateral_value=1.0,
+        init="constant",
     ):
         self.banks = []
         self.deposits = np.zeros(n_banks)
         for b in range(1, n_banks + 1):
-            deposits = pareto.rvs(
-                alpha_pareto, loc=0, scale=1, size=1, random_state=None
-            )[0]
-            deposits = 100.0
+            if init == "pareto":
+                deposits = (
+                    pareto.rvs(
+                        alpha_pareto, loc=0, scale=1, size=1, random_state=None
+                    )[0]
+                    * 100.0
+                )
+            elif init == "constant":
+                deposits = 100.0
             self.deposits[b - 1] = deposits
             self.banks.append(
                 BankAgent(
@@ -47,6 +53,7 @@ class InterBankNetwork:
         shocks = deposits - self.deposits
         # print("Minimum shock is :", min(self.deposits + shocks))
         # print("Sum of shocks is {}".format(round(shocks.sum(), 2)))
+        # print("Shocks : ", shocks)
         assert abs(shocks.sum()) < 1e-8, "Shock doesn't sum to zero"
 
         for i, bank in enumerate(self.banks):
@@ -66,9 +73,13 @@ class InterBankNetwork:
         total_loans = 0.0
         total_mro = 0.0
         for i, bank in enumerate(self.banks):
-            bank.assert_regulatory()
+            bank.assert_minimal_reserve()
+            bank.assert_alm()
+            bank.assert_lcr()
             bank.steps += 1
-            self.adj_matrix[i, :] = np.array(list(bank.reverse_repos.values()))
+            self.adj_matrix[int(bank.id) - 1, :] = np.array(
+                list(bank.reverse_repos.values())
+            )
             self.deposits[i] = bank.liabilities["Deposits"]
             excess_liquidity += (
                 bank.assets["Cash"] - bank.alpha * bank.liabilities["Deposits"]
@@ -81,8 +92,9 @@ class InterBankNetwork:
             total_cash += bank.assets["Cash"]
             total_mro += bank.liabilities["MROs"]
             total_loans += bank.assets["Loans"]
-        print("Total Loans {} Total MROs is {}".format(total_loans, total_mro))
+        # print("Total Loans - Total MROs is {}".format(total_loans - total_mro))
         # print("Excess Liquidity is {}".format(excess_liquidity))
         # print("Total Deposits is {}".format(total_deposits))
         # print("Total Securities is {}".format(total_securities))
         # print("Total Cash is {}".format(total_cash))
+        # print(self.adj_matrix)

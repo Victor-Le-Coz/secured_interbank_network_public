@@ -19,7 +19,7 @@ class BankAgent:
         self.gamma = initial_l2s / 100.0
         self.collateral = collateral_value
         self.previous_shock = 0.0
-        self.beta_star = beta_star_lcr
+        self.beta_star = beta_star_lcr / 100.0
         self.reverse_accept = 0.0
         self.shock = 0.0
 
@@ -55,7 +55,10 @@ class BankAgent:
         }
 
         self.initialize_balance_sheet()
-        self.assert_regulatory()
+        self.assert_leverage()
+        self.assert_lcr()
+        self.assert_alm()
+        self.assert_minimal_reserve()
 
     def initialize_balance_sheet(self):
         self.assets["Cash"] = self.liabilities["Deposits"] * self.alpha
@@ -164,22 +167,28 @@ class BankAgent:
         ltsr = self.liabilities["Own Funds"] / ltsr
         return ltsr
 
-    def assert_regulatory(self):
+    def assert_lcr(self):
         assert (
             self.liquidity_coverage_ratio() + 1e-8 >= 1.0
         ), self.__str__() + "\nLCR not at its target value for bank {} at step {}".format(
             self.id, self.steps
         )
+
+    def assert_minimal_reserve(self):
         assert (
             self.cash_to_deposits() + 1e-8 >= self.alpha
         ), self.__str__() + "\nMinimum reserves not respected for bank {} at step {}".format(
             self.id, self.steps
         )
+
+    def assert_leverage(self):
         assert (
             self.leverage_to_solvency_ratio() + 1e-8 > self.gamma
         ), self.__str__() + "\nLeverage to solvency ratio not at its target value for bank {} at step {}" "".format(
             self.id, self.steps
         )
+
+    def assert_alm(self):
         assert (
             np.abs(self.total_assets() / self.total_liabilities() - 1.0) < 1e-8
         ), self.__str__() + "\nAssets don't match Liabilities for bank {} at step {}".format(
@@ -236,7 +245,6 @@ class BankAgent:
             return
         # First end off-balance repos
         trust = self.trust.copy()
-        del trust[self.id]
         for b, t in sorted(trust.items(), key=lambda item: item[1]):
             end = min(self.off_balance_repos[b], target)
             if end > 0.0:
