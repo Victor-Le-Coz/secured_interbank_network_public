@@ -97,7 +97,7 @@ class InterBankNetwork:
             self.banks[i].assert_alm()
             self.banks[i].assert_lcr()
             self.banks[i].steps += 1
-            self.adj_matrix[ix[i], :] = np.array(
+            self.adj_matrix[i, :] = np.array(
                 list(self.banks[i].reverse_repos.values())
             )
             self.deposits[i] = self.banks[i].liabilities["Deposits"]
