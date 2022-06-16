@@ -10,8 +10,9 @@ class InterBankNetwork:
         n_banks,
         alpha_pareto=0.5,
         perc_deposit_shock=1.0,
+        beta_lcr=10.0,
+        beta_star_lcr=10.0,
         initial_mr=1.0,
-        initial_lcr=100.0,
         initial_l2s=3.0,
         collateral_value=1.0,
     ):
@@ -28,7 +29,8 @@ class InterBankNetwork:
                     bank_id=b,
                     initial_deposits=deposits,
                     initial_mr=initial_mr,
-                    initial_lcr=initial_lcr,
+                    beta_lcr=beta_lcr,
+                    beta_star_lcr=beta_star_lcr,
                     initial_l2s=initial_l2s,
                     collateral_value=collateral_value,
                 )

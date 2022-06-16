@@ -6,19 +6,20 @@ class BankAgent:
         self,
         bank_id,
         initial_deposits,
+        beta_lcr=10.0,
+        beta_star_lcr=10.0,
         initial_mr=1.0,
-        initial_lcr=100.0,
         initial_l2s=3.0,
         collateral_value=1.0,
     ):
 
         self.id = str(bank_id)
         self.alpha = initial_mr / 100.0
-        self.beta = (initial_lcr / 100.0) * 0.1
+        self.beta = beta_lcr / 100.0
         self.gamma = initial_l2s / 100.0
         self.collateral = collateral_value
         self.previous_shock = 0.0
-        self.beta_star = self.beta
+        self.beta_star = beta_star_lcr
         self.reverse_accept = 0.0
         self.shock = 0.0
 
