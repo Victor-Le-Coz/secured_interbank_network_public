@@ -3,6 +3,7 @@ import random
 from scipy.stats import pareto
 from bank import BankAgent
 from tqdm import tqdm
+from scipy.stats import truncnorm
 
 
 class InterBankNetwork:
@@ -67,13 +68,16 @@ class InterBankNetwork:
             deposits = (
                 np.random.lognormal(size=len(self.banks)) * self.deposits
             )
-            deposits - np.mean(deposits)
             shocks = deposits - self.deposits
+
+        elif self.shock_method == "normal":
+            # lux's approach but with troncated gaussian
+            shocks = truncnorm.rvs(-3,3,size=len(self.banks)) * self.deposits / 3
 
         # print("Minimum shock is :", min(self.deposits + shocks))
         # print("Sum of shocks is {}".format(round(shocks.sum(), 2)))
         # print("Shocks : ", shocks)
-        assert abs(shocks.sum()) < 1e-8, "Shock doesn't sum to zero"
+        #assert abs(shocks.sum()) < 1e-8, "Shock doesn't sum to zero"
 
         ix = np.arange(len(self.banks))
         for i in ix:
