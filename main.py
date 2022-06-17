@@ -16,4 +16,4 @@ if __name__ == "__main__":
         constant_dirichlet=1,
     )
 
-    network.simulate(100, 1)
+    network.simulate(100, 5)

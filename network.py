@@ -5,7 +5,12 @@ from tqdm import tqdm
 from scipy.stats import truncnorm
 import os
 import shutil
-from graphics import plot_loans_mro, plot_collateral, plot_network
+from graphics import (
+    plot_loans_mro,
+    plot_collateral,
+    plot_network,
+    bar_plot_deposits,
+)
 
 
 class InterBankNetwork:
@@ -101,6 +106,7 @@ class InterBankNetwork:
         if os.path.exists(self.result_location):
             shutil.rmtree(self.result_location)
         os.makedirs(os.path.join(self.result_location, "Networks"))
+        os.makedirs(os.path.join(self.result_location, "Deposits"))
 
     def update_metrics(self):
         for key in self.metrics.keys():
@@ -121,6 +127,11 @@ class InterBankNetwork:
         plot_network(
             self.adj_matrix,
             os.path.join(self.result_location, "Networks"),
+            self.total_steps,
+        )
+        bar_plot_deposits(
+            self.deposits,
+            os.path.join(self.result_location, "Deposits"),
             self.total_steps,
         )
 

@@ -4,6 +4,33 @@ import numpy as np
 import os
 
 
+def bar_plot_deposits(deposits, path, step):
+
+    plt.figure(figsize=(20, 10))
+    banks_sorted = np.argsort(deposits)
+    banks_sorted = ["Bank {}".format(str(b)) for b in banks_sorted]
+    deposits_sorted = np.sort(deposits)
+    deposits_sorted = deposits_sorted / deposits_sorted.sum()
+
+    barWidth = 0.75
+    br = np.arange(len(deposits))
+    plt.bar(
+        br,
+        height=deposits_sorted,
+        color="b",
+        width=barWidth,
+        edgecolor="grey",
+        label="Deposits",
+    )
+    plt.ylabel("Relative Deposits in %", fontweight="bold", fontsize=15)
+    plt.xticks([r for r in range(len(deposits))], banks_sorted)
+    plt.tick_params(axis="x", labelrotation=90, labelsize="small")
+    plt.legend()
+    plt.title("Deposits of Banks at step {}".format(int(step)))
+    plt.savefig(os.path.join(path, "step_{}_deposits.png".format(step)))
+    plt.close()
+
+
 def plot_loans_mro(metrics, path):
     plt.figure()
     length = len(metrics["Securities Usable"])
@@ -59,7 +86,7 @@ def plot_network(adj, path, step):
     nx.draw_networkx(bank_network, pos, width=weights, with_labels=True)
 
     # show the plot
-    plt.title("Interbank network at the final step")
+    plt.title("Interbank network at the step {}".format(int(step)))
     plt.savefig(os.path.join(path, "step_{}_network.png".format(step)))
     plt.close()
 
