@@ -1,5 +1,4 @@
 import numpy as np
-import random
 from scipy.stats import pareto
 from bank import BankAgent
 from tqdm import tqdm
@@ -77,7 +76,7 @@ class InterBankNetwork:
         # print("Minimum shock is :", min(self.deposits + shocks))
         # print("Sum of shocks is {}".format(round(shocks.sum(), 2)))
         # print("Shocks : ", shocks)
-        #assert abs(shocks.sum()) < 1e-8, "Shock doesn't sum to zero"
+        assert abs(shocks.sum()) < 1e-8, "Shock doesn't sum to zero"
 
         ix = np.arange(len(self.banks))
         for i in ix:
@@ -127,10 +126,10 @@ class InterBankNetwork:
     def simulate(self, time_steps):
         for _ in tqdm(range(time_steps)):
             self.step_network()
-        # for bank in self.banks:
-        #     print(bank)
-        #     print(
-        #         "Bank Deposits {} Bank Cash {}".format(
-        #             bank.liabilities["Deposits"], bank.assets["Cash"]
-        #         )
-        #     )
+        for bank in self.banks:
+            print(bank)
+            print(
+                "Bank Deposits {} Bank Cash {}".format(
+                    bank.liabilities["Deposits"], bank.assets["Cash"]
+                )
+            )
