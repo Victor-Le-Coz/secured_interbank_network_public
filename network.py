@@ -192,3 +192,5 @@ class InterBankNetwork:
                     bank.liabilities["Deposits"], bank.assets["Cash"]
                 )
             )
+        self.save_figs()
+        self.save_time_series()
