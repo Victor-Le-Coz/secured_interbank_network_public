@@ -1,5 +1,67 @@
 from matplotlib import pyplot as plt
 import networkx as nx
+import numpy as np
+import os
+
+
+def plot_loans_mro(metrics, path):
+    plt.figure()
+    length = len(metrics["Securities Usable"])
+    plt.plot(np.arange(length), metrics["Loans"])
+    plt.plot(np.arange(length), metrics["MROs"])
+    plt.legend(["Loans", "MROs"])
+    plt.xlabel("Steps")
+    plt.ylabel("Total Network Amount")
+    plt.title("Total Amount of Loans/MROs in Network")
+    plt.savefig(os.path.join(path, "loans_mros.png"))
+    plt.close()
+
+
+def plot_collateral(metrics, path):
+    plt.figure()
+    length = len(metrics["Securities Usable"])
+    plt.plot(np.arange(length), metrics["Securities Usable"])
+    plt.plot(np.arange(length), metrics["Securities Encumbered"])
+    plt.plot(np.arange(length), metrics["Securities Collateral"])
+    plt.plot(np.arange(length), metrics["Securities Reused"])
+    plt.legend(
+        [
+            "Securities Usable",
+            "Securities Encumbered",
+            "Securities Collateral",
+            "Securities Reused",
+        ]
+    )
+    plt.xlabel("Steps")
+    plt.ylabel("Total Network Amount")
+    plt.title("Total Amount of Collateral in Network")
+    plt.savefig(os.path.join(path, "collateral.png"))
+    plt.close()
+
+
+def plot_network(adj, path, step):
+    # build a network from an adjency matrix
+    bank_network = nx.from_numpy_matrix(
+        adj, parallel_edges=False, create_using=nx.DiGraph
+    )
+
+    # define the weight list from the weight information
+    weights = [
+        bank_network[node1][node2]["weight"]
+        for node1, node2 in bank_network.edges()
+    ]
+
+    # define the position of the nodes
+    pos = nx.spring_layout(bank_network)
+
+    # draw the network
+    plt.figure(1, figsize=(15, 15))
+    nx.draw_networkx(bank_network, pos, width=weights, with_labels=True)
+
+    # show the plot
+    plt.title("Interbank network at the final step")
+    plt.savefig(os.path.join(path, "step_{}_network.png".format(step)))
+    plt.close()
 
 
 class Graphics:

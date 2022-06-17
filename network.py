@@ -3,6 +3,9 @@ from scipy.stats import pareto
 from bank import BankAgent
 from tqdm import tqdm
 from scipy.stats import truncnorm
+import os
+import shutil
+from graphics import plot_loans_mro, plot_collateral, plot_network
 
 
 class InterBankNetwork:
@@ -19,38 +22,115 @@ class InterBankNetwork:
         init="constant",
         shock_method="log-normal",
         constant_dirichlet=1,
+        result_location="./results/",
     ):
+        assert init in ["constant", "pareto"], (
+            "Not valid initialisation method :" " 'constant' or 'pareto'"
+        )
+        assert shock_method in ["log-normal", "dirichlet"], (
+            "Not valid initialisation method :" " 'log-normal' or 'dirichlet'"
+        )
+        # Params
+        self.n_banks = n_banks
+        self.alpha_pareto = alpha_pareto
+        self.perc_deposit_shock = perc_deposit_shock
+        self.beta_lcr = beta_lcr
+        self.beta_star_lcr = beta_star_lcr
+        self.initial_mr = initial_mr
+        self.initial_l2s = initial_l2s
+        self.collateral_value = collateral_value
+        self.init = init
+        self.shock_method = shock_method
+        self.constant_dirichlet = constant_dirichlet
+        self.result_location = result_location
+
+        # Internal
         self.banks = []
         self.deposits = np.zeros(n_banks)
-        for b in range(1, n_banks + 1):
-            if init == "pareto":
+        self.collateral = 1.0
+        self.adj_matrix = np.zeros((n_banks, n_banks))
+        self.metrics = {}
+        self.total_steps = 0.0
+        self.reset_network()
+
+    def reset_network(self):
+        for b in range(1, self.n_banks + 1):
+            if self.init == "pareto":
                 deposits = (
                     pareto.rvs(
-                        alpha_pareto, loc=0, scale=1, size=1, random_state=None
+                        self.alpha_pareto,
+                        loc=0,
+                        scale=1,
+                        size=1,
+                        random_state=None,
                     )[0]
                     * 100.0
                 )
-            elif init == "constant":
+            elif self.init == "constant":
                 deposits = 100.0
+            else:
+                assert False, ""
             self.deposits[b - 1] = deposits
             self.banks.append(
                 BankAgent(
                     bank_id=b,
                     initial_deposits=deposits,
-                    initial_mr=initial_mr,
-                    beta_lcr=beta_lcr,
-                    beta_star_lcr=beta_star_lcr,
-                    initial_l2s=initial_l2s,
-                    collateral_value=collateral_value,
+                    initial_mr=self.initial_mr,
+                    beta_lcr=self.beta_lcr,
+                    beta_star_lcr=self.beta_star_lcr,
+                    initial_l2s=self.initial_l2s,
+                    collateral_value=self.collateral_value,
                 )
             )
         for bank in self.banks:
             bank.initialize_banks(self.banks)
-        self.collateral = 1.0
-        self.adj_matrix = np.zeros((n_banks, n_banks))
-        self.sigma_shock = perc_deposit_shock / 3.0
-        self.shock_method = shock_method
-        self.constant_dirichlet = constant_dirichlet
+        self.metrics = {
+            "Cash": [],
+            "Securities Usable": [],
+            "Securities Encumbered": [],
+            "Loans": [],
+            "Reverse Repos": [],
+            "Own Funds": [],
+            "Deposits": [],
+            "Repos": [],
+            "MROs": [],
+            "Securities Collateral": [],
+            "Securities Reused": [],
+        }
+        self.total_steps = 0.0
+        if os.path.exists(self.result_location):
+            shutil.rmtree(self.result_location)
+        os.makedirs(os.path.join(self.result_location, "Networks"))
+
+    def update_metrics(self):
+        for key in self.metrics.keys():
+            self.metrics[key].append(0.0)
+        for i, bank in enumerate(self.banks):
+            for key in bank.assets.keys():
+                self.metrics[key][-1] += bank.assets[key]
+            for key in bank.liabilities.keys():
+                self.metrics[key][-1] += bank.liabilities[key]
+            for key in bank.off_balance.keys():
+                self.metrics[key][-1] += bank.off_balance[key]
+            self.adj_matrix[i, :] = np.array(
+                list(self.banks[i].reverse_repos.values())
+            )
+            self.deposits[i] = self.banks[i].liabilities["Deposits"]
+
+    def save_figs(self):
+        plot_network(
+            self.adj_matrix,
+            os.path.join(self.result_location, "Networks"),
+            self.total_steps,
+        )
+
+    def save_time_series(self):
+        plot_loans_mro(
+            self.metrics, self.result_location,
+        )
+        plot_collateral(
+            self.metrics, self.result_location,
+        )
 
     def step_network(self):
 
@@ -61,24 +141,26 @@ class InterBankNetwork:
             )
             deposits = self.deposits.sum() * dispatch
             shocks = deposits - self.deposits
-
         elif self.shock_method == "log-normal":
             # log-normal approach
             deposits = (
                 np.random.lognormal(size=len(self.banks)) * self.deposits
             )
             shocks = deposits - self.deposits
-
         elif self.shock_method == "normal":
             # lux's approach but with troncated gaussian
-            shocks = truncnorm.rvs(-3,3,size=len(self.banks)) * self.deposits / 3
+            shocks = (
+                truncnorm.rvs(-3, 3, size=len(self.banks)) * self.deposits / 3
+            )
+        else:
+            assert False, ""
 
         # print("Minimum shock is :", min(self.deposits + shocks))
         # print("Sum of shocks is {}".format(round(shocks.sum(), 2)))
         # print("Shocks : ", shocks)
-        assert abs(shocks.sum()) < 1e-8, "Shock doesn't sum to zero"
+        # assert abs(shocks.sum()) < 1e-8, "Shock doesn't sum to zero"
 
-        ix = np.arange(len(self.banks))
+        ix = np.arange(self.n_banks)
         for i in ix:
             self.banks[i].set_shock(shocks[i])
             self.banks[i].set_collateral(self.collateral)
@@ -89,43 +171,20 @@ class InterBankNetwork:
         ix = np.random.permutation(ix)
         for i in ix:
             self.banks[i].step_repos()
-        excess_liquidity = 0.0
-        total_deposits = 0.0
-        total_securities = 0.0
-        total_cash = 0.0
-        total_loans = 0.0
-        total_mro = 0.0
         for i in ix:
             self.banks[i].assert_minimal_reserve()
             self.banks[i].assert_alm()
             self.banks[i].assert_lcr()
             self.banks[i].steps += 1
-            self.adj_matrix[i, :] = np.array(
-                list(self.banks[i].reverse_repos.values())
-            )
-            self.deposits[i] = self.banks[i].liabilities["Deposits"]
-            excess_liquidity += (
-                self.banks[i].assets["Cash"]
-                - self.banks[i].alpha * self.banks[i].liabilities["Deposits"]
-            )
-            total_deposits += self.banks[i].liabilities["Deposits"]
-            total_securities += (
-                self.banks[i].assets["Securities Usable"]
-                + self.banks[i].off_balance["Securities Collateral"]
-            )
-            total_cash += self.banks[i].assets["Cash"]
-            total_mro += self.banks[i].liabilities["MROs"]
-            total_loans += self.banks[i].assets["Loans"]
-        # print("Total Loans - Total MROs is {}".format(total_loans - total_mro))
-        # print("Excess Liquidity is {}".format(excess_liquidity))
-        # print("Total Deposits is {}".format(total_deposits))
-        # print("Total Securities is {}".format(total_securities))
-        # print("Total Cash is {}".format(total_cash))
-        # print(self.adj_matrix)
+        self.total_steps += 1
+        self.update_metrics()
 
-    def simulate(self, time_steps):
+    def simulate(self, time_steps, save_every=10):
         for _ in tqdm(range(time_steps)):
             self.step_network()
+            if (self.total_steps + 1) % save_every == 0.0:
+                self.save_figs()
+                self.save_time_series()
         for bank in self.banks:
             print(bank)
             print(
