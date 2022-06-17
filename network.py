@@ -3,6 +3,7 @@ import random
 from scipy.stats import pareto
 from bank import BankAgent
 from tqdm import tqdm
+from scipy.stats import truncnorm
 
 
 class InterBankNetwork:
@@ -17,6 +18,8 @@ class InterBankNetwork:
         initial_l2s=3.0,
         collateral_value=1.0,
         init="constant",
+        shock_method="log-normal",
+        constant_dirichlet=1,
     ):
         self.banks = []
         self.deposits = np.zeros(n_banks)
@@ -47,18 +50,36 @@ class InterBankNetwork:
         self.collateral = 1.0
         self.adj_matrix = np.zeros((n_banks, n_banks))
         self.sigma_shock = perc_deposit_shock / 3.0
+        self.shock_method = shock_method
+        self.constant_dirichlet = constant_dirichlet
 
     def step_network(self):
-        dispatch = np.random.dirichlet(self.deposits * 100.0)
-        deposits = dispatch * self.deposits.sum()
-        shocks = deposits - self.deposits
+
+        if self.shock_method == "dirichlet":
+            # dirichlet approach
+            dispatch = np.random.dirichlet(
+                self.deposits * self.constant_dirichlet
+            )
+            deposits = self.deposits.sum() * dispatch
+            shocks = deposits - self.deposits
+
+        elif self.shock_method == "log-normal":
+            # log-normal approach
+            deposits = (
+                np.random.lognormal(size=len(self.banks)) * self.deposits
+            )
+            shocks = deposits - self.deposits
+
+        elif self.shock_method == "normal":
+            # lux's approach but with troncated gaussian
+            shocks = truncnorm.rvs(-3,3,size=len(self.banks)) * self.deposits / 3
+
         # print("Minimum shock is :", min(self.deposits + shocks))
         # print("Sum of shocks is {}".format(round(shocks.sum(), 2)))
         # print("Shocks : ", shocks)
-        assert abs(shocks.sum()) < 1e-8, "Shock doesn't sum to zero"
+        #assert abs(shocks.sum()) < 1e-8, "Shock doesn't sum to zero"
 
         ix = np.arange(len(self.banks))
-        ix = np.random.permutation(ix)
         for i in ix:
             self.banks[i].set_shock(shocks[i])
             self.banks[i].set_collateral(self.collateral)
@@ -106,10 +127,10 @@ class InterBankNetwork:
     def simulate(self, time_steps):
         for _ in tqdm(range(time_steps)):
             self.step_network()
-        for bank in self.banks:
-            print(bank)
-            print(
-                "Bank Deposits {} Bank Cash {}".format(
-                    bank.liabilities["Deposits"], bank.assets["Cash"]
-                )
-            )
+        # for bank in self.banks:
+        #     print(bank)
+        #     print(
+        #         "Bank Deposits {} Bank Cash {}".format(
+        #             bank.liabilities["Deposits"], bank.assets["Cash"]
+        #         )
+        #     )
