@@ -169,14 +169,20 @@ class BankAgent:
 
     def assert_lcr(self):
         assert (
-            self.liquidity_coverage_ratio() + 1e-8 >= 1.0
+            self.assets["Cash"]
+            + self.assets["Securities Usable"] * self.collateral
+            + self.off_balance["Securities Collateral"] * self.collateral
+            + self
+            + 1e-8
+            >= self.beta_star * self.liabilities["Deposits"]
         ), self.__str__() + "\nLCR not at its target value for bank {} at step {}".format(
             self.id, self.steps
         )
 
     def assert_minimal_reserve(self):
         assert (
-            self.cash_to_deposits() + 1e-8 >= self.alpha
+            self.assets["Cash"] + 1e-8
+            >= self.alpha * self.liabilities["Deposits"]
         ), self.__str__() + "\nMinimum reserves not respected for bank {} at step {}".format(
             self.id, self.steps
         )

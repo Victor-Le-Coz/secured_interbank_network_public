@@ -7,6 +7,7 @@ import os
 import shutil
 from graphics import (
     plot_loans_mro,
+    plot_repos,
     plot_collateral,
     plot_network,
     bar_plot_deposits,
@@ -18,7 +19,6 @@ class InterBankNetwork:
         self,
         n_banks,
         alpha_pareto=0.5,
-        perc_deposit_shock=1.0,
         beta_lcr=10.0,
         beta_star_lcr=10.0,
         initial_mr=1.0,
@@ -38,7 +38,6 @@ class InterBankNetwork:
         # Params
         self.n_banks = n_banks
         self.alpha_pareto = alpha_pareto
-        self.perc_deposit_shock = perc_deposit_shock
         self.beta_lcr = beta_lcr
         self.beta_star_lcr = beta_star_lcr
         self.initial_mr = initial_mr
@@ -137,10 +136,16 @@ class InterBankNetwork:
 
     def save_time_series(self):
         plot_loans_mro(
-            self.metrics, self.result_location,
+            self.metrics,
+            self.result_location,
+        )
+        plot_repos(
+            self.metrics,
+            self.result_location,
         )
         plot_collateral(
-            self.metrics, self.result_location,
+            self.metrics,
+            self.result_location,
         )
 
     def step_network(self):
@@ -159,7 +164,7 @@ class InterBankNetwork:
             )
             shocks = deposits - self.deposits
         elif self.shock_method == "normal":
-            # lux's approach but with troncated gaussian
+            # Lux's approach but with truncated gaussian
             shocks = (
                 truncnorm.rvs(-3, 3, size=len(self.banks)) * self.deposits / 3
             )
