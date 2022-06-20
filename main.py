@@ -13,8 +13,8 @@ if __name__ == "__main__":
         collateral_value=1.0,
         init="constant",
         shock_method="dirichlet",
-        constant_dirichlet=1,
+        std_dirichlet=0.1,
         result_location="./results/",
     )
 
-    network.simulate(100, 5)
+    network.simulate(10000, 50, 50)
