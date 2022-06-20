@@ -170,11 +170,10 @@ class BankAgent:
     def assert_lcr(self):
         assert (
             self.assets["Cash"]
-            + self.assets["Securities Usable"] * self.collateral
             + self.off_balance["Securities Collateral"] * self.collateral
-            + self
+            + self.assets["Securities Usable"] * self.collateral
             + 1e-8
-            >= self.beta_star * self.liabilities["Deposits"]
+            >= self.liabilities["Deposits"] * self.beta
         ), self.__str__() + "\nLCR not at its target value for bank {} at step {}".format(
             self.id, self.steps
         )
@@ -220,8 +219,8 @@ class BankAgent:
         cash_target = -(
             self.beta_star * self.liabilities["Deposits"]
             - self.assets["Cash"]
-            - self.assets["Securities Usable"]
-            - self.off_balance["Securities Collateral"]
+            - self.assets["Securities Usable"] * self.collateral
+            - self.off_balance["Securities Collateral"] * self.collateral
         )
         # print("Cash Target is {}".format(cash_target))
         self.assets["Cash"] -= cash_target
@@ -234,8 +233,8 @@ class BankAgent:
         cash_target = (
             self.beta_star * self.liabilities["Deposits"]
             - self.assets["Cash"]
-            - self.assets["Securities Usable"]
-            - self.off_balance["Securities Collateral"]
+            - self.assets["Securities Usable"] * self.collateral
+            - self.off_balance["Securities Collateral"] * self.collateral
         )
         # print("Cash Target is {}".format(cash_target))
         self.liabilities["MROs"] += cash_target
