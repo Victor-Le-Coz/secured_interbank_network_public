@@ -162,7 +162,7 @@ def plot_repos(metrics, path):
     plt.title("Total Amount of Repos/Reverse Repos")
     plt.savefig(os.path.join(path, "Repos.png"))
 
-    
+
 def plot_jaccard(metrics, period, path):
     plt.figure()
     length = len(metrics["Jaccard Index"])

@@ -185,14 +185,14 @@ class InterBankNetwork:
 
     def save_time_series(self):
         gx.plot_repos(
-            self.metrics,
-            self.result_location,
+            self.metrics, self.result_location,
         )
         gx.plot_loans_mro(
             self.metrics, self.result_location,
         )
-        gx.plot_collateral(
-            self.metrics, self.result_location,
+        gx.plot_collateral(self.metrics, self.result_location)
+        gx.plot_jaccard(self.metrics, self.period, self.result_location)
+        gx.plot_excess_liquidity(self.metrics, self.result_location)
 
     def step_network(self):
 
