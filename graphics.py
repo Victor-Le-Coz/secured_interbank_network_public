@@ -44,6 +44,19 @@ def plot_loans_mro(metrics, path):
     plt.close()
 
 
+def plot_jaccard(metrics, period, path):
+    plt.figure()
+    length = len(metrics["Jaccard Index"])
+    plt.plot(np.arange(length), metrics["Jaccard Index"])
+    plt.xlabel("Steps")
+    plt.ylabel("Jaccard Index")
+    plt.title(
+        "Temporal Developpement of Jaccard Index for {} period".format(period)
+    )
+    plt.savefig(os.path.join(path, "jaccard_index.png"))
+    plt.close()
+
+
 def plot_excess_liquidity(metrics, path):
     plt.figure()
     length = len(metrics["Excess Liquidity"])
