@@ -31,6 +31,113 @@ def bar_plot_deposits(deposits, path, step):
     plt.close()
 
 
+def bar_plot_balance_sheet(sheets, assets, liabilities, path, step):
+
+    plt.figure(figsize=(30, 15))
+    fig, (ax1, ax2) = plt.subplots(2)
+    fig.set_figheight(15)
+    fig.set_figwidth(30)
+
+    ix_sorted = np.argsort(sheets)
+    banks_sorted = ["Bank {}".format(str(b)) for b in ix_sorted]
+
+    a1 = assets["Cash"][ix_sorted]
+    a2 = a1 + assets["Securities Usable"][ix_sorted]
+    a3 = a2 + assets["Securities Encumbered"][ix_sorted]
+    a4 = a3 + assets["Loans"][ix_sorted]
+    a5 = a4 + assets["Reverse Repos"][ix_sorted]
+
+    b1 = liabilities["Own Funds"][ix_sorted]
+    b2 = b1 + liabilities["Deposits"][ix_sorted]
+    b3 = b2 + liabilities["Repos"][ix_sorted]
+    b4 = b3 + liabilities["MROs"][ix_sorted]
+
+    barWidth = 0.75
+
+    ax1.bar(
+        banks_sorted, height=a1, color="cyan", width=barWidth, label="Cash",
+    )
+    ax1.bar(
+        banks_sorted,
+        height=assets["Securities Usable"][ix_sorted],
+        bottom=a1,
+        color="green",
+        width=barWidth,
+        label="Securities Usable",
+    )
+    ax1.bar(
+        banks_sorted,
+        height=assets["Securities Encumbered"][ix_sorted],
+        bottom=a2,
+        color="red",
+        width=barWidth,
+        label="Securities Encumbered",
+    )
+    ax1.bar(
+        banks_sorted,
+        height=assets["Loans"][ix_sorted],
+        bottom=a3,
+        color="blue",
+        width=barWidth,
+        label="Loans",
+    )
+    ax1.bar(
+        banks_sorted,
+        height=assets["Reverse Repos"][ix_sorted],
+        bottom=a4,
+        color="yellow",
+        width=barWidth,
+        label="Reverse Repos",
+    )
+    ax1.legend(
+        [
+            "Cash",
+            "Securities Usable",
+            "Securities Encumbered",
+            "Loans",
+            "Reverse Repos",
+        ]
+    )
+    ax1.tick_params(axis="x", labelrotation=90, labelsize="small")
+
+    ax2.bar(
+        banks_sorted,
+        height=b1,
+        color="cyan",
+        width=barWidth,
+        label="Own Funds",
+    )
+    ax2.bar(
+        banks_sorted,
+        height=liabilities["Deposits"][ix_sorted],
+        bottom=b1,
+        color="green",
+        width=barWidth,
+        label="Deposits",
+    )
+    ax2.bar(
+        banks_sorted,
+        height=liabilities["Repos"][ix_sorted],
+        bottom=b2,
+        color="red",
+        width=barWidth,
+        label="Repos",
+    )
+    ax2.bar(
+        banks_sorted,
+        height=liabilities["MROs"][ix_sorted],
+        bottom=b3,
+        color="blue",
+        width=barWidth,
+        label="MROs",
+    )
+    ax2.legend(["Own Funds", "Deposits", "Repos", "MROs"])
+    ax2.tick_params(axis="x", labelrotation=90, labelsize="small")
+
+    plt.savefig(os.path.join(path, "step_{}_balance_sheets.png".format(step)))
+    plt.close()
+
+
 def plot_loans_mro(metrics, path):
     plt.figure()
     length = len(metrics["Securities Usable"])

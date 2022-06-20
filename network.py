@@ -48,6 +48,9 @@ class InterBankNetwork:
         # Internal
         self.banks = []
         self.deposits = np.zeros(n_banks)
+        self.balance_sheets = np.zeros(n_banks)
+        self.total_assets = {}
+        self.total_liabilities = {}
         self.collateral = 1.0
         self.adj_matrix = np.zeros((n_banks, n_banks))
         self.prev_adj_matrix = np.zeros((n_banks, n_banks))
@@ -102,11 +105,25 @@ class InterBankNetwork:
             "Excess Liquidity": [],
             "Jaccard Index": [],
         }
+        self.total_liabilities = {
+            "Own Funds": np.zeros(self.n_banks),
+            "Deposits": np.zeros(self.n_banks),
+            "Repos": np.zeros(self.n_banks),
+            "MROs": np.zeros(self.n_banks),
+        }
+        self.total_assets = {
+            "Cash": np.zeros(self.n_banks),
+            "Securities Usable": np.zeros(self.n_banks),
+            "Securities Encumbered": np.zeros(self.n_banks),
+            "Loans": np.zeros(self.n_banks),
+            "Reverse Repos": np.zeros(self.n_banks),
+        }
         self.total_steps = 0.0
         if os.path.exists(self.result_location):
             shutil.rmtree(self.result_location)
         os.makedirs(os.path.join(self.result_location, "Networks"))
         os.makedirs(os.path.join(self.result_location, "Deposits"))
+        os.makedirs(os.path.join(self.result_location, "BalanceSheets"))
 
     def update_metrics(self):
         bank_network = nx.from_numpy_matrix(
@@ -118,13 +135,16 @@ class InterBankNetwork:
         for i, bank in enumerate(self.banks):
             for key in bank.assets.keys():
                 self.metrics[key][-1] += bank.assets[key]
+                self.total_assets[key][i] = bank.assets[key]
             for key in bank.liabilities.keys():
                 self.metrics[key][-1] += bank.liabilities[key]
+                self.total_liabilities[key][i] = bank.liabilities[key]
             for key in bank.off_balance.keys():
                 self.metrics[key][-1] += bank.off_balance[key]
             self.adj_matrix[i, :] = np.array(
                 list(self.banks[i].reverse_repos.values())
             )
+            self.balance_sheets[i] = self.banks[i].total_assets()
             self.deposits[i] = self.banks[i].liabilities["Deposits"]
             self.metrics["Excess Liquidity"][-1] += (
                 self.banks[i].assets["Cash"]
@@ -155,6 +175,13 @@ class InterBankNetwork:
         gx.bar_plot_deposits(
             self.deposits,
             os.path.join(self.result_location, "Deposits"),
+            self.total_steps,
+        )
+        gx.bar_plot_balance_sheet(
+            self.balance_sheets,
+            self.total_assets,
+            self.total_liabilities,
+            os.path.join(self.result_location, "BalanceSheets"),
             self.total_steps,
         )
 
@@ -212,16 +239,16 @@ class InterBankNetwork:
             self.banks[i].assert_alm()
             self.banks[i].assert_lcr()
             self.banks[i].steps += 1
-        self.update_metrics()
-        self.total_steps += 1
 
     def simulate(self, time_steps, save_every=10, jaccard_period=10):
         self.period = jaccard_period
         for _ in tqdm(range(time_steps)):
-            self.step_network()
+            self.update_metrics()
             if self.total_steps % save_every == 0.0:
                 self.save_figs()
                 self.save_time_series()
+            self.step_network()
+            self.total_steps += 1
         for bank in self.banks:
             print(bank)
             print(
