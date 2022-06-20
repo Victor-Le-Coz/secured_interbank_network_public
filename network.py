@@ -3,15 +3,10 @@ from scipy.stats import pareto
 from bank import BankAgent
 from tqdm import tqdm
 from scipy.stats import truncnorm
+import networkx as nx
 import os
 import shutil
-from graphics import (
-    plot_loans_mro,
-    plot_repos,
-    plot_collateral,
-    plot_network,
-    bar_plot_deposits,
-)
+import graphics as gx
 
 
 class InterBankNetwork:
@@ -26,7 +21,7 @@ class InterBankNetwork:
         collateral_value=1.0,
         init="constant",
         shock_method="log-normal",
-        constant_dirichlet=1,
+        std_dirichlet=0.1,
         result_location="./results/",
     ):
         assert init in ["constant", "pareto"], (
@@ -45,7 +40,7 @@ class InterBankNetwork:
         self.collateral_value = collateral_value
         self.init = init
         self.shock_method = shock_method
-        self.constant_dirichlet = constant_dirichlet
+        self.constant_dirichlet = 1.0 / (std_dirichlet ** 2.0)
         self.result_location = result_location
 
         # Internal
@@ -53,6 +48,7 @@ class InterBankNetwork:
         self.deposits = np.zeros(n_banks)
         self.collateral = 1.0
         self.adj_matrix = np.zeros((n_banks, n_banks))
+        self.prev_adj_matrix = np.zeros((n_banks, n_banks))
         self.metrics = {}
         self.total_steps = 0.0
         self.reset_network()
@@ -100,6 +96,9 @@ class InterBankNetwork:
             "MROs": [],
             "Securities Collateral": [],
             "Securities Reused": [],
+            "Degree": [],
+            "Excess Liquidity": [],
+            "Jaccard Index": [],
         }
         self.total_steps = 0.0
         if os.path.exists(self.result_location):
@@ -108,6 +107,10 @@ class InterBankNetwork:
         os.makedirs(os.path.join(self.result_location, "Deposits"))
 
     def update_metrics(self):
+        bank_network = nx.from_numpy_matrix(
+            self.adj_matrix, parallel_edges=False, create_using=nx.DiGraph
+        )
+
         for key in self.metrics.keys():
             self.metrics[key].append(0.0)
         for i, bank in enumerate(self.banks):
@@ -121,40 +124,55 @@ class InterBankNetwork:
                 list(self.banks[i].reverse_repos.values())
             )
             self.deposits[i] = self.banks[i].liabilities["Deposits"]
+            self.metrics["Excess Liquidity"][-1] += (
+                self.banks[i].assets["Cash"]
+                - self.banks[i].alpha * self.banks[i].liabilities["Deposits"]
+            )
+        self.metrics["Degree"][-1] = np.array(bank_network.in_degree())[
+            :, 1
+        ].mean()
+        binary_adj = np.where(self.adj_matrix > 0.0, True, False)
+        prev_binary_adj = np.where(self.prev_adj_matrix > 0.0, True, False)
+        if self.total_steps > 0 and self.total_steps % self.period == 0:
+            self.metrics["Jaccard Index"][-1] = (
+                np.logical_and(binary_adj, prev_binary_adj).sum()
+                / np.logical_or(binary_adj, prev_binary_adj).sum()
+            )
+            self.prev_adj_matrix = self.adj_matrix.copy()
+        elif self.total_steps > 0:
+            self.metrics["Jaccard Index"][-1] = self.metrics["Jaccard Index"][
+                -2
+            ]
 
     def save_figs(self):
-        plot_network(
+        gx.plot_network(
             self.adj_matrix,
             os.path.join(self.result_location, "Networks"),
             self.total_steps,
         )
-        bar_plot_deposits(
+        gx.bar_plot_deposits(
             self.deposits,
             os.path.join(self.result_location, "Deposits"),
             self.total_steps,
         )
 
     def save_time_series(self):
-        plot_loans_mro(
+        gx.plot_repos(
             self.metrics,
             self.result_location,
         )
-        plot_repos(
-            self.metrics,
-            self.result_location,
+        gx.plot_loans_mro(
+            self.metrics, self.result_location,
         )
-        plot_collateral(
-            self.metrics,
-            self.result_location,
-        )
+        gx.plot_collateral(
+            self.metrics, self.result_location,
 
     def step_network(self):
 
         if self.shock_method == "dirichlet":
             # dirichlet approach
-            dispatch = np.random.dirichlet(
-                self.deposits * self.constant_dirichlet
-            )
+            deposits = np.maximum(self.deposits, np.zeros(self.n_banks)) + 1e-8
+            dispatch = np.random.dirichlet(deposits * self.constant_dirichlet)
             deposits = self.deposits.sum() * dispatch
             shocks = deposits - self.deposits
         elif self.shock_method == "log-normal":
@@ -192,13 +210,14 @@ class InterBankNetwork:
             self.banks[i].assert_alm()
             self.banks[i].assert_lcr()
             self.banks[i].steps += 1
-        self.total_steps += 1
         self.update_metrics()
+        self.total_steps += 1
 
-    def simulate(self, time_steps, save_every=10):
+    def simulate(self, time_steps, save_every=10, jaccard_period=10):
+        self.period = jaccard_period
         for _ in tqdm(range(time_steps)):
             self.step_network()
-            if (self.total_steps + 1) % save_every == 0.0:
+            if self.total_steps % save_every == 0.0:
                 self.save_figs()
                 self.save_time_series()
         for bank in self.banks:
