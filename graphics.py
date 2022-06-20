@@ -44,6 +44,17 @@ def plot_loans_mro(metrics, path):
     plt.close()
 
 
+def plot_excess_liquidity(metrics, path):
+    plt.figure()
+    length = len(metrics["Excess Liquidity"])
+    plt.plot(np.arange(length), metrics["Excess Liquidity"])
+    plt.xlabel("Steps")
+    plt.ylabel("Excess Liquidity")
+    plt.title("Excess Liquidity in Market")
+    plt.savefig(os.path.join(path, "excess_liquidity.png"))
+    plt.close()
+
+
 def plot_collateral(metrics, path):
     plt.figure()
     length = len(metrics["Securities Usable"])
@@ -66,12 +77,22 @@ def plot_collateral(metrics, path):
     plt.close()
 
 
+def plot_degre_network(metrics, path):
+    plt.figure()
+    length = len(metrics["Degree"])
+    plt.plot(np.arange(length), metrics["Degree"])
+    plt.xlabel("Steps")
+    plt.ylabel("Average Repos")
+    plt.title("Average Amount of Repos in network")
+    plt.savefig(os.path.join(path, "average_repos.png"))
+    plt.close()
+
+
 def plot_network(adj, path, step):
     # build a network from an adjency matrix
     bank_network = nx.from_numpy_matrix(
         adj, parallel_edges=False, create_using=nx.DiGraph
     )
-
     # define the weight list from the weight information
     weights = [
         bank_network[node1][node2]["weight"]

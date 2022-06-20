@@ -3,14 +3,10 @@ from scipy.stats import pareto
 from bank import BankAgent
 from tqdm import tqdm
 from scipy.stats import truncnorm
+import networkx as nx
 import os
 import shutil
-from graphics import (
-    plot_loans_mro,
-    plot_collateral,
-    plot_network,
-    bar_plot_deposits,
-)
+import graphics as gx
 
 
 class InterBankNetwork:
@@ -101,6 +97,8 @@ class InterBankNetwork:
             "MROs": [],
             "Securities Collateral": [],
             "Securities Reused": [],
+            "Degree": [],
+            "Excess Liquidity": [],
         }
         self.total_steps = 0.0
         if os.path.exists(self.result_location):
@@ -109,6 +107,10 @@ class InterBankNetwork:
         os.makedirs(os.path.join(self.result_location, "Deposits"))
 
     def update_metrics(self):
+        bank_network = nx.from_numpy_matrix(
+            self.adj_matrix, parallel_edges=False, create_using=nx.DiGraph
+        )
+
         for key in self.metrics.keys():
             self.metrics[key].append(0.0)
         for i, bank in enumerate(self.banks):
@@ -122,26 +124,35 @@ class InterBankNetwork:
                 list(self.banks[i].reverse_repos.values())
             )
             self.deposits[i] = self.banks[i].liabilities["Deposits"]
+            self.metrics["Excess Liquidity"][-1] += (
+                self.banks[i].assets["Cash"]
+                - self.banks[i].alpha * self.banks[i].liabilities["Deposits"]
+            )
+        self.metrics["Degree"][-1] = np.array(bank_network.in_degree())[
+            :, 1
+        ].mean()
 
     def save_figs(self):
-        plot_network(
+        gx.plot_network(
             self.adj_matrix,
             os.path.join(self.result_location, "Networks"),
             self.total_steps,
         )
-        bar_plot_deposits(
+        gx.bar_plot_deposits(
             self.deposits,
             os.path.join(self.result_location, "Deposits"),
             self.total_steps,
         )
 
     def save_time_series(self):
-        plot_loans_mro(
+        gx.plot_loans_mro(
             self.metrics, self.result_location,
         )
-        plot_collateral(
+        gx.plot_collateral(
             self.metrics, self.result_location,
         )
+        gx.plot_degre_network(self.metrics, self.result_location)
+        gx.plot_excess_liquidity(self.metrics, self.result_location)
 
     def step_network(self):
 
