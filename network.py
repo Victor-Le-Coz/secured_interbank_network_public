@@ -21,7 +21,7 @@ class InterBankNetwork:
         collateral_value=1.0,
         init="constant",
         shock_method="log-normal",
-        std_dirichlet=0.1,
+        std_law=0.1,
         result_location="./results/",
     ):
         assert init in ["constant", "pareto"], (
@@ -40,7 +40,12 @@ class InterBankNetwork:
         self.collateral_value = collateral_value
         self.init = init
         self.shock_method = shock_method
-        self.constant_dirichlet = 1.0 / (std_dirichlet ** 2.0)
+        if shock_method == "dirichlet":
+            self.std_control = 1.0 / (std_law ** 2.0)
+            self.conservative_shock = True
+        elif shock_method == "log-normal":
+            self.std_control = np.sqrt(np.log(1.0 + std_law ** 2.0))
+            self.conservative_shock = False
         self.result_location = result_location
 
         # Internal
@@ -83,6 +88,7 @@ class InterBankNetwork:
                     beta_star_lcr=self.beta_star_lcr,
                     initial_l2s=self.initial_l2s,
                     collateral_value=self.collateral_value,
+                    conservative_shock=self.conservative_shock,
                 )
             )
         for bank in self.banks:
@@ -205,14 +211,20 @@ class InterBankNetwork:
             # deposits = self.deposits.sum() * dispatch
             dispatch = np.random.dirichlet(
                 (self.total_assets["Loans"] / self.total_assets["Loans"].sum())
-                * self.constant_dirichlet
+                * self.std_control
             )
             deposits = self.deposits.sum() * dispatch
             shocks = deposits - self.deposits
+            assert abs(shocks.sum()) < 1e-8, "Shock doesn't sum to zero"
         elif self.shock_method == "log-normal":
             # log-normal approach
             deposits = (
-                np.random.lognormal(size=len(self.banks)) * self.deposits
+                np.random.lognormal(
+                    mean=-0.5 * self.std_control ** 2,
+                    sigma=self.std_control,
+                    size=len(self.banks),
+                )
+                * self.deposits
             )
             shocks = deposits - self.deposits
         elif self.shock_method == "normal":

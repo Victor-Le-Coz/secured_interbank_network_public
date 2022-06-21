@@ -11,6 +11,7 @@ class BankAgent:
         initial_mr=1.0,
         initial_l2s=3.0,
         collateral_value=1.0,
+        conservative_shock=True,
     ):
 
         self.id = str(bank_id)
@@ -22,6 +23,7 @@ class BankAgent:
         self.beta_star = beta_star_lcr / 100.0
         self.reverse_accept = 0.0
         self.shock = 0.0
+        self.conservative_shock = conservative_shock
 
         # Learning algorithm
         self.trust = {}
@@ -318,6 +320,10 @@ class BankAgent:
             repo_ask = rest
             if rest == 0.0 or len(bank_list) == 0:
                 break
+        if not self.conservative_shock:
+            self.liabilities["MROs"] += repo_ask
+            self.assets["Cash"] += repo_ask
+            repo_ask = 0.0
         assert (
             repo_ask < 1e-8
         ), self.__str__() + "\nRepo needs not filled for bank {}".format(

@@ -9,8 +9,9 @@ def bar_plot_deposits(deposits, path, step):
     plt.figure(figsize=(20, 10))
     banks_sorted = np.argsort(deposits)
     banks_sorted = ["Bank {}".format(str(b)) for b in banks_sorted]
-    deposits_sorted = np.sort(deposits)
-    deposits_sorted = deposits_sorted / deposits_sorted.sum()
+    deposits_sorted = deposits.copy()
+    # deposits_sorted = np.sort(deposits)
+    # deposits_sorted = deposits_sorted / deposits_sorted.sum()
 
     barWidth = 0.75
     br = np.arange(len(deposits))
