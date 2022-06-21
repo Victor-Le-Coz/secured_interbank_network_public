@@ -39,7 +39,7 @@ def bar_plot_balance_sheet(sheets, assets, liabilities, path, step):
     fig.set_figwidth(30)
 
     ix_sorted = np.argsort(sheets)
-    banks_sorted = ["Bank {}".format(str(b)) for b in ix_sorted]
+    banks_sorted = ["Bank {}".format(str(b)+1) for b in ix_sorted]
 
     a1 = assets["Cash"][ix_sorted]
     a2 = a1 + assets["Securities Usable"][ix_sorted]
@@ -176,14 +176,16 @@ def plot_jaccard(metrics, period, path):
     plt.close()
 
 
-def plot_excess_liquidity(metrics, path):
+def plot_excess_liquidity_and_deposits(metrics, path):
     plt.figure()
     length = len(metrics["Excess Liquidity"])
     plt.plot(np.arange(length), metrics["Excess Liquidity"])
+    plt.plot(np.arange(length), metrics["Deposits"])
+    plt.legend(["Excess Liquidity", "Deposits"])
     plt.xlabel("Steps")
-    plt.ylabel("Excess Liquidity")
-    plt.title("Excess Liquidity in Market")
-    plt.savefig(os.path.join(path, "excess_liquidity.png"))
+    plt.ylabel("Total Network Amount")
+    plt.title("Total Excess Liquidity and total Deposits")
+    plt.savefig(os.path.join(path, "excess_liquidity_and_deposits.png"))
     plt.close()
 
 

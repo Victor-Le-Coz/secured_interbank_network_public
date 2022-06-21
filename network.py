@@ -22,6 +22,7 @@ class InterBankNetwork:
         init="constant",
         shock_method="log-normal",
         std_dirichlet=0.1,
+        std_log_normal=0.1,
         result_location="./results/",
     ):
         assert init in ["constant", "pareto"], (
@@ -41,6 +42,7 @@ class InterBankNetwork:
         self.init = init
         self.shock_method = shock_method
         self.constant_dirichlet = 1.0 / (std_dirichlet ** 2.0)
+        self.std_log_normal = std_log_normal
         self.result_location = result_location
 
         # Internal
@@ -170,11 +172,7 @@ class InterBankNetwork:
             os.path.join(self.result_location, "Networks"),
             self.total_steps,
         )
-        gx.bar_plot_deposits(
-            self.deposits,
-            os.path.join(self.result_location, "Deposits"),
-            self.total_steps,
-        )
+
         gx.bar_plot_balance_sheet(
             self.balance_sheets,
             self.total_assets,
@@ -193,6 +191,15 @@ class InterBankNetwork:
         )
         gx.plot_collateral(
             self.metrics, self.result_location,
+        )
+        gx.plot_jaccard(
+            self.metrics,
+            self.period,
+            self.result_location)
+
+        gx.plot_excess_liquidity_and_deposits(
+            self.metrics, self.result_location,
+        )
 
     def step_network(self):
 
@@ -205,7 +212,7 @@ class InterBankNetwork:
         elif self.shock_method == "log-normal":
             # log-normal approach
             deposits = (
-                np.random.lognormal(size=len(self.banks)) * self.deposits
+                np.random.lognormal(mean=-self.std_log_normal**2/2, sigma=self.std_log_normal,size=len(self.banks)) * self.deposits
             )
             shocks = deposits - self.deposits
         elif self.shock_method == "normal":
@@ -240,13 +247,6 @@ class InterBankNetwork:
 
     def simulate(self, time_steps, save_every=10, jaccard_period=10):
         self.period = jaccard_period
-        for _ in tqdm(range(time_steps)):
-            self.update_metrics()
-            if self.total_steps % save_every == 0.0:
-                self.save_figs()
-                self.save_time_series()
-            self.step_network()
-            self.total_steps += 1
         for bank in self.banks:
             print(bank)
             print(
@@ -254,5 +254,13 @@ class InterBankNetwork:
                     bank.liabilities["Deposits"], bank.assets["Cash"]
                 )
             )
+        for _ in tqdm(range(time_steps)):
+            self.update_metrics()
+            if self.total_steps % save_every == 0.0:
+                self.save_figs()
+                self.save_time_series()
+            self.step_network()
+            self.total_steps += 1
+
         self.save_figs()
         self.save_time_series()
