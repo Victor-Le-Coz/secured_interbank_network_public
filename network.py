@@ -122,12 +122,12 @@ class InterBankNetwork:
         os.makedirs(os.path.join(self.result_location, "Networks"))
         os.makedirs(os.path.join(self.result_location, "Deposits"))
         os.makedirs(os.path.join(self.result_location, "BalanceSheets"))
+        self.update_metrics()
 
     def update_metrics(self):
         bank_network = nx.from_numpy_matrix(
             self.adj_matrix, parallel_edges=False, create_using=nx.DiGraph
         )
-
         for key in self.metrics.keys():
             self.metrics[key].append(0.0)
         for i, bank in enumerate(self.banks):
@@ -198,8 +198,15 @@ class InterBankNetwork:
 
         if self.shock_method == "dirichlet":
             # dirichlet approach
-            deposits = np.maximum(self.deposits, np.zeros(self.n_banks)) + 1e-8
-            dispatch = np.random.dirichlet(deposits * self.constant_dirichlet)
+            # deposits = np.maximum(self.deposits, np.zeros(self.n_banks)) + 1e-8
+            # dispatch = np.random.dirichlet(
+            #     (deposits / deposits.sum()) * self.constant_dirichlet
+            # )
+            # deposits = self.deposits.sum() * dispatch
+            dispatch = np.random.dirichlet(
+                (self.total_assets["Loans"] / self.total_assets["Loans"].sum())
+                * self.constant_dirichlet
+            )
             deposits = self.deposits.sum() * dispatch
             shocks = deposits - self.deposits
         elif self.shock_method == "log-normal":
@@ -241,11 +248,11 @@ class InterBankNetwork:
     def simulate(self, time_steps, save_every=10, jaccard_period=10):
         self.period = jaccard_period
         for _ in tqdm(range(time_steps)):
-            self.update_metrics()
             if self.total_steps % save_every == 0.0:
                 self.save_figs()
                 self.save_time_series()
             self.step_network()
+            self.update_metrics()
             self.total_steps += 1
         for bank in self.banks:
             print(bank)

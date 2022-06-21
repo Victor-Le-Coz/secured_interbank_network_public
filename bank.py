@@ -323,23 +323,30 @@ class BankAgent:
         ), self.__str__() + "\nRepo needs not filled for bank {}".format(
             self.id
         )
+        for bank in bank_list:
+            self.visits[bank] = self.visits[bank] - 0.1 * self.visits[bank]
 
     def choose_bank(self, bank_list):
         ucts = {}
         for b in self.trust.keys():
             if b in bank_list:
-                ucts[b] = self.trust[
-                    b
-                ] / self.steps + self.exploration_coeff * np.sqrt(
-                    self.steps / self.visits[b]
+                # ucts[b] = self.trust[
+                #     b
+                # ] / self.steps + self.exploration_coeff * np.sqrt(
+                #     self.steps / self.visits[b]
+                # )
+                ucts[b] = self.trust[b] + self.exploration_coeff * np.sqrt(
+                    1.0 / self.visits[b]
                 )
             else:
                 ucts[b] = 0.0
         return max(ucts, key=ucts.get)
 
     def update_learning(self, bank, value):
-        self.visits[bank] += 1
-        self.trust[bank] += value
+        # self.visits[bank] += 1
+        # self.trust[bank] += value
+        self.visits[bank] = self.visits[bank] + 0.1 * (1.0 - self.visits[bank])
+        self.trust[bank] = self.trust[bank] + 0.1 * (value - self.trust[bank])
 
     def ask_for_repo(self, bank_id, amount):
         reverse_accept = (
