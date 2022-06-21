@@ -122,8 +122,13 @@ class BankAgent:
             self.id,
             round(self.total_assets(), 2),
             round(self.assets["Cash"], 2),
-            round(self.assets["Securities Usable"] * self.collateral, 2),
-            round(self.assets["Securities Encumbered"] * self.collateral, 2),
+            round(
+                self.assets["Securities Usable"] * self.collateral, 2
+            ),
+            round(
+                self.assets["Securities Encumbered"] * self.collateral,
+                2,
+            ),
             round(self.assets["Reverse Repos"], 2),
             round(self.assets["Loans"], 2),
             round(self.total_liabilities(), 2),
@@ -132,9 +137,15 @@ class BankAgent:
             round(self.liabilities["Repos"], 2),
             round(self.liabilities["MROs"], 2),
             round(
-                self.off_balance["Securities Collateral"] * self.collateral, 2
+                self.off_balance["Securities Collateral"]
+                * self.collateral,
+                2,
             ),
-            round(self.off_balance["Securities Reused"] * self.collateral, 2),
+            round(
+                self.off_balance["Securities Reused"]
+                * self.collateral,
+                2,
+            ),
             round(self.liquidity_coverage_ratio() * 100, 2),
             round(self.cash_to_deposits() * 100, 2),
             round(self.leverage_to_solvency_ratio() * 100, 2),
@@ -146,7 +157,9 @@ class BankAgent:
             self.assets["Cash"]
             + self.assets["Securities Usable"] * self.collateral
         )
-        lcr += self.off_balance["Securities Collateral"] * self.collateral
+        lcr += (
+            self.off_balance["Securities Collateral"] * self.collateral
+        )
         lcr /= self.beta * self.liabilities["Deposits"]
         return lcr
 
@@ -162,8 +175,10 @@ class BankAgent:
             + self.assets["Reverse Repos"]
             + (
                 self.assets["Reverse Repos"]
-                - self.off_balance["Securities Collateral"] * self.collateral
-                - self.off_balance["Securities Reused"] * self.collateral
+                - self.off_balance["Securities Collateral"]
+                * self.collateral
+                - self.off_balance["Securities Reused"]
+                * self.collateral
             )
         )
         ltsr = self.liabilities["Own Funds"] / ltsr
@@ -172,7 +187,8 @@ class BankAgent:
     def assert_lcr(self):
         assert (
             self.assets["Cash"]
-            + self.off_balance["Securities Collateral"] * self.collateral
+            + self.off_balance["Securities Collateral"]
+            * self.collateral
             + self.assets["Securities Usable"] * self.collateral
             + 1e-8
             >= self.liabilities["Deposits"] * self.beta
@@ -197,7 +213,10 @@ class BankAgent:
 
     def assert_alm(self):
         assert (
-            np.abs(self.total_assets() / self.total_liabilities() - 1.0) < 1e-8
+            np.abs(
+                self.total_assets() / self.total_liabilities() - 1.0
+            )
+            < 1e-8
         ), self.__str__() + "\nAssets don't match Liabilities for bank {} at step {}".format(
             self.id, self.steps
         )
@@ -222,7 +241,8 @@ class BankAgent:
             self.beta_star * self.liabilities["Deposits"]
             - self.assets["Cash"]
             - self.assets["Securities Usable"] * self.collateral
-            - self.off_balance["Securities Collateral"] * self.collateral
+            - self.off_balance["Securities Collateral"]
+            * self.collateral
         )
         # print("Cash Target is {}".format(cash_target))
         self.assets["Cash"] -= cash_target
@@ -236,7 +256,8 @@ class BankAgent:
             self.beta_star * self.liabilities["Deposits"]
             - self.assets["Cash"]
             - self.assets["Securities Usable"] * self.collateral
-            - self.off_balance["Securities Collateral"] * self.collateral
+            - self.off_balance["Securities Collateral"]
+            * self.collateral
         )
         # print("Cash Target is {}".format(cash_target))
         self.liabilities["MROs"] += cash_target
@@ -244,7 +265,8 @@ class BankAgent:
 
     def step_end_repos_chain(self):
         self.end_repos(
-            self.assets["Cash"] - self.alpha * self.liabilities["Deposits"]
+            self.assets["Cash"]
+            - self.alpha * self.liabilities["Deposits"]
         )
 
     def end_repos(self, target):
@@ -282,7 +304,10 @@ class BankAgent:
 
     def step_repos(self):
         self.enter_repos(
-            -(self.assets["Cash"] - self.alpha * self.liabilities["Deposits"])
+            -(
+                self.assets["Cash"]
+                - self.alpha * self.liabilities["Deposits"]
+            )
         )
 
     def enter_repos(self, repo_ask):
@@ -330,7 +355,9 @@ class BankAgent:
             self.id
         )
         for bank in bank_list:
-            self.visits[bank] = self.visits[bank] - 0.1 * self.visits[bank]
+            self.visits[bank] = (
+                self.visits[bank] - 0.1 * self.visits[bank]
+            )
 
     def choose_bank(self, bank_list):
         ucts = {}
@@ -341,7 +368,9 @@ class BankAgent:
                 # ] / self.steps + self.exploration_coeff * np.sqrt(
                 #     self.steps / self.visits[b]
                 # )
-                ucts[b] = self.trust[b] + self.exploration_coeff * np.sqrt(
+                ucts[b] = self.trust[
+                    b
+                ] + self.exploration_coeff * np.sqrt(
                     1.0 / self.visits[b]
                 )
             else:
@@ -351,16 +380,21 @@ class BankAgent:
     def update_learning(self, bank, value):
         # self.visits[bank] += 1
         # self.trust[bank] += value
-        self.visits[bank] = self.visits[bank] + 0.1 * (1.0 - self.visits[bank])
-        self.trust[bank] = self.trust[bank] + 0.1 * (value - self.trust[bank])
+        self.visits[bank] = self.visits[bank] + 0.1 * (
+            1.0 - self.visits[bank]
+        )
+        self.trust[bank] = self.trust[bank] + 0.1 * (
+            value - self.trust[bank]
+        )
 
     def ask_for_repo(self, bank_id, amount):
         reverse_accept = (
-            self.assets["Cash"] - self.alpha * self.liabilities["Deposits"]
+            self.assets["Cash"]
+            - self.alpha * self.liabilities["Deposits"]
         )
-        assert self.id != bank_id, "Bank {} is lending to itself".format(
-            self.id
-        )
+        assert (
+            self.id != bank_id
+        ), "Bank {} is lending to itself".format(self.id)
         # print(
         #     "Repo ask {}:{} => {}:{}".format(
         #         bank_id, amount, self.id, reverse_accept
