@@ -25,12 +25,10 @@ class InterBankNetwork:
         result_location="./results/",
     ):
         assert init in ["constant", "pareto"], (
-            "Not valid initialisation method :"
-            " 'constant' or 'pareto'"
+            "Not valid initialisation method :" " 'constant' or 'pareto'"
         )
         assert shock_method in ["log-normal", "dirichlet"], (
-            "Not valid initialisation method :"
-            " 'log-normal' or 'dirichlet'"
+            "Not valid initialisation method :" " 'log-normal' or 'dirichlet'"
         )
         # Params
         self.n_banks = n_banks
@@ -43,10 +41,10 @@ class InterBankNetwork:
         self.init = init
         self.shock_method = shock_method
         if shock_method == "dirichlet":
-            self.std_control = 1.0 / (std_law ** 2.0)
+            self.std_control = 1.0 / (std_law**2.0)
             self.conservative_shock = True
         elif shock_method == "log-normal":
-            self.std_control = np.sqrt(np.log(1.0 + std_law ** 2.0))
+            self.std_control = np.sqrt(np.log(1.0 + std_law**2.0))
             self.conservative_shock = False
         self.result_location = result_location
 
@@ -129,9 +127,7 @@ class InterBankNetwork:
             shutil.rmtree(self.result_location)
         os.makedirs(os.path.join(self.result_location, "Networks"))
         os.makedirs(os.path.join(self.result_location, "Deposits"))
-        os.makedirs(
-            os.path.join(self.result_location, "BalanceSheets")
-        )
+        os.makedirs(os.path.join(self.result_location, "BalanceSheets"))
         self.update_metrics()
 
     def update_metrics(self):
@@ -158,29 +154,23 @@ class InterBankNetwork:
             self.deposits[i] = self.banks[i].liabilities["Deposits"]
             self.metrics["Excess Liquidity"][-1] += (
                 self.banks[i].assets["Cash"]
-                - self.banks[i].alpha
-                * self.banks[i].liabilities["Deposits"]
+                - self.banks[i].alpha * self.banks[i].liabilities["Deposits"]
             )
-        self.metrics["Degree"][-1] = np.array(
-            bank_network.in_degree()
-        )[:, 1].mean()
+        self.metrics["Degree"][-1] = np.array(bank_network.in_degree())[
+            :, 1
+        ].mean()
         binary_adj = np.where(self.adj_matrix > 0.0, True, False)
-        prev_binary_adj = np.where(
-            self.prev_adj_matrix > 0.0, True, False
-        )
-        if (
-            self.total_steps > 0
-            and self.total_steps % self.period == 0
-        ):
+        prev_binary_adj = np.where(self.prev_adj_matrix > 0.0, True, False)
+        if self.total_steps > 0 and self.total_steps % self.period == 0:
             self.metrics["Jaccard Index"][-1] = (
                 np.logical_and(binary_adj, prev_binary_adj).sum()
                 / np.logical_or(binary_adj, prev_binary_adj).sum()
             )
             self.prev_adj_matrix = self.adj_matrix.copy()
         elif self.total_steps > 0:
-            self.metrics["Jaccard Index"][-1] = self.metrics[
-                "Jaccard Index"
-            ][-2]
+            self.metrics["Jaccard Index"][-1] = self.metrics["Jaccard Index"][
+                -2
+            ]
 
     def save_figs(self):
         gx.plot_network(
@@ -199,43 +189,39 @@ class InterBankNetwork:
 
     def save_time_series(self):
         gx.plot_repos(
-            self.metrics, self.result_location,
+            self.metrics,
+            self.result_location,
         )
         gx.plot_loans_mro(
-            self.metrics, self.result_location,
+            self.metrics,
+            self.result_location,
         )
         gx.plot_collateral(self.metrics, self.result_location)
-        gx.plot_jaccard(
-            self.metrics, self.period, self.result_location
+        gx.plot_jaccard(self.metrics, self.period, self.result_location)
+        gx.plot_excess_liquidity_and_deposits(
+            self.metrics, self.result_location
         )
-        gx.plot_excess_liquidity(self.metrics, self.result_location)
 
     def step_network(self):
 
         if self.shock_method == "dirichlet":
             # dirichlet approach
-            # deposits = np.maximum(self.deposits, np.zeros(self.n_banks)) + 1e-8
+            deposits = self.deposits + 1e-8
             # dispatch = np.random.dirichlet(
             #     (deposits / deposits.sum()) * self.constant_dirichlet
             # )
             # deposits = self.deposits.sum() * dispatch
             dispatch = np.random.dirichlet(
-                (
-                    self.total_assets["Loans"]
-                    / self.total_assets["Loans"].sum()
-                )
-                * self.std_control
+                (deposits / deposits.sum()) * self.std_control
             )
             deposits = self.deposits.sum() * dispatch
             shocks = deposits - self.deposits
-            assert (
-                abs(shocks.sum()) < 1e-8
-            ), "Shock doesn't sum to zero"
+            assert abs(shocks.sum()) < 1e-8, "Shock doesn't sum to zero"
         elif self.shock_method == "log-normal":
             # log-normal approach
             deposits = (
                 np.random.lognormal(
-                    mean=-0.5 * self.std_control ** 2,
+                    mean=-0.5 * self.std_control**2,
                     sigma=self.std_control,
                     size=len(self.banks),
                 )
@@ -245,9 +231,7 @@ class InterBankNetwork:
         elif self.shock_method == "normal":
             # Lux's approach but with truncated gaussian
             shocks = (
-                truncnorm.rvs(-3, 3, size=len(self.banks))
-                * self.deposits
-                / 3
+                truncnorm.rvs(-3, 3, size=len(self.banks)) * self.deposits / 3
             )
         else:
             assert False, ""
