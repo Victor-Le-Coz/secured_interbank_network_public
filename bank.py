@@ -227,10 +227,11 @@ class BankAgent:
             - self.off_balance["Securities Collateral"] * self.collateral
         )
         # print("Cash Target is {}".format(cash_target))
-        self.assets["Cash"] -= cash_target
+        # self.assets["Cash"] -= cash_target
         bce_reimburse = min(cash_target, self.liabilities["MROs"])
+        self.assets["Cash"] -= bce_reimburse
         self.liabilities["MROs"] -= bce_reimburse
-        self.assets["Loans"] += cash_target - bce_reimburse
+        # self.assets["Loans"] += cash_target - bce_reimburse
 
     def negative_lcr_management(self):
         # print("Negative LCR Management Bank {}".format(self.id))
@@ -369,8 +370,17 @@ class BankAgent:
         self.trust[bank] = self.trust[bank] + 0.1 * (value - self.trust[bank])
 
     def ask_for_repo(self, bank_id, amount):
-        reverse_accept = (
-            self.assets["Cash"] - self.alpha * self.liabilities["Deposits"]
+        # This is a fix on float error on excess of liquidity
+        if (
+            sum(self.on_balance_repos.values())
+            + sum(self.off_balance_repos.values())
+            > 0.0
+        ):
+            return amount
+
+        reverse_accept = max(
+            self.assets["Cash"] - self.alpha * self.liabilities["Deposits"],
+            0.0,
         )
         assert self.id != bank_id, "Bank {} is lending to itself".format(
             self.id

@@ -27,9 +27,12 @@ class InterBankNetwork:
         assert init in ["constant", "pareto"], (
             "Not valid initialisation method :" " 'constant' or 'pareto'"
         )
-        assert shock_method in ["log-normal", "dirichlet"], (
-            "Not valid initialisation method :" " 'log-normal' or 'dirichlet'"
-        )
+        assert shock_method in [
+            "log-normal",
+            "dirichlet",
+            "normal",
+            "dirichlet-excess",
+        ], ("Not valid initialisation method :" " 'log-normal' or 'dirichlet'")
         # Params
         self.n_banks = n_banks
         self.alpha_pareto = alpha_pareto
@@ -45,6 +48,12 @@ class InterBankNetwork:
             self.conservative_shock = True
         elif shock_method == "log-normal":
             self.std_control = np.sqrt(np.log(1.0 + std_law ** 2.0))
+            self.conservative_shock = False
+        elif shock_method == "normal":
+            self.std_control = std_law
+            self.conservative_shock = False
+        elif shock_method == "dirichlet-excess":
+            self.std_control = 1.0 / (std_law ** 2.0)
             self.conservative_shock = False
         self.result_location = result_location
 
@@ -108,6 +117,7 @@ class InterBankNetwork:
             "Degree": [],
             "Excess Liquidity": [],
             "Jaccard Index": [],
+            "Network Density": [],
         }
         self.total_liabilities = {
             "Own Funds": np.zeros(self.n_banks),
@@ -169,6 +179,9 @@ class InterBankNetwork:
             self.metrics["Jaccard Index"][-1] = self.metrics["Jaccard Index"][
                 -2
             ]
+        self.metrics["Network Density"][-1] = (
+            2.0 * binary_adj.sum() / (self.n_banks * (self.n_banks - 1.0))
+        )
 
     def save_figs(self):
         gx.plot_network(
@@ -203,6 +216,12 @@ class InterBankNetwork:
         gx.plot_excess_liquidity_and_deposits(
             self.metrics, self.result_location
         )
+        gx.plot_network_density(self.metrics, self.result_location)
+        gx.plot_collateral_reuse(
+            np.array(self.metrics["Securities Reused"])
+            / (np.array(self.metrics["Securities Collateral"]) + 1e-8),
+            self.result_location,
+        )
 
     def step_network(self):
 
@@ -213,12 +232,21 @@ class InterBankNetwork:
             #     (deposits / deposits.sum()) * self.constant_dirichlet
             # )
             # deposits = self.deposits.sum() * dispatch
+            # dispatch = np.random.dirichlet(
+            #     (deposits / deposits.sum()) * self.std_control
+            # )
             dispatch = np.random.dirichlet(
-                (deposits / deposits.sum()) * self.std_control
+                np.ones(self.n_banks) / self.n_banks * self.std_control
             )
             deposits = self.deposits.sum() * dispatch
             shocks = deposits - self.deposits
             assert abs(shocks.sum()) < 1e-8, "Shock doesn't sum to zero"
+        elif self.shock_method == "dirichlet-excess":
+            dispatch = np.random.dirichlet(
+                np.ones(self.n_banks) / self.n_banks * self.std_control
+            )
+            deposits = (self.deposits.sum() + self.n_banks * 10.0) * dispatch
+            shocks = deposits - self.deposits
         elif self.shock_method == "log-normal":
             # log-normal approach
             deposits = (
@@ -232,9 +260,15 @@ class InterBankNetwork:
             shocks = deposits - self.deposits
         elif self.shock_method == "normal":
             # Lux's approach but with truncated gaussian
-            shocks = (
-                truncnorm.rvs(-3, 3, size=len(self.banks)) * self.deposits / 3
+            # shocks = (
+            #     truncnorm.rvs(-3, 3, size=len(self.banks)) * self.deposits / 3
+            # )
+            deposits = np.maximum(
+                self.deposits
+                + np.random.randn(self.n_banks) * self.std_control,
+                0.0,
             )
+            shocks = deposits - self.deposits
         else:
             assert False, ""
 

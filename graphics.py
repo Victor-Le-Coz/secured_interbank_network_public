@@ -7,8 +7,8 @@ import os
 def bar_plot_deposits(deposits, path, step):
 
     plt.figure(figsize=(20, 10))
-    banks_sorted = np.argsort(deposits)
-    banks_sorted = ["Bank {}".format(str(b)) for b in banks_sorted]
+    # banks_sorted = np.argsort(deposits)
+    banks_sorted = ["Bank {}".format(str(b)) for b in range(len(deposits))]
     deposits_sorted = deposits.copy()
     # deposits_sorted = np.sort(deposits)
     # deposits_sorted = deposits_sorted / deposits_sorted.sum()
@@ -149,6 +149,28 @@ def plot_loans_mro(metrics, path):
     plt.ylabel("Total Network Amount")
     plt.title("Total Amount of Loans/MROs in Network")
     plt.savefig(os.path.join(path, "loans_mros.png"))
+    plt.close()
+
+
+def plot_network_density(metrics, path):
+    plt.figure()
+    length = len(metrics["Network Density"])
+    plt.plot(np.arange(length), metrics["Network Density"])
+    plt.xlabel("Steps")
+    plt.ylabel("Density")
+    plt.title("Network Density across time")
+    plt.savefig(os.path.join(path, "network_density.png"))
+    plt.close()
+
+
+def plot_collateral_reuse(reuse, path):
+    plt.figure()
+    length = len(reuse)
+    plt.plot(np.arange(length), reuse)
+    plt.xlabel("Steps")
+    plt.ylabel("Reused/Total Collateral")
+    plt.title("Reuse of collateral over time")
+    plt.savefig(os.path.join(path, "collateral_reuse.png"))
     plt.close()
 
 
