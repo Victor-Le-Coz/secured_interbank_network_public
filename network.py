@@ -185,6 +185,12 @@ class InterBankNetwork:
             self.total_steps,
         )
 
+        gx.bar_plot_deposits(
+            self.deposits,
+            os.path.join(self.result_location, "Deposits"),
+            self.total_steps,
+        )
+
     def save_time_series(self):
         gx.plot_repos(
             self.metrics, self.result_location,
