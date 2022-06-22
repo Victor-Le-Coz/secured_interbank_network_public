@@ -41,10 +41,10 @@ class InterBankNetwork:
         self.init = init
         self.shock_method = shock_method
         if shock_method == "dirichlet":
-            self.std_control = 1.0 / (std_law**2.0)
+            self.std_control = 1.0 / (std_law ** 2.0)
             self.conservative_shock = True
         elif shock_method == "log-normal":
-            self.std_control = np.sqrt(np.log(1.0 + std_law**2.0))
+            self.std_control = np.sqrt(np.log(1.0 + std_law ** 2.0))
             self.conservative_shock = False
         self.result_location = result_location
 
@@ -132,9 +132,7 @@ class InterBankNetwork:
 
     def update_metrics(self):
         bank_network = nx.from_numpy_matrix(
-            self.adj_matrix,
-            parallel_edges=False,
-            create_using=nx.DiGraph,
+            self.adj_matrix, parallel_edges=False, create_using=nx.DiGraph,
         )
         for key in self.metrics.keys():
             self.metrics[key].append(0.0)
@@ -189,12 +187,10 @@ class InterBankNetwork:
 
     def save_time_series(self):
         gx.plot_repos(
-            self.metrics,
-            self.result_location,
+            self.metrics, self.result_location,
         )
         gx.plot_loans_mro(
-            self.metrics,
-            self.result_location,
+            self.metrics, self.result_location,
         )
         gx.plot_collateral(self.metrics, self.result_location)
         gx.plot_jaccard(self.metrics, self.period, self.result_location)
@@ -221,7 +217,7 @@ class InterBankNetwork:
             # log-normal approach
             deposits = (
                 np.random.lognormal(
-                    mean=-0.5 * self.std_control**2,
+                    mean=-0.5 * self.std_control ** 2,
                     sigma=self.std_control,
                     size=len(self.banks),
                 )

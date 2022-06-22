@@ -65,8 +65,10 @@ class BankAgent:
     def initialize_balance_sheet(self):
         self.assets["Cash"] = self.liabilities["Deposits"] * self.alpha
         self.assets["Securities Usable"] = (
-            self.beta - self.alpha
-        ) * self.liabilities["Deposits"]
+            (self.beta - self.alpha)
+            * self.liabilities["Deposits"]
+            / self.collateral
+        )
         self.liabilities["Own Funds"] = (
             self.gamma / (1.0 - self.gamma)
         ) * self.liabilities["Deposits"]
@@ -74,7 +76,7 @@ class BankAgent:
             self.liabilities["Own Funds"]
             + self.liabilities["Deposits"]
             - self.assets["Cash"]
-            - self.assets["Securities Usable"]
+            - self.assets["Securities Usable"] * self.collateral
         )
 
     def initialize_banks(self, banks):
@@ -123,10 +125,7 @@ class BankAgent:
             round(self.total_assets(), 2),
             round(self.assets["Cash"], 2),
             round(self.assets["Securities Usable"] * self.collateral, 2),
-            round(
-                self.assets["Securities Encumbered"] * self.collateral,
-                2,
-            ),
+            round(self.assets["Securities Encumbered"] * self.collateral, 2,),
             round(self.assets["Reverse Repos"], 2),
             round(self.assets["Loans"], 2),
             round(self.total_liabilities(), 2),
@@ -135,13 +134,9 @@ class BankAgent:
             round(self.liabilities["Repos"], 2),
             round(self.liabilities["MROs"], 2),
             round(
-                self.off_balance["Securities Collateral"] * self.collateral,
-                2,
+                self.off_balance["Securities Collateral"] * self.collateral, 2,
             ),
-            round(
-                self.off_balance["Securities Reused"] * self.collateral,
-                2,
-            ),
+            round(self.off_balance["Securities Reused"] * self.collateral, 2,),
             round(self.liquidity_coverage_ratio() * 100, 2),
             round(self.cash_to_deposits() * 100, 2),
             round(self.leverage_to_solvency_ratio() * 100, 2),
@@ -265,8 +260,10 @@ class BankAgent:
                 self.banks[b].end_repo(self.id, end)
                 self.assets["Cash"] -= end
                 self.liabilities["Repos"] -= end
-                self.off_balance["Securities Collateral"] += end
-                self.off_balance["Securities Reused"] -= end
+                self.off_balance["Securities Collateral"] += (
+                    end / self.collateral
+                )
+                self.off_balance["Securities Reused"] -= end / self.collateral
                 self.off_balance_repos[b] -= end
                 target = max(target - self.off_balance_repos[b], 0.0)
             if target == 0.0:
@@ -280,8 +277,8 @@ class BankAgent:
                 self.banks[b].end_repo(self.id, end)
                 self.assets["Cash"] -= end
                 self.liabilities["Repos"] -= end
-                self.assets["Securities Usable"] += end
-                self.assets["Securities Encumbered"] -= end
+                self.assets["Securities Usable"] += end / self.collateral
+                self.assets["Securities Encumbered"] -= end / self.collateral
                 self.on_balance_repos[b] -= end
                 target = max(target - self.on_balance_repos[b], 0.0)
             if target == 0.0:
@@ -303,26 +300,36 @@ class BankAgent:
             rest = self.banks[b].ask_for_repo(self.id, repo_ask)
             self.update_learning(b, (repo_ask - rest) / repo_ask)
             assert (
-                self.assets["Securities Usable"]
-                + self.off_balance["Securities Collateral"]
+                self.assets["Securities Usable"] * self.collateral
+                + self.off_balance["Securities Collateral"] * self.collateral
                 + 1e-8
                 > repo_ask - rest
             ), self.__str__() + "\nNot Enough Collateral for bank {}".format(
                 self.id
             )
             coll_usable = min(
-                repo_ask - rest, self.assets["Securities Usable"]
+                repo_ask - rest,
+                self.assets["Securities Usable"] * self.collateral,
             )
             coll_coll = max(
-                repo_ask - rest - self.assets["Securities Usable"], 0.0
+                repo_ask
+                - rest
+                - self.assets["Securities Usable"] * self.collateral,
+                0.0,
             )
             self.assets["Cash"] += repo_ask - rest
             self.on_balance_repos[b] += coll_usable
-            self.assets["Securities Usable"] -= coll_usable
-            self.assets["Securities Encumbered"] += coll_usable
+            self.assets["Securities Usable"] -= coll_usable / self.collateral
+            self.assets["Securities Encumbered"] += (
+                coll_usable / self.collateral
+            )
             self.off_balance_repos[b] += coll_coll
-            self.off_balance["Securities Collateral"] -= coll_coll
-            self.off_balance["Securities Reused"] += coll_coll
+            self.off_balance["Securities Collateral"] -= (
+                coll_coll / self.collateral
+            )
+            self.off_balance["Securities Reused"] += (
+                coll_coll / self.collateral
+            )
             self.liabilities["Repos"] += repo_ask - rest
             repo_ask = rest
             if rest == 0.0 or len(bank_list) == 0:
@@ -376,7 +383,7 @@ class BankAgent:
         if reverse_accept <= 0.0:
             return amount
         repo = min(amount, reverse_accept)
-        self.off_balance["Securities Collateral"] += repo
+        self.off_balance["Securities Collateral"] += repo / self.collateral
         self.assets["Cash"] -= repo
         self.assets["Reverse Repos"] += repo
         self.reverse_repos[bank_id] += repo
@@ -396,28 +403,36 @@ class BankAgent:
         # )
         collateral_rest = max(
             amount
-            - self.off_balance["Securities Collateral"]
-            - self.assets["Securities Usable"],
+            - self.off_balance["Securities Collateral"] * self.collateral
+            - self.assets["Securities Usable"] * self.collateral,
             0.0,
         )
         self.end_repos(collateral_rest)
         assert (
-            self.off_balance["Securities Collateral"]
-            + self.assets["Securities Usable"]
+            self.off_balance["Securities Collateral"] * self.collateral
+            + self.assets["Securities Usable"] * self.collateral
             > amount - 1e-8
         ), self.__str__() + "\nError, not enough collateral asked back for bank {}".format(
             bank_id
         )
         collateral_coll = min(
-            amount, self.off_balance["Securities Collateral"]
+            amount, self.off_balance["Securities Collateral"] * self.collateral
         )
         collateral_rest = max(
-            amount - self.off_balance["Securities Collateral"], 0.0
+            amount
+            - self.off_balance["Securities Collateral"] * self.collateral,
+            0.0,
         )
         self.assets["Cash"] += amount
         self.assets["Reverse Repos"] -= amount
         self.reverse_repos[bank_id] -= amount
-        self.off_balance["Securities Collateral"] -= collateral_coll
-        self.assets["Securities Usable"] -= collateral_rest
-        self.assets["Securities Encumbered"] += collateral_rest
-        self.off_balance["Securities Reused"] -= collateral_rest
+        self.off_balance["Securities Collateral"] -= (
+            collateral_coll / self.collateral
+        )
+        self.assets["Securities Usable"] -= collateral_rest / self.collateral
+        self.assets["Securities Encumbered"] += (
+            collateral_rest / self.collateral
+        )
+        self.off_balance["Securities Reused"] -= (
+            collateral_rest / self.collateral
+        )
