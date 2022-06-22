@@ -227,11 +227,10 @@ class BankAgent:
             - self.off_balance["Securities Collateral"] * self.collateral
         )
         # print("Cash Target is {}".format(cash_target))
-        # self.assets["Cash"] -= cash_target
+        self.assets["Cash"] -= cash_target
         bce_reimburse = min(cash_target, self.liabilities["MROs"])
-        self.assets["Cash"] -= bce_reimburse
         self.liabilities["MROs"] -= bce_reimburse
-        # self.assets["Loans"] += cash_target - bce_reimburse
+        self.assets["Loans"] += cash_target - bce_reimburse
 
     def negative_lcr_management(self):
         # print("Negative LCR Management Bank {}".format(self.id))
