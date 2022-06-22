@@ -188,11 +188,7 @@ class InterBankNetwork:
             os.path.join(self.result_location, "Networks"),
             self.total_steps,
         )
-        gx.bar_plot_deposits(
-            self.deposits,
-            os.path.join(self.result_location, "Deposits"),
-            self.total_steps,
-        )
+
         gx.bar_plot_balance_sheet(
             self.balance_sheets,
             self.total_assets,
