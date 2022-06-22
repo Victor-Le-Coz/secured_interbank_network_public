@@ -3,7 +3,7 @@ from network import InterBankNetwork
 
 if __name__ == "__main__":
     network = InterBankNetwork(
-        n_banks=2,
+        n_banks=100,
         alpha_pareto=0.5,
         beta_lcr=10.0,
         beta_star_lcr=10.0,
@@ -12,9 +12,9 @@ if __name__ == "__main__":
         collateral_value=1.0,
         init="constant",
         shock_method="log-normal",
-        std_dirichlet=0.3,
-        std_log_normal=0.01,
+        std_law=0.1,
         result_location="./results/",
     )
 
-network.simulate(1, 1, 30)
+    network.simulate(1000, 10, 10)
+    

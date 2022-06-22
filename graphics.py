@@ -9,8 +9,9 @@ def bar_plot_deposits(deposits, path, step):
     plt.figure(figsize=(20, 10))
     banks_sorted = np.argsort(deposits)
     banks_sorted = ["Bank {}".format(str(b)) for b in banks_sorted]
-    deposits_sorted = np.sort(deposits)
-    deposits_sorted = deposits_sorted / deposits_sorted.sum()
+    deposits_sorted = deposits.copy()
+    # deposits_sorted = np.sort(deposits)
+    # deposits_sorted = deposits_sorted / deposits_sorted.sum()
 
     barWidth = 0.75
     br = np.arange(len(deposits))
@@ -22,12 +23,16 @@ def bar_plot_deposits(deposits, path, step):
         edgecolor="grey",
         label="Deposits",
     )
-    plt.ylabel("Relative Deposits in %", fontweight="bold", fontsize=15)
+    plt.ylabel(
+        "Relative Deposits in %", fontweight="bold", fontsize=15
+    )
     plt.xticks([r for r in range(len(deposits))], banks_sorted)
     plt.tick_params(axis="x", labelrotation=90, labelsize="small")
     plt.legend()
     plt.title("Deposits of Banks at step {}".format(int(step)))
-    plt.savefig(os.path.join(path, "step_{}_deposits.png".format(step)))
+    plt.savefig(
+        os.path.join(path, "step_{}_deposits.png".format(step))
+    )
     plt.close()
 
 
@@ -55,7 +60,11 @@ def bar_plot_balance_sheet(sheets, assets, liabilities, path, step):
     barWidth = 0.75
 
     ax1.bar(
-        banks_sorted, height=a1, color="cyan", width=barWidth, label="Cash",
+        banks_sorted,
+        height=a1,
+        color="cyan",
+        width=barWidth,
+        label="Cash",
     )
     ax1.bar(
         banks_sorted,
@@ -134,7 +143,9 @@ def bar_plot_balance_sheet(sheets, assets, liabilities, path, step):
     ax2.legend(["Own Funds", "Deposits", "Repos", "MROs"])
     ax2.tick_params(axis="x", labelrotation=90, labelsize="small")
 
-    plt.savefig(os.path.join(path, "step_{}_balance_sheets.png".format(step)))
+    plt.savefig(
+        os.path.join(path, "step_{}_balance_sheets.png".format(step))
+    )
     plt.close()
 
 
@@ -161,8 +172,9 @@ def plot_repos(metrics, path):
     plt.ylabel("Total Network Amount")
     plt.title("Total Amount of Repos/Reverse Repos")
     plt.savefig(os.path.join(path, "Repos.png"))
+    plt.close()
 
-    
+
 def plot_jaccard(metrics, period, path):
     plt.figure()
     length = len(metrics["Jaccard Index"])
@@ -170,7 +182,9 @@ def plot_jaccard(metrics, period, path):
     plt.xlabel("Steps")
     plt.ylabel("Jaccard Index")
     plt.title(
-        "Temporal Developpement of Jaccard Index for {} period".format(period)
+        "Temporal Developpement of Jaccard Index for {} period".format(
+            period
+        )
     )
     plt.savefig(os.path.join(path, "jaccard_index.png"))
     plt.close()
@@ -238,7 +252,9 @@ def plot_network(adj, path, step):
 
     # draw the network
     plt.figure(1, figsize=(15, 15))
-    nx.draw_networkx(bank_network, pos, width=weights, with_labels=True)
+    nx.draw_networkx(
+        bank_network, pos, width=weights, with_labels=True
+    )
 
     # show the plot
     plt.title("Interbank network at the step {}".format(int(step)))
