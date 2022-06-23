@@ -213,24 +213,31 @@ class BankAgent:
         self.collateral = collateral
 
     def lcr_step(self):
-        if self.shock < 0.0:
-            self.negative_lcr_management()
-        else:
-            self.positive_lcr_management()
-
-    def positive_lcr_management(self):
-        # print("Positive LCR Management Bank {}".format(self.id))
-        cash_target = -(
+        # if self.leverage_to_solvency_ratio() < self.gamma:
+        #     new_fund = (
+        #         self.gamma
+        #         * (
+        #             self.liabilities["Repos"]
+        #             + self.liabilities["Deposits"]
+        #             + self.liabilities["MROs"]
+        #         )
+        #         / (1.0 - self.gamma)
+        #     )
+        #     self.assets["Cash"] += new_fund - self.liabilities["Own Funds"]
+        #     self.liabilities["Own Funds"] = new_fund
+        cash_target = (
             self.beta_star * self.liabilities["Deposits"]
             - self.assets["Cash"]
             - self.assets["Securities Usable"] * self.collateral
             - self.off_balance["Securities Collateral"] * self.collateral
         )
-        # print("Cash Target is {}".format(cash_target))
-        self.assets["Cash"] -= cash_target
-        bce_reimburse = min(cash_target, self.liabilities["MROs"])
-        self.liabilities["MROs"] -= bce_reimburse
-        self.assets["Loans"] += cash_target - bce_reimburse
+        self.assets["Cash"] += cash_target
+        self.assets["Loans"] += -min(
+            self.liabilities["MROs"] + cash_target, 0.0
+        )
+        self.liabilities["MROs"] = max(
+            self.liabilities["MROs"] + cash_target, 0.0
+        )
 
     def negative_lcr_management(self):
         # print("Negative LCR Management Bank {}".format(self.id))

@@ -27,12 +27,9 @@ class InterBankNetwork:
         assert init in ["constant", "pareto"], (
             "Not valid initialisation method :" " 'constant' or 'pareto'"
         )
-        assert shock_method in [
-            "log-normal",
-            "dirichlet",
-            "normal",
-            "dirichlet-excess",
-        ], ("Not valid initialisation method :" " 'log-normal' or 'dirichlet'")
+        assert shock_method in ["log-normal", "dirichlet", "normal",], (
+            "Not valid initialisation method :" " 'log-normal' or 'dirichlet'"
+        )
         # Params
         self.n_banks = n_banks
         self.alpha_pareto = alpha_pareto
@@ -51,9 +48,6 @@ class InterBankNetwork:
             self.conservative_shock = False
         elif shock_method == "normal":
             self.std_control = std_law
-            self.conservative_shock = False
-        elif shock_method == "dirichlet-excess":
-            self.std_control = 1.0 / (std_law ** 2.0)
             self.conservative_shock = False
         self.result_location = result_location
 
@@ -241,12 +235,6 @@ class InterBankNetwork:
             deposits = self.deposits.sum() * dispatch
             shocks = deposits - self.deposits
             assert abs(shocks.sum()) < 1e-8, "Shock doesn't sum to zero"
-        elif self.shock_method == "dirichlet-excess":
-            dispatch = np.random.dirichlet(
-                np.ones(self.n_banks) / self.n_banks * self.std_control
-            )
-            deposits = (self.deposits.sum() + self.n_banks * 10.0) * dispatch
-            shocks = deposits - self.deposits
         elif self.shock_method == "log-normal":
             # log-normal approach
             deposits = (
@@ -292,6 +280,7 @@ class InterBankNetwork:
             self.banks[i].assert_minimal_reserve()
             self.banks[i].assert_alm()
             self.banks[i].assert_lcr()
+            # self.banks[i].assert_leverage()
             self.banks[i].steps += 1
 
     def simulate(self, time_steps, save_every=10, jaccard_period=10):
