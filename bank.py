@@ -1,5 +1,7 @@
 import numpy as np
 
+float_limit = 1e-8
+
 
 class BankAgent:
     def __init__(
@@ -125,7 +127,10 @@ class BankAgent:
             round(self.total_assets(), 2),
             round(self.assets["Cash"], 2),
             round(self.assets["Securities Usable"] * self.collateral, 2),
-            round(self.assets["Securities Encumbered"] * self.collateral, 2,),
+            round(
+                self.assets["Securities Encumbered"] * self.collateral,
+                2,
+            ),
             round(self.assets["Reverse Repos"], 2),
             round(self.assets["Loans"], 2),
             round(self.total_liabilities(), 2),
@@ -134,9 +139,13 @@ class BankAgent:
             round(self.liabilities["Repos"], 2),
             round(self.liabilities["MROs"], 2),
             round(
-                self.off_balance["Securities Collateral"] * self.collateral, 2,
+                self.off_balance["Securities Collateral"] * self.collateral,
+                2,
             ),
-            round(self.off_balance["Securities Reused"] * self.collateral, 2,),
+            round(
+                self.off_balance["Securities Reused"] * self.collateral,
+                2,
+            ),
             round(self.liquidity_coverage_ratio() * 100, 2),
             round(self.cash_to_deposits() * 100, 2),
             round(self.leverage_to_solvency_ratio() * 100, 2),
@@ -176,7 +185,7 @@ class BankAgent:
             self.assets["Cash"]
             + self.off_balance["Securities Collateral"] * self.collateral
             + self.assets["Securities Usable"] * self.collateral
-            + 1e-8
+            + float_limit
             >= self.liabilities["Deposits"] * self.beta
         ), self.__str__() + "\nLCR not at its target value for bank {} at step {}".format(
             self.id, self.steps
@@ -184,7 +193,7 @@ class BankAgent:
 
     def assert_minimal_reserve(self):
         assert (
-            self.assets["Cash"] + 1e-8
+            self.assets["Cash"] + float_limit
             >= self.alpha * self.liabilities["Deposits"]
         ), self.__str__() + "\nMinimum reserves not respected for bank {} at step {}".format(
             self.id, self.steps
@@ -192,14 +201,15 @@ class BankAgent:
 
     def assert_leverage(self):
         assert (
-            self.leverage_to_solvency_ratio() + 1e-8 > self.gamma
+            self.leverage_to_solvency_ratio() + float_limit > self.gamma
         ), self.__str__() + "\nLeverage to solvency ratio not at its target value for bank {} at step {}" "".format(
             self.id, self.steps
         )
 
     def assert_alm(self):
         assert (
-            np.abs(self.total_assets() / self.total_liabilities() - 1.0) < 1e-8
+            np.abs(self.total_assets() / self.total_liabilities() - 1.0)
+            < float_limit
         ), self.__str__() + "\nAssets don't match Liabilities for bank {} at step {}".format(
             self.id, self.steps
         )
@@ -302,7 +312,7 @@ class BankAgent:
             assert (
                 self.assets["Securities Usable"] * self.collateral
                 + self.off_balance["Securities Collateral"] * self.collateral
-                + 1e-8
+                + float_limit
                 > repo_ask - rest
             ), self.__str__() + "\nNot Enough Collateral for bank {}".format(
                 self.id
@@ -339,7 +349,7 @@ class BankAgent:
             self.assets["Cash"] += repo_ask
             repo_ask = 0.0
         assert (
-            repo_ask < 1e-8
+            repo_ask < float_limit
         ), self.__str__() + "\nRepo needs not filled for bank {}".format(
             self.id
         )
@@ -411,7 +421,7 @@ class BankAgent:
         assert (
             self.off_balance["Securities Collateral"] * self.collateral
             + self.assets["Securities Usable"] * self.collateral
-            > amount - 1e-8
+            > amount - float_limit
         ), self.__str__() + "\nError, not enough collateral asked back for bank {}".format(
             bank_id
         )
