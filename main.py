@@ -16,4 +16,4 @@ if __name__ == "__main__":
         result_location="./results/",
     )
 
-    network.simulate(500, 10, 100)
+    network.simulate(500, 10, 50)
