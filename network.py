@@ -68,6 +68,7 @@ class InterBankNetwork:
         self.prev_adj_matrix = np.zeros((n_banks, n_banks))
         self.metrics = {}
         self.total_steps = 0.0
+        self.init_depotits = np.zeros(n_banks)
         self.reset_network()
 
     def reset_network(self):
@@ -88,6 +89,7 @@ class InterBankNetwork:
             else:
                 assert False, ""
             self.deposits[b - 1] = deposits
+            self.init_depotits[b - 1] = deposits
             self.banks.append(
                 BankAgent(
                     bank_id=b,
@@ -195,8 +197,11 @@ class InterBankNetwork:
             off_durations += bank.repos_off_durations
         print(
             "Average Repos Duration On Balance : {}"
-            "\nAverage Repos Duration Off Balance : {}".format(
-                np.mean(on_durations), np.mean(off_durations)
+            "\nAverage Repos Duration Off Balance : {}"
+            "\nAverage Repos Duration Balance : {}".format(
+                np.mean(on_durations),
+                np.mean(off_durations),
+                np.mean(off_durations + on_durations),
             )
         )
 
@@ -266,7 +271,7 @@ class InterBankNetwork:
             # apply a negative relative shock on the first half of the banks
             rho_neg = np.random.uniform(-1, 0, size=N_half)
 
-            # apply a
+            # apply a positive relative shock on the second half of the banks
             rho_pos = (
                 -rho_neg * deposits_p[0:N_half] / deposits_p[N_half:N_max]
             )
@@ -297,7 +302,8 @@ class InterBankNetwork:
             # )
             # deposits = self.deposits.sum() * dispatch
             dispatch = np.random.dirichlet(
-                (deposits / deposits.sum()) * self.std_control
+                (self.init_depotits / self.init_depotits.sum())
+                * self.std_control
             )
             # dispatch = np.random.dirichlet(
             #     np.ones(self.n_banks) / self.n_banks * self.std_control
