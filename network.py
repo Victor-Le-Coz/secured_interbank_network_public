@@ -8,6 +8,8 @@ import os
 import shutil
 import graphics as gx
 
+float_limit = 1e-8
+
 
 class InterBankNetwork:
     def __init__(
@@ -27,8 +29,9 @@ class InterBankNetwork:
         assert init in ["constant", "pareto"], (
             "Not valid initialisation method :" " 'constant' or 'pareto'"
         )
-        assert shock_method in ["log-normal", "dirichlet", "normal",], (
-            "Not valid initialisation method :" " 'log-normal' or 'dirichlet'"
+        assert shock_method in ["log-normal", "dirichlet", "uniform"], (
+            "Not valid initialisation method :"
+            " 'log-normal' or 'dirichlet' or 'uniform'"
         )
         # Params
         self.n_banks = n_banks
@@ -42,6 +45,8 @@ class InterBankNetwork:
         self.shock_method = shock_method
         if shock_method == "dirichlet":
             self.std_control = 1.0 / (std_law ** 2.0)
+            self.conservative_shock = True
+        elif shock_method == "uniform":
             self.conservative_shock = True
         elif shock_method == "log-normal":
             self.std_control = np.sqrt(np.log(1.0 + std_law ** 2.0))
@@ -218,6 +223,46 @@ class InterBankNetwork:
         )
 
     def step_network(self):
+        if self.shock_method == "uniform":
+            # define middle of the liste of banks
+            N_max = (
+                self.n_banks - self.n_banks % 2
+            )  # can not apply a shock on one bank if odd nb
+            N_half = int(self.n_banks / 2)
+
+            # create a permutation of all the deposits amounts
+            ix = np.arange(self.n_banks)  # create an index
+            ix_p = np.random.permutation(ix)  # permutation of the index
+            deposits_p = self.deposits[
+                ix_p
+            ]  # define the permuted array of deposits
+
+            # apply a negative relative shock on the first half of the banks
+            rho_neg = np.random.uniform(-1, 0, size=N_half)
+
+            # apply a
+            rho_pos = (
+                -rho_neg * deposits_p[0:N_half] / deposits_p[N_half:N_max]
+            )
+
+            # concatenate the relative shocks
+            if self.n_banks > N_max:
+                rho = np.concatenate([rho_neg, rho_pos, 0])
+            elif self.n_banks == N_max:
+                rho = np.concatenate([rho_neg, rho_pos])
+
+            # build an un-permuted array of absolute shocks
+            shocks = np.zeros(self.n_banks)
+
+            # compute the absolute shock from the deposit amount
+            shocks[ix_p] = deposits_p * rho
+
+            assert abs(shocks.sum()) < float_limit, print(
+                abs(shocks.sum()), "Shock doesn't sum to zero"
+            )
+            assert (
+                self.deposits + shocks
+            ).all() > -float_limit, "negative shocks larger than deposits"
 
         if self.shock_method == "dirichlet":
             # dirichlet approach
@@ -234,7 +279,8 @@ class InterBankNetwork:
             )
             deposits = self.deposits.sum() * dispatch
             shocks = deposits - self.deposits
-            assert abs(shocks.sum()) < 1e-8, "Shock doesn't sum to zero"
+            assert abs(shocks.sum()) < float_limit, "Shock doesn't sum to zero"
+
         elif self.shock_method == "log-normal":
             # log-normal approach
             deposits = (
@@ -246,6 +292,7 @@ class InterBankNetwork:
                 * self.deposits
             )
             shocks = deposits - self.deposits
+
         elif self.shock_method == "normal":
             # Lux's approach but with truncated gaussian
             # shocks = (
