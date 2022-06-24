@@ -64,9 +64,11 @@ class InterBankNetwork:
         self.total_liabilities = {}
         self.collateral = 1.0
         self.adj_matrix = np.zeros((n_banks, n_banks))
+        self.trust_adj_matrix = np.zeros((n_banks, n_banks))
         self.prev_adj_matrix = np.zeros((n_banks, n_banks))
         self.metrics = {}
         self.total_steps = 0.0
+        self.init_depotits = np.zeros(n_banks)
         self.reset_network()
 
     def reset_network(self):
@@ -87,6 +89,7 @@ class InterBankNetwork:
             else:
                 assert False, ""
             self.deposits[b - 1] = deposits
+            self.init_depotits[b - 1] = deposits
             self.banks.append(
                 BankAgent(
                     bank_id=b,
@@ -134,7 +137,8 @@ class InterBankNetwork:
         self.total_steps = 0.0
         if os.path.exists(self.result_location):
             shutil.rmtree(self.result_location)
-        os.makedirs(os.path.join(self.result_location, "Networks"))
+        os.makedirs(os.path.join(self.result_location, "Repo_Networks"))
+        os.makedirs(os.path.join(self.result_location, "Trust_Networks"))
         os.makedirs(os.path.join(self.result_location, "Deposits"))
         os.makedirs(os.path.join(self.result_location, "BalanceSheets"))
         self.update_metrics()
@@ -157,6 +161,9 @@ class InterBankNetwork:
             self.adj_matrix[i, :] = np.array(
                 list(self.banks[i].reverse_repos.values())
             )
+            trusts = np.array(list(self.banks[i].trust.values()))
+            self.trust_adj_matrix[i, :i] = trusts[:i]
+            self.trust_adj_matrix[i, i + 1 :] = trusts[i:]
             self.balance_sheets[i] = self.banks[i].total_assets()
             self.deposits[i] = self.banks[i].liabilities["Deposits"]
             self.metrics["Excess Liquidity"][-1] += (
@@ -182,11 +189,35 @@ class InterBankNetwork:
             2.0 * binary_adj.sum() / (self.n_banks * (self.n_banks - 1.0))
         )
 
+    def final_metrics(self):
+        on_durations = []
+        off_durations = []
+        for i, bank in enumerate(self.banks):
+            on_durations += bank.repos_on_durations
+            off_durations += bank.repos_off_durations
+        print(
+            "Average Repos Duration On Balance : {}"
+            "\nAverage Repos Duration Off Balance : {}"
+            "\nAverage Repos Duration Balance : {}".format(
+                np.mean(on_durations),
+                np.mean(off_durations),
+                np.mean(off_durations + on_durations),
+            )
+        )
+
     def save_figs(self):
         gx.plot_network(
-            self.adj_matrix,
-            os.path.join(self.result_location, "Networks"),
+            self.adj_matrix / (self.adj_matrix.std() + 1e-8),
+            os.path.join(self.result_location, "Repo_Networks"),
             self.total_steps,
+            "Repos",
+        )
+
+        gx.plot_network(
+            self.trust_adj_matrix.T / (self.trust_adj_matrix.std() + 1e-8),
+            os.path.join(self.result_location, "Trust_Networks"),
+            self.total_steps,
+            "Trust",
         )
 
         gx.bar_plot_balance_sheet(
@@ -240,7 +271,7 @@ class InterBankNetwork:
             # apply a negative relative shock on the first half of the banks
             rho_neg = np.random.uniform(-1, 0, size=N_half)
 
-            # apply a
+            # apply a positive relative shock on the second half of the banks
             rho_pos = (
                 -rho_neg * deposits_p[0:N_half] / deposits_p[N_half:N_max]
             )
@@ -263,24 +294,23 @@ class InterBankNetwork:
             assert (
                 self.deposits + shocks
             ).all() > -float_limit, "negative shocks larger than deposits"
-
-        if self.shock_method == "dirichlet":
+        elif self.shock_method == "dirichlet":
             # dirichlet approach
             deposits = self.deposits + 1e-8
             # dispatch = np.random.dirichlet(
             #     (deposits / deposits.sum()) * self.constant_dirichlet
             # )
             # deposits = self.deposits.sum() * dispatch
-            # dispatch = np.random.dirichlet(
-            #     (deposits / deposits.sum()) * self.std_control
-            # )
             dispatch = np.random.dirichlet(
-                np.ones(self.n_banks) / self.n_banks * self.std_control
+                (self.init_depotits / self.init_depotits.sum())
+                * self.std_control
             )
+            # dispatch = np.random.dirichlet(
+            #     np.ones(self.n_banks) / self.n_banks * self.std_control
+            # )
             deposits = self.deposits.sum() * dispatch
             shocks = deposits - self.deposits
             assert abs(shocks.sum()) < float_limit, "Shock doesn't sum to zero"
-
         elif self.shock_method == "log-normal":
             # log-normal approach
             deposits = (
@@ -292,7 +322,6 @@ class InterBankNetwork:
                 * self.deposits
             )
             shocks = deposits - self.deposits
-
         elif self.shock_method == "normal":
             # Lux's approach but with truncated gaussian
             # shocks = (
@@ -348,3 +377,4 @@ class InterBankNetwork:
             )
         self.save_figs()
         self.save_time_series()
+        self.final_metrics()

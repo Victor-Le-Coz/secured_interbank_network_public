@@ -37,6 +37,10 @@ class BankAgent:
         self.off_balance_repos = {}
         self.reverse_repos = {}
         self.banks = {}
+        self.repos_on_filo = {}
+        self.repos_off_filo = {}
+        self.repos_on_durations = []
+        self.repos_off_durations = []
 
         self.assets = {
             "Cash": 0.0,
@@ -84,7 +88,9 @@ class BankAgent:
     def initialize_banks(self, banks):
         for bank in banks:
             self.reverse_repos[bank.id] = 0.0
-            if bank != self.id:
+            self.repos_on_filo[bank.id] = []
+            self.repos_off_filo[bank.id] = []
+            if bank.id != self.id:
                 self.trust[bank.id] = 0.0
                 self.visits[bank.id] = 1.0
                 self.on_balance_repos[bank.id] = 0.0
@@ -268,6 +274,17 @@ class BankAgent:
             end = min(self.off_balance_repos[b], target)
             if end > 0.0:
                 self.banks[b].end_repo(self.id, end)
+                end_amount = end
+                new = self.repos_off_filo[b].copy()
+                for (amount, t) in self.repos_off_filo[b]:
+                    if amount <= end_amount:
+                        del new[0]
+                        end_amount -= amount
+                        self.repos_off_durations.append(self.steps - t)
+                    else:
+                        new[0][0] -= amount
+                        break
+                self.repos_off_filo[b] = new
                 self.assets["Cash"] -= end
                 self.liabilities["Repos"] -= end
                 self.off_balance["Securities Collateral"] += (
@@ -285,6 +302,17 @@ class BankAgent:
             end = min(self.on_balance_repos[b], target)
             if end > 0.0:
                 self.banks[b].end_repo(self.id, end)
+                end_amount = end
+                new = self.repos_on_filo[b].copy()
+                for amount, t in self.repos_on_filo[b]:
+                    if amount <= end_amount:
+                        del new[0]
+                        end_amount -= amount
+                        self.repos_on_durations.append(self.steps - t)
+                    else:
+                        new[0][0] -= amount
+                        break
+                self.repos_on_filo[b] = new
                 self.assets["Cash"] -= end
                 self.liabilities["Repos"] -= end
                 self.assets["Securities Usable"] += end / self.collateral
@@ -303,7 +331,6 @@ class BankAgent:
         if repo_ask <= 0.0:
             return
         bank_list = list(self.trust.keys())
-        bank_list.remove(self.id)
         while True:
             b = self.choose_bank(bank_list)
             bank_list.remove(b)
@@ -327,6 +354,10 @@ class BankAgent:
                 - self.assets["Securities Usable"] * self.collateral,
                 0.0,
             )
+            if coll_usable > 0.0:
+                self.repos_on_filo[b].append([coll_usable, self.steps])
+            if coll_coll > 0.0:
+                self.repos_off_filo[b].append([coll_coll, self.steps])
             self.assets["Cash"] += repo_ask - rest
             self.on_balance_repos[b] += coll_usable
             self.assets["Securities Usable"] -= coll_usable / self.collateral
@@ -353,30 +384,32 @@ class BankAgent:
         ), self.__str__() + "\nRepo needs not filled for bank {}".format(
             self.id
         )
-        for bank in bank_list:
-            self.visits[bank] = self.visits[bank] - 0.1 * self.visits[bank]
+        # for bank in bank_list:
+        #     self.visits[bank] = self.visits[bank] - 0.1 * self.visits[bank]
 
     def choose_bank(self, bank_list):
         ucts = {}
         for b in self.trust.keys():
             if b in bank_list:
-                # ucts[b] = self.trust[
-                #     b
-                # ] / self.steps + self.exploration_coeff * np.sqrt(
-                #     self.steps / self.visits[b]
-                # )
-                ucts[b] = self.trust[b] + self.exploration_coeff * np.sqrt(
-                    1.0 / self.visits[b]
+                ucts[b] = self.trust[
+                    b
+                ] / self.steps + self.exploration_coeff * np.sqrt(
+                    self.steps / self.visits[b]
                 )
+                # ucts[b] = self.trust[b] + self.exploration_coeff * np.sqrt(
+                #     1.0 / self.visits[b]
+                # )
             else:
                 ucts[b] = 0.0
         return max(ucts, key=ucts.get)
 
     def update_learning(self, bank, value):
-        # self.visits[bank] += 1
-        # self.trust[bank] += value
-        self.visits[bank] = self.visits[bank] + 0.1 * (1.0 - self.visits[bank])
-        self.trust[bank] = self.trust[bank] + 0.1 * (value - self.trust[bank])
+        self.visits[bank] += 1
+        self.trust[bank] += value
+        # self.visits[bank] = self.visits[bank] + 0.2 * (
+        #     1.0 - self.visits[bank]
+        # )
+        # self.trust[bank] = self.trust[bank] + 0.2 * (value - self.trust[bank])
 
     def ask_for_repo(self, bank_id, amount):
         # This is a fix on float error on excess of liquidity

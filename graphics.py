@@ -40,7 +40,7 @@ def bar_plot_balance_sheet(sheets, assets, liabilities, path, step):
     fig.set_figwidth(30)
 
     ix_sorted = np.argsort(sheets)
-    banks_sorted = ["Bank {}".format(str(b + 1)) for b in ix_sorted]
+    banks_sorted = ["Bank {}".format(str(b)) for b in ix_sorted]
 
     a1 = assets["Cash"][ix_sorted]
     a2 = a1 + assets["Securities Usable"][ix_sorted]
@@ -246,7 +246,7 @@ def plot_degre_network(metrics, path):
     plt.close()
 
 
-def plot_network(adj, path, step):
+def plot_network(adj, path, step, name="Reverse Repos"):
     # build a network from an adjacency matrix
     bank_network = nx.from_numpy_matrix(
         adj, parallel_edges=False, create_using=nx.DiGraph
@@ -265,6 +265,6 @@ def plot_network(adj, path, step):
     nx.draw_networkx(bank_network, pos, width=weights, with_labels=True)
 
     # show the plot
-    plt.title("Interbank network at the step {}".format(int(step)))
+    plt.title("{} network at the step {}".format(name, int(step)))
     plt.savefig(os.path.join(path, "step_{}_network.png".format(step)))
     plt.close()
