@@ -127,10 +127,7 @@ class BankAgent:
             round(self.total_assets(), 2),
             round(self.assets["Cash"], 2),
             round(self.assets["Securities Usable"] * self.collateral, 2),
-            round(
-                self.assets["Securities Encumbered"] * self.collateral,
-                2,
-            ),
+            round(self.assets["Securities Encumbered"] * self.collateral, 2,),
             round(self.assets["Reverse Repos"], 2),
             round(self.assets["Loans"], 2),
             round(self.total_liabilities(), 2),
@@ -139,13 +136,9 @@ class BankAgent:
             round(self.liabilities["Repos"], 2),
             round(self.liabilities["MROs"], 2),
             round(
-                self.off_balance["Securities Collateral"] * self.collateral,
-                2,
+                self.off_balance["Securities Collateral"] * self.collateral, 2,
             ),
-            round(
-                self.off_balance["Securities Reused"] * self.collateral,
-                2,
-            ),
+            round(self.off_balance["Securities Reused"] * self.collateral, 2,),
             round(self.liquidity_coverage_ratio() * 100, 2),
             round(self.cash_to_deposits() * 100, 2),
             round(self.leverage_to_solvency_ratio() * 100, 2),
