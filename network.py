@@ -51,6 +51,9 @@ class InterBankNetwork:
         elif shock_method == "log-normal":
             self.std_control = np.sqrt(np.log(1.0 + std_law ** 2.0))
             self.conservative_shock = False
+        elif shock_method == "normal":
+            self.std_control = std_law
+            self.conservative_shock = False
         self.result_location = result_location
 
         # Internal
@@ -113,6 +116,7 @@ class InterBankNetwork:
             "Degree": [],
             "Excess Liquidity": [],
             "Jaccard Index": [],
+            "Network Density": [],
         }
         self.total_liabilities = {
             "Own Funds": np.zeros(self.n_banks),
@@ -174,6 +178,9 @@ class InterBankNetwork:
             self.metrics["Jaccard Index"][-1] = self.metrics["Jaccard Index"][
                 -2
             ]
+        self.metrics["Network Density"][-1] = (
+            2.0 * binary_adj.sum() / (self.n_banks * (self.n_banks - 1.0))
+        )
 
     def save_figs(self):
         gx.plot_network(
@@ -207,6 +214,12 @@ class InterBankNetwork:
         gx.plot_jaccard(self.metrics, self.period, self.result_location)
         gx.plot_excess_liquidity_and_deposits(
             self.metrics, self.result_location
+        )
+        gx.plot_network_density(self.metrics, self.result_location)
+        gx.plot_collateral_reuse(
+            np.array(self.metrics["Securities Reused"])
+            / (np.array(self.metrics["Securities Collateral"]) + 1e-8),
+            self.result_location,
         )
 
     def step_network(self):
@@ -253,9 +266,16 @@ class InterBankNetwork:
 
         if self.shock_method == "dirichlet":
             # dirichlet approach
-            deposits = self.deposits + float_limit
+            deposits = self.deposits + 1e-8
+            # dispatch = np.random.dirichlet(
+            #     (deposits / deposits.sum()) * self.constant_dirichlet
+            # )
+            # deposits = self.deposits.sum() * dispatch
+            # dispatch = np.random.dirichlet(
+            #     (deposits / deposits.sum()) * self.std_control
+            # )
             dispatch = np.random.dirichlet(
-                (deposits / deposits.sum()) * self.std_control
+                np.ones(self.n_banks) / self.n_banks * self.std_control
             )
             deposits = self.deposits.sum() * dispatch
             shocks = deposits - self.deposits
@@ -275,9 +295,22 @@ class InterBankNetwork:
 
         elif self.shock_method == "normal":
             # Lux's approach but with truncated gaussian
-            shocks = (
-                truncnorm.rvs(-3, 3, size=len(self.banks)) * self.deposits / 3
+            # shocks = (
+            #     truncnorm.rvs(-3, 3, size=len(self.banks)) * self.deposits / 3
+            # )
+            deposits = np.maximum(
+                self.deposits
+                + np.random.randn(self.n_banks) * self.std_control,
+                0.0,
             )
+            shocks = deposits - self.deposits
+        else:
+            assert False, ""
+
+        # print("Minimum shock is :", min(self.deposits + shocks))
+        # print("Sum of shocks is {}".format(round(shocks.sum(), 2)))
+        # print("Shocks : ", shocks)
+        # assert abs(shocks.sum()) < 1e-8, "Shock doesn't sum to zero"
 
         ix = np.arange(self.n_banks)
         for i in ix:
@@ -294,6 +327,7 @@ class InterBankNetwork:
             self.banks[i].assert_minimal_reserve()
             self.banks[i].assert_alm()
             self.banks[i].assert_lcr()
+            # self.banks[i].assert_leverage()
             self.banks[i].steps += 1
 
     def simulate(self, time_steps, save_every=10, jaccard_period=10):
