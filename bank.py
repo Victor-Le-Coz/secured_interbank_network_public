@@ -9,8 +9,9 @@ class BankAgent:
         self,
         bank_id,
         initial_deposits,
-        beta_lcr=10.0,
-        beta_star_lcr=10.0,
+        beta_init=10.0,
+        beta_reg=10.0,
+        beta_star=10.0,
         initial_mr=1.0,
         initial_l2s=3.0,
         collateral_value=1.0,
@@ -19,11 +20,15 @@ class BankAgent:
 
         self.id = str(bank_id)
         self.alpha = initial_mr / 100.0
-        self.beta = beta_lcr / 100.0
+
+        self.beta_init = beta_init / 100.0
+        self.beta_reg = beta_reg / 100.0
+        self.beta_star = beta_star / 100.0
+
         self.gamma = initial_l2s / 100.0
         self.collateral = collateral_value
         self.previous_shock = 0.0
-        self.beta_star = beta_star_lcr / 100.0
+
         self.reverse_accept = 0.0
         self.shock = 0.0
         self.conservative_shock = conservative_shock
@@ -41,7 +46,9 @@ class BankAgent:
         self.repos_on_filo = {}
         self.repos_off_filo = {}
         self.repos_on_durations = []
+        self.repos_on_amounts = []
         self.repos_off_durations = []
+        self.repos_off_amounts = []
 
         self.assets = {
             "Cash": 0.0,
@@ -73,7 +80,7 @@ class BankAgent:
     def initialize_balance_sheet(self):
         self.assets["Cash"] = self.liabilities["Deposits"] * self.alpha
         self.assets["Securities Usable"] = (
-            (self.beta - self.alpha)
+            (self.beta_init - self.alpha)
             * self.liabilities["Deposits"]
             / self.collateral
         )
@@ -135,7 +142,10 @@ class BankAgent:
             round(self.total_assets(), 2),
             round(self.assets["Cash"], 2),
             round(self.assets["Securities Usable"] * self.collateral, 2),
-            round(self.assets["Securities Encumbered"] * self.collateral, 2,),
+            round(
+                self.assets["Securities Encumbered"] * self.collateral,
+                2,
+            ),
             round(self.assets["Reverse Repos"], 2),
             round(self.assets["Loans"], 2),
             round(self.total_liabilities(), 2),
@@ -144,9 +154,13 @@ class BankAgent:
             round(self.liabilities["Repos"], 2),
             round(self.liabilities["MROs"], 2),
             round(
-                self.off_balance["Securities Collateral"] * self.collateral, 2,
+                self.off_balance["Securities Collateral"] * self.collateral,
+                2,
             ),
-            round(self.off_balance["Securities Reused"] * self.collateral, 2,),
+            round(
+                self.off_balance["Securities Reused"] * self.collateral,
+                2,
+            ),
             round(self.liquidity_coverage_ratio() * 100, 2),
             round(self.cash_to_deposits() * 100, 2),
             round(self.leverage_to_solvency_ratio() * 100, 2),
@@ -159,7 +173,7 @@ class BankAgent:
             + self.assets["Securities Usable"] * self.collateral
         )
         lcr += self.off_balance["Securities Collateral"] * self.collateral
-        lcr /= self.beta * self.liabilities["Deposits"] + float_limit
+        lcr /= self.beta_reg * self.liabilities["Deposits"]
         return lcr
 
     def cash_to_deposits(self):
@@ -190,7 +204,7 @@ class BankAgent:
             self.assets["Cash"]
             + self.off_balance["Securities Collateral"] * self.collateral
             + self.assets["Securities Usable"] * self.collateral
-            - self.liabilities["Deposits"] * self.beta
+            - self.liabilities["Deposits"] * self.beta_reg
             >= -float_limit
         ), self.__str__() + "\nLCR not at its target value for bank {} at step {}".format(
             self.id, self.steps
@@ -269,7 +283,9 @@ class BankAgent:
             return
         # First end off-balance repos
         trust = self.trust.copy()
-        for b, t in sorted(trust.items(), key=lambda item: item[1]):
+        for b, t in sorted(
+            trust.items(), reverse=True, key=lambda item: item[1]
+        ):
             end = min(self.off_balance_repos[b], target)
             if end > 0.0:
                 self.banks[b].end_repo(self.id, end)
@@ -280,6 +296,7 @@ class BankAgent:
                         del new[0]
                         end_amount -= amount
                         self.repos_off_durations.append(self.steps - t)
+                        self.repos_off_amounts.append(amount)
                     else:
                         new[0][0] -= amount
                         break
@@ -299,7 +316,9 @@ class BankAgent:
         if target == 0.0:
             return
         # Second end on-balance repos
-        for b, t in sorted(trust.items(), key=lambda item: item[1]):
+        for b, t in sorted(
+            trust.items(), reverse=True, key=lambda item: item[1]
+        ):
             end = min(self.on_balance_repos[b], target)
             if end > 0.0:
                 self.banks[b].end_repo(self.id, end)
@@ -310,6 +329,7 @@ class BankAgent:
                         del new[0]
                         end_amount -= amount
                         self.repos_on_durations.append(self.steps - t)
+                        self.repos_on_amounts.append(amount)
                     else:
                         new[0][0] -= amount
                         break
@@ -332,6 +352,12 @@ class BankAgent:
         self.enter_repos(default)
 
     def enter_repos(self, repo_ask):
+        """
+        Allows self to enter into repos
+        :param repo_ask: the amount of repo requested by the bank self.
+        :return:
+        """
+
         if repo_ask <= 0.0:
             return
         bank_list = list(self.trust.keys())
@@ -409,13 +435,22 @@ class BankAgent:
         # self.trust[bank] = self.trust[bank] + 0.2 * (value - self.trust[bank])
 
     def ask_for_repo(self, bank_id, amount):
-        # This is a fix on float error on excess of liquidity
-        if (
-            sum(self.on_balance_repos.values())
-            + sum(self.off_balance_repos.values())
-            > 0.0
-        ):
-            return amount
+        """
+        Allows the bank bank_id to ask the bank self for a repo of the amount amount.
+        :param self: the bank bank_id requesting a repo.
+        :param bank_id: the self of the bank that should accept the repo.
+        :param amount: the amount of cash requested.
+        :return: the remaining amount of repo to the requested by the bank bank_id
+        """
+
+        # # This is a fix on float error on excess of liquidity
+        # A bank does not accept to enter into a reverse repo if
+        # it has still repos, it means it is not in excess of cash
+        # if (
+        #     sum(self.on_balance_repos.values())
+        #     + sum(self.off_balance_repos.values())
+        #     > 0.0):
+        #     return amount
 
         reverse_accept = max(
             self.assets["Cash"] - self.alpha * self.liabilities["Deposits"],
@@ -429,8 +464,10 @@ class BankAgent:
         #         bank_id, amount, self.id, reverse_accept
         #     )
         # )
+
         if reverse_accept <= 0.0:
             return amount
+
         repo = min(amount, reverse_accept)
         self.off_balance["Securities Collateral"] += repo / self.collateral
         self.assets["Cash"] -= repo

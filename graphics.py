@@ -56,7 +56,11 @@ def bar_plot_balance_sheet(sheets, assets, liabilities, path, step):
     barWidth = 0.75
 
     ax1.bar(
-        banks_sorted, height=a1, color="cyan", width=barWidth, label="Cash",
+        banks_sorted,
+        height=a1,
+        color="cyan",
+        width=barWidth,
+        label="Cash",
     )
     ax1.bar(
         banks_sorted,
