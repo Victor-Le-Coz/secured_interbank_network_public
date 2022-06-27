@@ -16,8 +16,9 @@ class InterBankNetwork:
         self,
         n_banks,
         alpha_pareto=0.5,
-        beta_lcr=10.0,
-        beta_star_lcr=10.0,
+        beta_init=1,
+        beta_reg=10.0,
+        beta_star=10.0,
         initial_mr=1.0,
         initial_l2s=3.0,
         collateral_value=1.0,
@@ -29,27 +30,28 @@ class InterBankNetwork:
         assert init in ["constant", "pareto"], (
             "Not valid initialisation method :" " 'constant' or 'pareto'"
         )
-        assert shock_method in ["log-normal", "dirichlet", "uniform"], (
+        assert shock_method in ["log-normal", "dirichlet", "conservative"], (
             "Not valid initialisation method :"
-            " 'log-normal' or 'dirichlet' or 'uniform'"
+            " 'log-normal' or 'dirichlet' or 'conservative'"
         )
         # Params
         self.n_banks = n_banks
         self.alpha_pareto = alpha_pareto
-        self.beta_lcr = beta_lcr
-        self.beta_star_lcr = beta_star_lcr
+        self.beta_init = beta_init
+        self.beta_reg = beta_reg
+        self.beta_star = beta_star
         self.initial_mr = initial_mr
         self.initial_l2s = initial_l2s
         self.collateral_value = collateral_value
         self.init = init
         self.shock_method = shock_method
         if shock_method == "dirichlet":
-            self.std_control = 1.0 / (std_law ** 2.0)
+            self.std_control = 1.0 / (std_law**2.0)
             self.conservative_shock = True
-        elif shock_method == "uniform":
+        elif shock_method == "conservative":
             self.conservative_shock = True
         elif shock_method == "log-normal":
-            self.std_control = np.sqrt(np.log(1.0 + std_law ** 2.0))
+            self.std_control = np.sqrt(np.log(1.0 + std_law**2.0))
             self.conservative_shock = False
         elif shock_method == "normal":
             self.std_control = std_law
@@ -95,8 +97,9 @@ class InterBankNetwork:
                     bank_id=b,
                     initial_deposits=deposits,
                     initial_mr=self.initial_mr,
-                    beta_lcr=self.beta_lcr,
-                    beta_star_lcr=self.beta_star_lcr,
+                    beta_init=self.beta_init,
+                    beta_reg=self.beta_reg,
+                    beta_star=self.beta_star,
                     initial_l2s=self.initial_l2s,
                     collateral_value=self.collateral_value,
                     conservative_shock=self.conservative_shock,
@@ -145,7 +148,9 @@ class InterBankNetwork:
 
     def update_metrics(self):
         bank_network = nx.from_numpy_matrix(
-            self.adj_matrix, parallel_edges=False, create_using=nx.DiGraph,
+            self.adj_matrix,
+            parallel_edges=False,
+            create_using=nx.DiGraph,
         )
         for key in self.metrics.keys():
             self.metrics[key].append(0.0)
@@ -190,19 +195,30 @@ class InterBankNetwork:
         )
 
     def final_metrics(self):
-        on_durations = []
-        off_durations = []
+
+        # duration
+        weighted_durations = []
+        total_amount = 0
         for i, bank in enumerate(self.banks):
-            on_durations += bank.repos_on_durations
-            off_durations += bank.repos_off_durations
-        print(
-            "Average Repos Duration On Balance : {}"
-            "\nAverage Repos Duration Off Balance : {}"
-            "\nAverage Repos Duration Balance : {}".format(
-                np.mean(on_durations),
-                np.mean(off_durations),
-                np.mean(off_durations + on_durations),
+            weighted_durations += list(
+                np.array(bank.repos_on_durations)
+                * np.array(bank.repos_on_amounts)
             )
+            weighted_durations += list(
+                np.array(bank.repos_off_durations)
+                * np.array(bank.repos_off_amounts)
+            )
+            total_amount += sum(bank.repos_on_amounts) + sum(
+                bank.repos_off_amounts
+            )
+        print(
+            "Weighted average maturity of repos : {}".format(
+                np.sum(weighted_durations) / total_amount,
+            )
+        )
+
+        print(
+            "Average amount of repos {}".format(np.mean(self.metrics["Repos"]))
         )
 
     def save_figs(self):
@@ -236,10 +252,12 @@ class InterBankNetwork:
 
     def save_time_series(self):
         gx.plot_repos(
-            self.metrics, self.result_location,
+            self.metrics,
+            self.result_location,
         )
         gx.plot_loans_mro(
-            self.metrics, self.result_location,
+            self.metrics,
+            self.result_location,
         )
         gx.plot_collateral(self.metrics, self.result_location)
         gx.plot_jaccard(self.metrics, self.period, self.result_location)
@@ -254,7 +272,7 @@ class InterBankNetwork:
         )
 
     def step_network(self):
-        if self.shock_method == "uniform":
+        if self.shock_method == "conservative":
             # define middle of the liste of banks
             N_max = (
                 self.n_banks - self.n_banks % 2
@@ -269,7 +287,8 @@ class InterBankNetwork:
             ]  # define the permuted array of deposits
 
             # apply a negative relative shock on the first half of the banks
-            rho_neg = np.random.uniform(-1, 0, size=N_half)
+            # rho_neg = np.random.uniform(-1, 0, size=N_half) # case uniform  law
+            rho_neg = -np.random.beta(2, 1, size=N_half)  # case beta  law
 
             # apply a positive relative shock on the second half of the banks
             rho_pos = (
@@ -278,7 +297,7 @@ class InterBankNetwork:
 
             # concatenate the relative shocks
             if self.n_banks > N_max:
-                rho = np.concatenate([rho_neg, rho_pos, 0])
+                rho = np.concatenate([rho_neg, rho_pos, [0]])
             elif self.n_banks == N_max:
                 rho = np.concatenate([rho_neg, rho_pos])
 
@@ -288,8 +307,11 @@ class InterBankNetwork:
             # compute the absolute shock from the deposit amount
             shocks[ix_p] = deposits_p * rho
 
-            assert abs(shocks.sum()) < float_limit, print(
-                abs(shocks.sum()), "Shock doesn't sum to zero"
+            assert (
+                abs(shocks.sum()) < float_limit,
+                "Shock doesn't sum to zero, sum is {}".format(
+                    abs(shocks.sum())
+                ),
             )
             assert (
                 self.deposits + shocks
@@ -315,7 +337,7 @@ class InterBankNetwork:
             # log-normal approach
             deposits = (
                 np.random.lognormal(
-                    mean=-0.5 * self.std_control ** 2,
+                    mean=-0.5 * self.std_control**2,
                     sigma=self.std_control,
                     size=len(self.banks),
                 )
