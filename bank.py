@@ -1,6 +1,7 @@
 import numpy as np
 
-float_limit = 1e-8
+float_limit = 1e-4
+decimals = 4
 
 
 class BankAgent:
@@ -67,6 +68,7 @@ class BankAgent:
         self.assert_lcr()
         self.assert_alm()
         self.assert_minimal_reserve()
+        print(self)
 
     def initialize_balance_sheet(self):
         self.assets["Cash"] = self.liabilities["Deposits"] * self.alpha
@@ -157,13 +159,15 @@ class BankAgent:
             + self.assets["Securities Usable"] * self.collateral
         )
         lcr += self.off_balance["Securities Collateral"] * self.collateral
-        lcr /= self.beta * self.liabilities["Deposits"]
+        lcr /= self.beta * self.liabilities["Deposits"] + float_limit
         return lcr
 
     def cash_to_deposits(self):
-        return self.assets["Cash"] / self.liabilities["Deposits"]
+        return self.assets["Cash"] / (
+            self.liabilities["Deposits"] + float_limit
+        )
 
-    def leverage_to_solvency_ratio(self):  # Check it after each step
+    def leverage_denominator(self):
         ltsr = (
             self.assets["Cash"]
             + self.assets["Securities Usable"] * self.collateral
@@ -176,38 +180,42 @@ class BankAgent:
                 - self.off_balance["Securities Reused"] * self.collateral
             )
         )
-        ltsr = self.liabilities["Own Funds"] / ltsr
         return ltsr
+
+    def leverage_to_solvency_ratio(self):  # Check it after each step
+        return self.liabilities["Own Funds"] / self.leverage_denominator()
 
     def assert_lcr(self):
         assert (
             self.assets["Cash"]
             + self.off_balance["Securities Collateral"] * self.collateral
             + self.assets["Securities Usable"] * self.collateral
-            + float_limit
-            >= self.liabilities["Deposits"] * self.beta
+            - self.liabilities["Deposits"] * self.beta
+            >= -float_limit
         ), self.__str__() + "\nLCR not at its target value for bank {} at step {}".format(
             self.id, self.steps
         )
 
     def assert_minimal_reserve(self):
         assert (
-            self.assets["Cash"] + float_limit
-            >= self.alpha * self.liabilities["Deposits"]
+            self.assets["Cash"] - self.alpha * self.liabilities["Deposits"]
+            >= -float_limit
         ), self.__str__() + "\nMinimum reserves not respected for bank {} at step {}".format(
             self.id, self.steps
         )
 
     def assert_leverage(self):
         assert (
-            self.leverage_to_solvency_ratio() + float_limit > self.gamma
+            self.liabilities["Own Funds"]
+            - self.gamma * self.leverage_denominator()
+            > -float_limit
         ), self.__str__() + "\nLeverage to solvency ratio not at its target value for bank {} at step {}" "".format(
             self.id, self.steps
         )
 
     def assert_alm(self):
         assert (
-            np.abs(self.total_assets() / self.total_liabilities() - 1.0)
+            np.abs(self.total_assets() - self.total_liabilities())
             < float_limit
         ), self.__str__() + "\nAssets don't match Liabilities for bank {} at step {}".format(
             self.id, self.steps
@@ -215,6 +223,7 @@ class BankAgent:
 
     def set_shock(self, shock):
         self.shock = shock
+        self.prev_deposits = self.liabilities["Deposits"]
         self.liabilities["Deposits"] += self.shock
         self.assets["Cash"] += self.shock
 
@@ -248,22 +257,12 @@ class BankAgent:
             self.liabilities["MROs"] + cash_target, 0.0
         )
 
-    def negative_lcr_management(self):
-        # print("Negative LCR Management Bank {}".format(self.id))
-        cash_target = (
-            self.beta_star * self.liabilities["Deposits"]
-            - self.assets["Cash"]
-            - self.assets["Securities Usable"] * self.collateral
-            - self.off_balance["Securities Collateral"] * self.collateral
-        )
-        # print("Cash Target is {}".format(cash_target))
-        self.liabilities["MROs"] += cash_target
-        self.assets["Cash"] += cash_target
-
     def step_end_repos_chain(self):
-        self.end_repos(
+        excess = (
             self.assets["Cash"] - self.alpha * self.liabilities["Deposits"]
         )
+        excess = max(excess - float_limit, 0.0)
+        self.end_repos(excess)
 
     def end_repos(self, target):
         if target <= 0.0:
@@ -292,7 +291,9 @@ class BankAgent:
                 )
                 self.off_balance["Securities Reused"] -= end / self.collateral
                 self.off_balance_repos[b] -= end
-                target = max(target - self.off_balance_repos[b], 0.0)
+                target = max(
+                    target - self.off_balance_repos[b] - float_limit, 0.0
+                )
             if target == 0.0:
                 break
         if target == 0.0:
@@ -318,14 +319,17 @@ class BankAgent:
                 self.assets["Securities Usable"] += end / self.collateral
                 self.assets["Securities Encumbered"] -= end / self.collateral
                 self.on_balance_repos[b] -= end
-                target = max(target - self.on_balance_repos[b], 0.0)
+                target = max(
+                    target - self.on_balance_repos[b] - float_limit, 0.0
+                )
             if target == 0.0:
                 break
 
     def step_repos(self):
-        self.enter_repos(
-            -(self.assets["Cash"] - self.alpha * self.liabilities["Deposits"])
+        default = -(
+            self.assets["Cash"] - self.alpha * self.liabilities["Deposits"]
         )
+        self.enter_repos(default)
 
     def enter_repos(self, repo_ask):
         if repo_ask <= 0.0:
@@ -339,8 +343,8 @@ class BankAgent:
             assert (
                 self.assets["Securities Usable"] * self.collateral
                 + self.off_balance["Securities Collateral"] * self.collateral
-                + float_limit
-                > repo_ask - rest
+                - (repo_ask - rest)
+                > -float_limit
             ), self.__str__() + "\nNot Enough Collateral for bank {}".format(
                 self.id
             )
@@ -375,15 +379,8 @@ class BankAgent:
             repo_ask = rest
             if rest == 0.0 or len(bank_list) == 0:
                 break
-        if not self.conservative_shock:
-            self.liabilities["MROs"] += repo_ask
-            self.assets["Cash"] += repo_ask
-            repo_ask = 0.0
-        assert (
-            repo_ask < float_limit
-        ), self.__str__() + "\nRepo needs not filled for bank {}".format(
-            self.id
-        )
+        self.liabilities["MROs"] += repo_ask
+        self.assets["Cash"] += repo_ask
         # for bank in bank_list:
         #     self.visits[bank] = self.visits[bank] - 0.1 * self.visits[bank]
 
@@ -456,14 +453,20 @@ class BankAgent:
         collateral_rest = max(
             amount
             - self.off_balance["Securities Collateral"] * self.collateral
-            - self.assets["Securities Usable"] * self.collateral,
+            - self.assets["Securities Usable"] * self.collateral
+            - 2.0 * float_limit,
             0.0,
         )
         self.end_repos(collateral_rest)
+        collateral_rest = max(
+            amount
+            - self.off_balance["Securities Collateral"] * self.collateral
+            - self.assets["Securities Usable"] * self.collateral
+            - 2.0 * float_limit,
+            0.0,
+        )
         assert (
-            self.off_balance["Securities Collateral"] * self.collateral
-            + self.assets["Securities Usable"] * self.collateral
-            > amount - float_limit
+            collateral_rest >= 0.0
         ), self.__str__() + "\nError, not enough collateral asked back for bank {}".format(
             bank_id
         )
