@@ -56,6 +56,9 @@ class InterBankNetwork:
         elif shock_method == "normal":
             self.std_control = std_law
             self.conservative_shock = False
+        else:
+            self.std_control = std_law
+            self.conservative_shock = False
         self.result_location = result_location
 
         # Internal
@@ -364,10 +367,19 @@ class InterBankNetwork:
         # assert abs(shocks.sum()) < 1e-8, "Shock doesn't sum to zero"
 
         ix = np.arange(self.n_banks)
+        excess = 0.0
         for i in ix:
             self.banks[i].set_shock(shocks[i])
             self.banks[i].set_collateral(self.collateral)
             self.banks[i].lcr_step()
+            excess += (
+                self.banks[i].assets["Cash"]
+                - self.banks[i].alpha * self.banks[i].liabilities["Deposits"]
+            )
+        # if self.conservative_shock:
+        #     assert (
+        #         np.abs(excess) < 1e-8
+        #     ), "Excess Liquidity is not null in network !"
         ix = np.random.permutation(ix)
         for i in ix:
             self.banks[i].step_end_repos_chain()
