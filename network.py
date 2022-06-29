@@ -46,12 +46,12 @@ class ClassNetwork:
         self.init = init
         self.shock_method = shock_method
         if shock_method == "dirichlet":
-            self.std_control = 1.0 / (std_law**2.0)
+            self.std_control = 1.0 / (std_law ** 2.0)
             self.conservative_shock = True
         elif shock_method == "conservative":
             self.conservative_shock = True
         elif shock_method == "log-normal":
-            self.std_control = np.sqrt(np.log(1.0 + std_law**2.0))
+            self.std_control = np.sqrt(np.log(1.0 + std_law ** 2.0))
             self.conservative_shock = False
         elif shock_method == "normal":
             self.std_control = std_law
@@ -67,6 +67,7 @@ class ClassNetwork:
         self.balance_sheets = np.zeros(n_banks)
         self.total_assets = {}
         self.total_liabilities = {}
+        self.total_off_balance = {}
         self.collateral = 1.0
         self.adj_matrix = np.zeros((n_banks, n_banks))
         self.trust_adj_matrix = np.zeros((n_banks, n_banks))
@@ -140,6 +141,10 @@ class ClassNetwork:
             "Loans": np.zeros(self.n_banks),
             "Reverse Repos": np.zeros(self.n_banks),
         }
+        self.total_off_balance = {
+            "Securities Collateral": np.zeros(self.n_banks),
+            "Securities Reused": np.zeros(self.n_banks),
+        }
         self.total_steps = 0.0
         if os.path.exists(self.result_location):
             shutil.rmtree(self.result_location)
@@ -151,9 +156,7 @@ class ClassNetwork:
 
     def update_metrics(self):
         bank_network = nx.from_numpy_matrix(
-            self.adj_matrix,
-            parallel_edges=False,
-            create_using=nx.DiGraph,
+            self.adj_matrix, parallel_edges=False, create_using=nx.DiGraph,
         )
         for key in self.metrics.keys():
             self.metrics[key].append(0.0)
@@ -166,6 +169,7 @@ class ClassNetwork:
                 self.total_liabilities[key][i] = bank.liabilities[key]
             for key in bank.off_balance.keys():
                 self.metrics[key][-1] += bank.off_balance[key]
+                self.total_off_balance[key][i] = bank.off_balance[key]
             self.adj_matrix[i, :] = np.array(
                 list(self.banks[i].reverse_repos.values())
             )
@@ -243,6 +247,7 @@ class ClassNetwork:
             self.balance_sheets,
             self.total_assets,
             self.total_liabilities,
+            self.total_off_balance,
             os.path.join(self.result_location, "BalanceSheets"),
             self.total_steps,
         )
@@ -255,12 +260,10 @@ class ClassNetwork:
 
     def save_time_series(self):
         gx.plot_repos(
-            self.metrics,
-            self.result_location,
+            self.metrics, self.result_location,
         )
         gx.plot_loans_mro(
-            self.metrics,
-            self.result_location,
+            self.metrics, self.result_location,
         )
         gx.plot_collateral(self.metrics, self.result_location)
         gx.plot_jaccard(self.metrics, self.period, self.result_location)
@@ -342,7 +345,7 @@ class ClassNetwork:
             # log-normal approach
             deposits = (
                 np.random.lognormal(
-                    mean=-0.5 * self.std_control**2,
+                    mean=-0.5 * self.std_control ** 2,
                     sigma=self.std_control,
                     size=len(self.banks),
                 )

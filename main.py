@@ -12,9 +12,10 @@ if __name__ == "__main__":
         initial_l2s=3.0,
         collateral_value=1.0,
         init="constant",
-        shock_method="dirichlet",
-        std_law=1.0,
+        shock_method="conservative",
+        std_law=0.1,
         result_location="./results/",
     )
 
     network.simulate(time_steps=100, save_every=5000, jaccard_period=20)
+    

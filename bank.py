@@ -172,8 +172,6 @@ class ClassBank:
                 self.off_balance_repos[bank.id] = 0.0
                 self.banks[bank.id] = bank
 
-    # </editor-fold>
-
     def set_shock(self, shock):
         """
         Instance method applying a shock to an instance of ClassBank.
@@ -515,7 +513,7 @@ class ClassBank:
         # for bank in bank_list:
         #     self.visits[bank] = self.visits[bank] - 0.1 * self.visits[bank]
 
-    def choose_bank(self, bank_list):
+    def choose_bank_(self, bank_list):
         ucts = {}
         for b in self.trust.keys():
             if b in bank_list:
@@ -531,13 +529,22 @@ class ClassBank:
                 ucts[b] = 0.0
         return max(ucts, key=ucts.get)
 
+    def choose_bank(self, bank_list):
+        trusts = {}
+        for b in bank_list:
+            trusts[b] = self.trust[b]
+        if np.random.rand() < 0.1:
+            return max(trusts, key=trusts.get)
+        else:
+            return np.random.choice(list(trusts.keys()))
+
     def update_learning(self, bank, value):
-        self.visits[bank] += 1
-        self.trust[bank] += value
+        # self.visits[bank] += 1
+        # self.trust[bank] += value
         # self.visits[bank] = self.visits[bank] + 0.2 * (
         #     1.0 - self.visits[bank]
         # )
-        # self.trust[bank] = self.trust[bank] + 0.2 * (value - self.trust[bank])
+        self.trust[bank] = self.trust[bank] + 0.1 * (value - self.trust[bank])
 
     def enter_reverse_repo(self, bank_id, amount):
         """
@@ -765,5 +772,3 @@ class ClassBank:
         ), self.__str__() + "\nAssets don't match Liabilities for bank {} at step {}".format(
             self.id, self.steps
         )
-
-    # </editor-fold>

@@ -32,10 +32,12 @@ def bar_plot_deposits(deposits, path, step):
     plt.close()
 
 
-def bar_plot_balance_sheet(sheets, assets, liabilities, path, step):
+def bar_plot_balance_sheet(
+    sheets, assets, liabilities, off_balance, path, step
+):
 
     plt.figure(figsize=(30, 15))
-    fig, (ax1, ax2) = plt.subplots(2)
+    fig, (ax1, ax2, ax3) = plt.subplots(3)
     fig.set_figheight(15)
     fig.set_figwidth(30)
 
@@ -56,11 +58,7 @@ def bar_plot_balance_sheet(sheets, assets, liabilities, path, step):
     barWidth = 0.75
 
     ax1.bar(
-        banks_sorted,
-        height=a1,
-        color="cyan",
-        width=barWidth,
-        label="Cash",
+        banks_sorted, height=a1, color="cyan", width=barWidth, label="Cash",
     )
     ax1.bar(
         banks_sorted,
@@ -104,6 +102,7 @@ def bar_plot_balance_sheet(sheets, assets, liabilities, path, step):
         ]
     )
     ax1.tick_params(axis="x", labelrotation=90, labelsize="small")
+    ax1.set_title("Assets of Banks at step {}".format(int(step)))
 
     ax2.bar(
         banks_sorted,
@@ -138,7 +137,28 @@ def bar_plot_balance_sheet(sheets, assets, liabilities, path, step):
     )
     ax2.legend(["Own Funds", "Deposits", "Repos", "MROs"])
     ax2.tick_params(axis="x", labelrotation=90, labelsize="small")
+    ax2.set_title("Liabilities of Banks at step {}".format(int(step)))
 
+    ax3.bar(
+        banks_sorted,
+        height=off_balance["Securities Collateral"][ix_sorted],
+        color="green",
+        width=barWidth,
+        label="Own Funds",
+    )
+    ax3.bar(
+        banks_sorted,
+        height=off_balance["Securities Reused"][ix_sorted],
+        bottom=off_balance["Securities Collateral"][ix_sorted],
+        color="red",
+        width=barWidth,
+        label="Own Funds",
+    )
+    ax3.legend(["Securities Collateral", "Securities Reused"])
+    ax3.tick_params(axis="x", labelrotation=90, labelsize="small")
+    ax3.set_title("Off Balance Sheets of Banks at step {}".format(int(step)))
+
+    plt.subplots_adjust(hspace=0.3)
     plt.savefig(os.path.join(path, "step_{}_balance_sheets.png".format(step)))
     plt.close()
 
