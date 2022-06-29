@@ -290,7 +290,9 @@ class ClassNetwork:
             ]  # define the permuted array of deposits
 
             # apply a negative relative shock on the first half of the banks
-            rho_neg = np.random.uniform(-1, 0, size=N_half) # case uniform  law
+            rho_neg = np.random.uniform(
+                -1, 0, size=N_half
+            )  # case uniform  law
             # rho_neg = -np.random.beta(1, 1, size=N_half)  # case beta  law
 
             # apply a positive relative shock on the second half of the banks
