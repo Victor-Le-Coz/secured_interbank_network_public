@@ -1,6 +1,5 @@
 from network import ClassNetwork
 
-
 if __name__ == "__main__":
     network = ClassNetwork(
         n_banks=50,
@@ -18,4 +17,3 @@ if __name__ == "__main__":
     )
 
     network.simulate(time_steps=100, save_every=5000, jaccard_period=20)
-    

@@ -1,12 +1,13 @@
-import numpy as np
-from scipy.stats import pareto
-from bank import ClassBank
-from tqdm import tqdm
-from scipy.stats import truncnorm
-import networkx as nx
 import os
 import shutil
+
+import networkx as nx
+import numpy as np
+from scipy.stats import pareto
+from tqdm import tqdm
+
 import graphics as gx
+from bank import ClassBank
 
 float_limit = 1e-8
 
@@ -321,9 +322,9 @@ class ClassNetwork:
                     abs(shocks.sum())
                 ),
             )
-            assert (
-                self.deposits + shocks
-            ).all() > -float_limit, "negative shocks larger than deposits"
+            assert (self.deposits + shocks).all() > -float_limit, (
+                "negative shocks larger than " "deposits"
+            )
         elif self.shock_method == "dirichlet":
             # dirichlet approach
             deposits = self.deposits + 1e-8
@@ -355,7 +356,8 @@ class ClassNetwork:
         elif self.shock_method == "normal":
             # Lux's approach but with truncated gaussian
             # shocks = (
-            #     truncnorm.rvs(-3, 3, size=len(self.banks)) * self.deposits / 3
+            #     truncnorm.rvs(-3, 3, size=len(self.banks)) * self.deposits
+            #     / 3
             # )
             deposits = np.maximum(
                 self.deposits

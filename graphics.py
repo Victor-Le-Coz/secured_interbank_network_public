@@ -1,11 +1,11 @@
-from matplotlib import pyplot as plt
+import os
+
 import networkx as nx
 import numpy as np
-import os
+from matplotlib import pyplot as plt
 
 
 def bar_plot_deposits(deposits, path, step):
-
     plt.figure(figsize=(20, 10))
     # banks_sorted = np.argsort(deposits)
     banks_sorted = ["Bank {}".format(str(b)) for b in range(len(deposits))]
@@ -35,7 +35,6 @@ def bar_plot_deposits(deposits, path, step):
 def bar_plot_balance_sheet(
     sheets, assets, liabilities, off_balance, path, step
 ):
-
     plt.figure(figsize=(30, 15))
     fig, (ax1, ax2, ax3) = plt.subplots(3)
     fig.set_figheight(15)
