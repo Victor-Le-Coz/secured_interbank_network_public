@@ -332,13 +332,13 @@ class ClassNetwork:
             #     (deposits / deposits.sum()) * self.constant_dirichlet
             # )
             # deposits = self.deposits.sum() * dispatch
-            # dispatch = np.random.dirichlet(
-            #     (self.init_depotits / self.init_depotits.sum())
-            #     * self.std_control
-            # )
             dispatch = np.random.dirichlet(
-                np.ones(self.n_banks) / self.n_banks * self.std_control
+                (self.init_depotits / self.init_depotits.sum())
+                * self.std_control
             )
+            # dispatch = np.random.dirichlet(
+            #     np.ones(self.n_banks) / self.n_banks * self.std_control
+            # )
             deposits = self.deposits.sum() * dispatch
             shocks = deposits - self.deposits
             assert abs(shocks.sum()) < float_limit, "Shock doesn't sum to zero"
