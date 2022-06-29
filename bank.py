@@ -142,10 +142,7 @@ class BankAgent:
             round(self.total_assets(), 2),
             round(self.assets["Cash"], 2),
             round(self.assets["Securities Usable"] * self.collateral, 2),
-            round(
-                self.assets["Securities Encumbered"] * self.collateral,
-                2,
-            ),
+            round(self.assets["Securities Encumbered"] * self.collateral, 2,),
             round(self.assets["Reverse Repos"], 2),
             round(self.assets["Loans"], 2),
             round(self.total_liabilities(), 2),
@@ -154,13 +151,9 @@ class BankAgent:
             round(self.liabilities["Repos"], 2),
             round(self.liabilities["MROs"], 2),
             round(
-                self.off_balance["Securities Collateral"] * self.collateral,
-                2,
+                self.off_balance["Securities Collateral"] * self.collateral, 2,
             ),
-            round(
-                self.off_balance["Securities Reused"] * self.collateral,
-                2,
-            ),
+            round(self.off_balance["Securities Reused"] * self.collateral, 2,),
             round(self.liquidity_coverage_ratio() * 100, 2),
             round(self.cash_to_deposits() * 100, 2),
             round(self.leverage_to_solvency_ratio() * 100, 2),
@@ -410,7 +403,7 @@ class BankAgent:
         # for bank in bank_list:
         #     self.visits[bank] = self.visits[bank] - 0.1 * self.visits[bank]
 
-    def choose_bank(self, bank_list):
+    def choose_bank_(self, bank_list):
         ucts = {}
         for b in self.trust.keys():
             if b in bank_list:
@@ -426,13 +419,22 @@ class BankAgent:
                 ucts[b] = 0.0
         return max(ucts, key=ucts.get)
 
+    def choose_bank(self, bank_list):
+        trusts = {}
+        for b in bank_list:
+            trusts[b] = self.trust[b]
+        if np.random.rand() < 0.1:
+            return max(trusts, key=trusts.get)
+        else:
+            return np.random.choice(list(trusts.keys()))
+
     def update_learning(self, bank, value):
-        self.visits[bank] += 1
-        self.trust[bank] += value
+        # self.visits[bank] += 1
+        # self.trust[bank] += value
         # self.visits[bank] = self.visits[bank] + 0.2 * (
         #     1.0 - self.visits[bank]
         # )
-        # self.trust[bank] = self.trust[bank] + 0.2 * (value - self.trust[bank])
+        self.trust[bank] = self.trust[bank] + 0.1 * (value - self.trust[bank])
 
     def ask_for_repo(self, bank_id, amount):
         """
