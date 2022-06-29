@@ -95,8 +95,8 @@ class ClassNetwork:
                 deposits = 100.0
             else:
                 assert False, ""
-            self.deposits[b - 1] = deposits
-            self.init_depotits[b - 1] = deposits
+            self.deposits[b] = deposits
+            self.init_depotits[b] = deposits
             self.banks.append(
                 ClassBank(
                     id=b,
