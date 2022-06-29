@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.stats import pareto
-from bank import BankAgent
+from bank import ClassBank
 from tqdm import tqdm
 from scipy.stats import truncnorm
 import networkx as nx
@@ -11,7 +11,7 @@ import graphics as gx
 float_limit = 1e-8
 
 
-class InterBankNetwork:
+class ClassNetwork:
     def __init__(
         self,
         n_banks,
@@ -40,8 +40,8 @@ class InterBankNetwork:
         self.beta_init = beta_init
         self.beta_reg = beta_reg
         self.beta_star = beta_star
-        self.initial_mr = initial_mr
-        self.initial_l2s = initial_l2s
+        self.alpha = initial_mr
+        self.gamma = initial_l2s
         self.collateral_value = collateral_value
         self.init = init
         self.shock_method = shock_method
@@ -77,7 +77,7 @@ class InterBankNetwork:
         self.reset_network()
 
     def reset_network(self):
-        for b in range(1, self.n_banks + 1):
+        for b in range(self.n_banks):
             if self.init == "pareto":
                 deposits = (
                     pareto.rvs(
@@ -96,14 +96,14 @@ class InterBankNetwork:
             self.deposits[b - 1] = deposits
             self.init_depotits[b - 1] = deposits
             self.banks.append(
-                BankAgent(
-                    bank_id=b,
+                ClassBank(
+                    id=b,
                     initial_deposits=deposits,
-                    initial_mr=self.initial_mr,
+                    alpha=self.alpha,
                     beta_init=self.beta_init,
                     beta_reg=self.beta_reg,
                     beta_star=self.beta_star,
-                    initial_l2s=self.initial_l2s,
+                    gamma=self.gamma,
                     collateral_value=self.collateral_value,
                     conservative_shock=self.conservative_shock,
                 )
@@ -204,11 +204,11 @@ class InterBankNetwork:
         total_amount = 0
         for i, bank in enumerate(self.banks):
             weighted_durations += list(
-                np.array(bank.repos_on_durations)
+                np.array(bank.repos_on_maturities)
                 * np.array(bank.repos_on_amounts)
             )
             weighted_durations += list(
-                np.array(bank.repos_off_durations)
+                np.array(bank.repos_off_maturities)
                 * np.array(bank.repos_off_amounts)
             )
             total_amount += sum(bank.repos_on_amounts) + sum(
@@ -290,8 +290,8 @@ class InterBankNetwork:
             ]  # define the permuted array of deposits
 
             # apply a negative relative shock on the first half of the banks
-            # rho_neg = np.random.uniform(-1, 0, size=N_half) # case uniform  law
-            rho_neg = -np.random.beta(2, 1, size=N_half)  # case beta  law
+            rho_neg = np.random.uniform(-1, 0, size=N_half) # case uniform  law
+            # rho_neg = -np.random.beta(1, 1, size=N_half)  # case beta  law
 
             # apply a positive relative shock on the second half of the banks
             rho_pos = (
@@ -326,13 +326,13 @@ class InterBankNetwork:
             #     (deposits / deposits.sum()) * self.constant_dirichlet
             # )
             # deposits = self.deposits.sum() * dispatch
-            dispatch = np.random.dirichlet(
-                (self.init_depotits / self.init_depotits.sum())
-                * self.std_control
-            )
             # dispatch = np.random.dirichlet(
-            #     np.ones(self.n_banks) / self.n_banks * self.std_control
+            #     (self.init_depotits / self.init_depotits.sum())
+            #     * self.std_control
             # )
+            dispatch = np.random.dirichlet(
+                np.ones(self.n_banks) / self.n_banks * self.std_control
+            )
             deposits = self.deposits.sum() * dispatch
             shocks = deposits - self.deposits
             assert abs(shocks.sum()) < float_limit, "Shock doesn't sum to zero"
@@ -367,27 +367,19 @@ class InterBankNetwork:
         # assert abs(shocks.sum()) < 1e-8, "Shock doesn't sum to zero"
 
         ix = np.arange(self.n_banks)
-        excess = 0.0
         for i in ix:
             self.banks[i].set_shock(shocks[i])
             self.banks[i].set_collateral(self.collateral)
-            self.banks[i].lcr_step()
-            excess += (
-                self.banks[i].assets["Cash"]
-                - self.banks[i].alpha * self.banks[i].liabilities["Deposits"]
-            )
-        # if self.conservative_shock:
-        #     assert (
-        #         np.abs(excess) < 1e-8
-        #     ), "Excess Liquidity is not null in network !"
+            self.banks[i].step_lcr_mgt()
+
         ix = np.random.permutation(ix)
         for i in ix:
-            self.banks[i].step_end_repos_chain()
+            self.banks[i].step_end_repos()
         ix = np.random.permutation(ix)
         for i in ix:
-            self.banks[i].step_repos()
+            self.banks[i].step_enter_repos()
         for i in ix:
-            self.banks[i].assert_minimal_reserve()
+            self.banks[i].assert_minimum_reserves()
             self.banks[i].assert_alm()
             self.banks[i].assert_lcr()
             # self.banks[i].assert_leverage()
