@@ -8,6 +8,7 @@ from tqdm import tqdm
 
 import graphics as gx
 from bank import ClassBank
+import shocks as sh
 
 float_limit = 1e-8
 
@@ -24,17 +25,19 @@ class ClassNetwork:
         initial_l2s=3.0,
         collateral_value=1.0,
         init="constant",
-        shock_method="log-normal",
-        std_law=0.1,
+        shock_method="dirichlet",
+        shocks_vol=0.1,
         result_location="./results/",
     ):
         assert init in ["constant", "pareto"], (
             "Not valid initialisation method :" " 'constant' or 'pareto'"
         )
-        assert shock_method in ["log-normal", "dirichlet", "conservative"], (
-            "Not valid initialisation method :"
-            " 'log-normal' or 'dirichlet' or 'conservative'"
-        )
+        assert shock_method in [
+            "bilateral",
+            "multilateral",
+            "dirichlet",
+            "non-conservative",
+        ], "Not valid initialisation method :"
         # Params
         self.n_banks = n_banks
         self.alpha_pareto = alpha_pareto
@@ -46,20 +49,11 @@ class ClassNetwork:
         self.collateral_value = collateral_value
         self.init = init
         self.shock_method = shock_method
-        if shock_method == "dirichlet":
-            self.std_control = 1.0 / (std_law ** 2.0)
-            self.conservative_shock = True
-        elif shock_method == "conservative":
-            self.conservative_shock = True
-        elif shock_method == "log-normal":
-            self.std_control = np.sqrt(np.log(1.0 + std_law ** 2.0))
-            self.conservative_shock = False
-        elif shock_method == "normal":
-            self.std_control = std_law
+        self.shocks_vol = shocks_vol
+        if shock_method == "non-conservative":
             self.conservative_shock = False
         else:
-            self.std_control = std_law
-            self.conservative_shock = False
+            self.conservative_shock = True
         self.result_location = result_location
 
         # Internal
@@ -75,7 +69,7 @@ class ClassNetwork:
         self.prev_adj_matrix = np.zeros((n_banks, n_banks))
         self.metrics = {}
         self.total_steps = 0.0
-        self.init_depotits = np.zeros(n_banks)
+        self.initial_deposits = np.zeros(n_banks)
         self.reset_network()
 
     def reset_network(self):
@@ -96,7 +90,7 @@ class ClassNetwork:
             else:
                 assert False, ""
             self.deposits[b] = deposits
-            self.init_depotits[b] = deposits
+            self.initial_deposits[b] = deposits
             self.banks.append(
                 ClassBank(
                     id=b,
@@ -149,15 +143,22 @@ class ClassNetwork:
         self.total_steps = 0.0
         if os.path.exists(self.result_location):
             shutil.rmtree(self.result_location)
-        os.makedirs(os.path.join(self.result_location, "Repo_Networks"))
+        os.makedirs(
+            os.path.join(self.result_location, "Reverse_repo_Networks")
+        )
         os.makedirs(os.path.join(self.result_location, "Trust_Networks"))
+        os.makedirs(
+            os.path.join(self.result_location, "Core-periphery_structure")
+        )
         os.makedirs(os.path.join(self.result_location, "Deposits"))
         os.makedirs(os.path.join(self.result_location, "BalanceSheets"))
         self.update_metrics()
 
     def update_metrics(self):
         bank_network = nx.from_numpy_matrix(
-            self.adj_matrix, parallel_edges=False, create_using=nx.DiGraph,
+            self.adj_matrix,
+            parallel_edges=False,
+            create_using=nx.DiGraph,
         )
         for key in self.metrics.keys():
             self.metrics[key].append(0.0)
@@ -229,12 +230,19 @@ class ClassNetwork:
             "Average amount of repos {}".format(np.mean(self.metrics["Repos"]))
         )
 
+        gx.plot_core_periphery(
+            self.adj_matrix / (self.adj_matrix.std() + 1e-8),
+            os.path.join(self.result_location, "Core-periphery_structure"),
+            self.total_steps,
+            "Repos",
+        )
+
     def save_figs(self):
         gx.plot_network(
             self.adj_matrix / (self.adj_matrix.std() + 1e-8),
-            os.path.join(self.result_location, "Repo_Networks"),
+            os.path.join(self.result_location, "Reverse_Repo_Networks"),
             self.total_steps,
-            "Repos",
+            "Reverse_Repo",
         )
 
         gx.plot_network(
@@ -261,10 +269,12 @@ class ClassNetwork:
 
     def save_time_series(self):
         gx.plot_repos(
-            self.metrics, self.result_location,
+            self.metrics,
+            self.result_location,
         )
         gx.plot_loans_mro(
-            self.metrics, self.result_location,
+            self.metrics,
+            self.result_location,
         )
         gx.plot_collateral(self.metrics, self.result_location)
         gx.plot_jaccard(self.metrics, self.period, self.result_location)
@@ -279,99 +289,38 @@ class ClassNetwork:
         )
 
     def step_network(self):
-        if self.shock_method == "conservative":
-            # define middle of the liste of banks
-            N_max = (
-                self.n_banks - self.n_banks % 2
-            )  # can not apply a shock on one bank if odd nb
-            N_half = int(self.n_banks / 2)
-
-            # create a permutation of all the deposits amounts
-            ix = np.arange(self.n_banks)  # create an index
-            ix_p = np.random.permutation(ix)  # permutation of the index
-            deposits_p = self.deposits[
-                ix_p
-            ]  # define the permuted array of deposits
-
-            # apply a negative relative shock on the first half of the banks
-            rho_neg = np.random.uniform(
-                -1, 0, size=N_half
-            )  # case uniform  law
-            # rho_neg = -np.random.beta(1, 1, size=N_half)  # case beta  law
-
-            # apply a positive relative shock on the second half of the banks
-            rho_pos = (
-                -rho_neg * deposits_p[0:N_half] / deposits_p[N_half:N_max]
+        if self.shock_method == "bilateral":
+            shocks = sh.generate_bilateral_shocks(
+                self.deposits, law="uniform", vol=self.shocks_vol
             )
+        elif self.shock_method == "multilateral":  # doesn't work yet
+            shocks = sh.generate_multilateral_shocks(
+                self.deposits, law="uniform", vol=self.shocks_vol
+            )
+        elif self.shock_method == "dirichlet":
+            shocks = sh.generate_dirichlet_shocks(
+                self.deposits,
+                self.initial_deposits,
+                option="mean-reverting",
+                vol=self.shocks_vol,
+            )
+        elif self.shock_method == "non-conservative":
+            shocks = sh.generate_non_conservative_shocks(
+                self.deposits, law="log-normal", vol=self.shocks_vol
+            )
+        else:
+            assert False, ""
 
-            # concatenate the relative shocks
-            if self.n_banks > N_max:
-                rho = np.concatenate([rho_neg, rho_pos, [0]])
-            elif self.n_banks == N_max:
-                rho = np.concatenate([rho_neg, rho_pos])
-
-            # build an un-permuted array of absolute shocks
-            shocks = np.zeros(self.n_banks)
-
-            # compute the absolute shock from the deposit amount
-            shocks[ix_p] = deposits_p * rho
-
+        if self.conservative_shock:
             assert (
-                abs(shocks.sum()) < float_limit,
+                abs(shocks.sum()) == 0.0,
                 "Shock doesn't sum to zero, sum is {}".format(
                     abs(shocks.sum())
                 ),
             )
-            assert (self.deposits + shocks).all() > -float_limit, (
-                "negative shocks larger than " "deposits"
-            )
-        elif self.shock_method == "dirichlet":
-            # dirichlet approach
-            deposits = self.deposits + 1e-8
-            # dispatch = np.random.dirichlet(
-            #     (deposits / deposits.sum()) * self.constant_dirichlet
-            # )
-            # deposits = self.deposits.sum() * dispatch
-            # dispatch = np.random.dirichlet(
-            #     (self.init_depotits / self.init_depotits.sum())
-            #     * self.std_control
-            # )
-            dispatch = np.random.dirichlet(
-                np.ones(self.n_banks) / self.n_banks * self.std_control
-            )
-            deposits = self.deposits.sum() * dispatch
-            shocks = deposits - self.deposits
-            assert abs(shocks.sum()) < float_limit, "Shock doesn't sum to zero"
-        elif self.shock_method == "log-normal":
-            # log-normal approach
-            deposits = (
-                np.random.lognormal(
-                    mean=-0.5 * self.std_control ** 2,
-                    sigma=self.std_control,
-                    size=len(self.banks),
-                )
-                * self.deposits
-            )
-            shocks = deposits - self.deposits
-        elif self.shock_method == "normal":
-            # Lux's approach but with truncated gaussian
-            # shocks = (
-            #     truncnorm.rvs(-3, 3, size=len(self.banks)) * self.deposits
-            #     / 3
-            # )
-            deposits = np.maximum(
-                self.deposits
-                + np.random.randn(self.n_banks) * self.std_control,
-                0.0,
-            )
-            shocks = deposits - self.deposits
-        else:
-            assert False, ""
-
-        # print("Minimum shock is :", min(self.deposits + shocks))
-        # print("Sum of shocks is {}".format(round(shocks.sum(), 2)))
-        # print("Shocks : ", shocks)
-        # assert abs(shocks.sum()) < 1e-8, "Shock doesn't sum to zero"
+            assert (
+                np.min(self.deposits + shocks) >= 0.0
+            ), "negative shocks larger than deposits"
 
         ix = np.arange(self.n_banks)
         for i in ix:

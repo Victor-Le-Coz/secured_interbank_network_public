@@ -10,10 +10,10 @@ if __name__ == "__main__":
         initial_mr=1,
         initial_l2s=3.0,
         collateral_value=1.0,
-        init="constant",
-        shock_method="conservative",
-        std_law=0.1,
+        init="pareto",
+        shock_method="dirichlet",
+        shocks_vol=1,
         result_location="./results/",
     )
 
-    network.simulate(time_steps=100, save_every=5000, jaccard_period=20)
+    network.simulate(time_steps=1000, save_every=1000, jaccard_period=20)

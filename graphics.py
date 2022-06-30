@@ -3,6 +3,7 @@ import os
 import networkx as nx
 import numpy as np
 from matplotlib import pyplot as plt
+import cpnet  # Librairy for the estimation of core-periphery structures
 
 
 def bar_plot_deposits(deposits, path, step):
@@ -57,7 +58,11 @@ def bar_plot_balance_sheet(
     barWidth = 0.75
 
     ax1.bar(
-        banks_sorted, height=a1, color="cyan", width=barWidth, label="Cash",
+        banks_sorted,
+        height=a1,
+        color="cyan",
+        width=barWidth,
+        label="Cash",
     )
     ax1.bar(
         banks_sorted,
@@ -269,7 +274,7 @@ def plot_degre_network(metrics, path):
     plt.close()
 
 
-def plot_network(adj, path, step, name="Reverse Repos"):
+def plot_network(adj, path, step, name):
     # build a network from an adjacency matrix
     bank_network = nx.from_numpy_matrix(
         adj, parallel_edges=False, create_using=nx.DiGraph
@@ -291,3 +296,37 @@ def plot_network(adj, path, step, name="Reverse Repos"):
     plt.title("{} network at the step {}".format(name, int(step)))
     plt.savefig(os.path.join(path, "step_{}_network.png".format(step)))
     plt.close()
+
+
+def plot_core_periphery(adj, path, step, name):
+    # build a network from an adjacency matrix
+    bank_network = nx.from_numpy_matrix(
+        adj, parallel_edges=False, create_using=nx.DiGraph
+    )
+
+    alg = cpnet.BE()  # Load the Borgatti-Everett algorithm
+    alg.detect(bank_network)  # Feed the network as an input
+    x = alg.get_coreness()  # Get the coreness of nodes
+    c = alg.get_pair_id()  # Get the group membership of nodes
+    ax = plt.gca()
+
+    # Statistical significance test
+    sig_c, sig_x, significant, p_values = cpnet.qstest(
+        c, x, bank_network, alg, significance_level=0.05, num_of_thread=4
+    )
+
+    print(
+        "{} core-periphery structure(s) detected, but {} significant, "
+        "p-values are {} "
+        "".format(len(significant), np.sum(significant), p_values)
+    )
+
+    # Visualization => doesn't work, need to understand why, to be updated !
+    # fig = plt.figure(figsize=(15, 15))
+    # ax, pos = cpnet.draw(bank_network, sig_c, sig_x, ax)
+
+    # show the plot
+    # plt.title("{} Core-periphery structure at the step {}".format(name, int(step)))
+    # plt.savefig(os.path.join(path, "step_{"
+    #                                "}_Core-periphery_structure.png".format(step)))
+    # plt.close()
