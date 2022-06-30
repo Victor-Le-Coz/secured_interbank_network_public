@@ -1,6 +1,8 @@
 from network import ClassNetwork
+import sys
 
 if __name__ == "__main__":
+    sys.setrecursionlimit(5000)
     network = ClassNetwork(
         n_banks=50,
         alpha_pareto=2.1,
@@ -10,10 +12,10 @@ if __name__ == "__main__":
         initial_mr=1,
         initial_l2s=3.0,
         collateral_value=1.0,
-        init="pareto",
+        init="constant",
         shock_method="dirichlet",
-        std_law=1.0,
+        std_law=0.1,
         result_location="./results/",
     )
 
-    network.simulate(time_steps=1000, save_every=10, jaccard_period=25)
+    network.simulate(time_steps=1000, save_every=10, jaccard_period=50)

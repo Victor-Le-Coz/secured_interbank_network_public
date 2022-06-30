@@ -31,7 +31,12 @@ class ClassNetwork:
         assert init in ["constant", "pareto"], (
             "Not valid initialisation method :" " 'constant' or 'pareto'"
         )
-        assert shock_method in ["log-normal", "dirichlet", "conservative"], (
+        assert shock_method in [
+            "log-normal",
+            "dirichlet",
+            "conservative",
+            "Cox–Ingersoll–Ross",
+        ], (
             "Not valid initialisation method :"
             " 'log-normal' or 'dirichlet' or 'conservative'"
         )
@@ -230,8 +235,9 @@ class ClassNetwork:
         )
 
     def save_figs(self):
+        binary_adj = np.where(self.adj_matrix > 0.0, 1.0, 0.0)
         gx.plot_network(
-            self.adj_matrix / (self.adj_matrix.std() + 1e-8),
+            binary_adj,
             os.path.join(self.result_location, "Repo_Networks"),
             self.total_steps,
             "Repos",
@@ -327,14 +333,19 @@ class ClassNetwork:
             )
         elif self.shock_method == "dirichlet":
             # dirichlet approach
-            deposits = self.deposits + 1e-8
+            # deposits = self.deposits + 1e-8
             # dispatch = np.random.dirichlet(
             #     (deposits / deposits.sum()) * self.constant_dirichlet
             # )
             # deposits = self.deposits.sum() * dispatch
+            # dispatch = np.random.dirichlet(
+            #     (
+            #         self.init_depotits / self.init_depotits.sum()
+            #     )
+            #     * self.std_control
+            # )
             dispatch = np.random.dirichlet(
-                (self.init_depotits / self.init_depotits.sum())
-                * self.std_control
+                (self.deposits + 1.0) / self.deposits.sum() * self.std_control
             )
             # dispatch = np.random.dirichlet(
             #     np.ones(self.n_banks) / self.n_banks * self.std_control
@@ -342,6 +353,14 @@ class ClassNetwork:
             deposits = self.deposits.sum() * dispatch
             shocks = deposits - self.deposits
             assert abs(shocks.sum()) < float_limit, "Shock doesn't sum to zero"
+        elif self.shock_method == "Cox–Ingersoll–Ross":
+            sub_steps = 1
+            deposits = self.deposits.copy()
+            for _ in range(sub_steps):
+                deposits += 0.01 * (self.init_depotits - deposits) + (
+                    self.std_control / sub_steps
+                ) * np.sqrt(deposits) * np.random.randn(self.n_banks)
+            shocks = deposits - self.deposits
         elif self.shock_method == "log-normal":
             # log-normal approach
             deposits = (

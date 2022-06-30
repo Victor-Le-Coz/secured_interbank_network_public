@@ -280,9 +280,7 @@ class ClassBank:
 
         # For loop over the sorted list of the other banks, starting by the
         # lowest trust factor.
-        for b, t in sorted(
-            trust.items(), reverse=True, key=lambda item: item[1]
-        ):
+        for b, t in sorted(trust.items(), key=lambda item: item[1]):
             # Definition of the target amount of off-balance repos to close
             # with a given bank b
             end = min(self.off_balance_repos[b], repo_amount)
@@ -340,9 +338,7 @@ class ClassBank:
 
         # Second step, end all on-balance repos, starting by the ones with
         # banks having the lowest trust factor.
-        for b, t in sorted(
-            trust.items(), reverse=True, key=lambda item: item[1]
-        ):
+        for b, t in sorted(trust.items(), key=lambda item: item[1]):
             end = min(self.on_balance_repos[b], repo_amount)
             if end > 0.0:
 
@@ -600,7 +596,7 @@ class ClassBank:
         trusts = {}
         for b in bank_list:
             trusts[b] = self.trust[b]
-        if np.random.rand() < 0.1:
+        if np.random.rand() >= 0.1:
             return max(trusts, key=trusts.get)
         else:
             return np.random.choice(list(trusts.keys()))
@@ -611,7 +607,7 @@ class ClassBank:
         # self.visits[bank] = self.visits[bank] + 0.2 * (
         #     1.0 - self.visits[bank]
         # )
-        self.trust[bank] = self.trust[bank] + 0.1 * (value - self.trust[bank])
+        self.trust[bank] = self.trust[bank] + 0.5 * (value - self.trust[bank])
 
     def enter_reverse_repo(self, bank_id, amount):
         """
