@@ -12,10 +12,11 @@ if __name__ == "__main__":
         initial_mr=1,
         initial_l2s=3.0,
         collateral_value=1.0,
-        init="constant",
+        init="pareto",
         shock_method="dirichlet",
-        std_law=0.1,
+        shocks_vol=1,
         result_location="./results/",
     )
 
-    network.simulate(time_steps=1000, save_every=10, jaccard_period=50)
+    network.simulate(time_steps=1000, save_every=1000, jaccard_period=20)
+

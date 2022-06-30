@@ -441,7 +441,10 @@ class ClassBank:
         assert missing_collateral >= 0.0, (
             self.__str__() + "\nError, the repo could not be ended as the "
             "bank {} has not enough collateral to end its "
-            "reverse repo with bank {}".format(self.id, bank_id,)
+            "reverse repo with bank {}".format(
+                self.id,
+                bank_id,
+            )
         )
 
         # Update all the required balance sheet items by the closing of the
