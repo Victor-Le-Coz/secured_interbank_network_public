@@ -38,6 +38,7 @@ class ClassNetwork:
             "dirichlet",
             "non-conservative",
         ], "Not valid initialisation method :"
+
         # Params
         self.n_banks = n_banks
         self.alpha_pareto = alpha_pareto
@@ -238,8 +239,9 @@ class ClassNetwork:
         )
 
     def save_figs(self):
+        binary_adj = np.where(self.adj_matrix > 0.0, 1.0, 0.0)
         gx.plot_network(
-            self.adj_matrix / (self.adj_matrix.std() + 1e-8),
+            binary_adj,
             os.path.join(self.result_location, "Reverse_Repo_Networks"),
             self.total_steps,
             "Reverse_Repo",
