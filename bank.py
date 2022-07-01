@@ -3,7 +3,7 @@ import numpy as np
 # The parameter sets the limit to the float precision when running the
 # algorithm, a value lower than this amount is
 # considered as negligible.
-float_limit = 1e-4
+float_limit = 1e-8
 
 
 class ClassBank:
@@ -26,18 +26,18 @@ class ClassBank:
         conservative_shock=True,
     ):
         """
-        Instance methode initializing the class BankAgent.
+        Instance methode initializing the ClassBank.
         :param id: the identifier of the instance of the bank agent.
         :param initial_deposits: the initial deposits used to initialize the
         instance of the bank agent.
+        :param alpha: the share of deposits required as minimum reserves (
+        currently 1% in the Eurozone).
         :param beta_init: the initial LCR share of deposits used to define
         the amount of securities usable.
         :param beta_reg: the regulatory LCR share of deposits required (
         currently 10% in the Eurozone).
         :param beta_star: the targeted LCR  share of deposits => could be
         modelled, currently set as a constant.
-        :param alpha: the share of deposits required as minimum reserves (
-        currently 1% in the Eurozone).
         :param gamma: the share of total asset required as minimum leverage
         ratio (currently 3% in the Eurozone).
         :param collateral_value: value of the collateral in monetary units
@@ -46,7 +46,7 @@ class ClassBank:
         shocks are not conservative,
         """
 
-        # initialisation of the class parameters
+        # Initialisation of the class parameters.
         self.id = str(id)
         self.alpha = alpha / 100.0
         self.beta_init = beta_init / 100.0
@@ -73,9 +73,8 @@ class ClassBank:
             {}
         )  # Dictionary of the number of time the bank agent obtained a repo
         # with each of the banks.
-        self.steps = 1  # Step number in the simulation process, used as a
-        # proxy in the bandit algo for past nb of
-        # repos.
+        self.steps = 0  # Step number in the simulation process, used as a
+        # proxy in the bandit algo for past nb of repos.
         self.exploration_coeff = np.sqrt(
             2.0
         )  # Exploration coefficient setting the ability to explore banks
@@ -199,6 +198,8 @@ class ClassBank:
                 self.off_balance_repos[bank.id] = 0.0
                 self.banks[bank.id] = bank
 
+    # </editor-fold>
+
     def set_shock(self, shock):
         """
         Instance method applying a shock to an instance of ClassBank.
@@ -214,6 +215,7 @@ class ClassBank:
         """
         Instance method updating the value of the collateral of an instance
         of ClassBank.
+        :param collateral_value:
         :param shock: shock applied
         :return:
         """
@@ -279,7 +281,7 @@ class ClassBank:
         trust = self.trust.copy()
 
         # For loop over the sorted list of the other banks, starting by the
-        # lowest trust factor.
+        # highest trust factor.
         for b, t in sorted(trust.items(), key=lambda item: item[1]):
             # Definition of the target amount of off-balance repos to close
             # with a given bank b
@@ -863,3 +865,5 @@ class ClassBank:
         ), self.__str__() + "\nAssets don't match Liabilities for bank {} at step {}".format(
             self.id, self.steps
         )
+
+    # </editor-fold>

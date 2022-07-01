@@ -18,6 +18,8 @@ def generate_bilateral_shocks(deposits, law, vol):
 
     elif law == "beta":
         rho_1 = -np.random.beta(1, 1, size=N_half)  # case beta  law
+    else:
+        assert False, ""
 
     # apply a positive relative shock on the second half of the banks
     rho_2 = -rho_1 * deposits_p[0:N_half] / deposits_p[N_half:N_max]
@@ -27,6 +29,8 @@ def generate_bilateral_shocks(deposits, law, vol):
         rho = np.concatenate([rho_1, rho_2, [0]])
     elif len(deposits) == N_max:
         rho = np.concatenate([rho_1, rho_2])
+    else:
+        assert False, ""
 
     # build an un-permuted array of absolute shocks
     shocks = np.zeros(len(deposits))
@@ -55,6 +59,9 @@ def generate_multilateral_shocks(deposits, law, vol):
     elif law == "beta":
         rho = -np.random.beta(1, 1, size=N_half)  # case beta  law
 
+    else:
+        assert False, ""
+
     rho_1 = rho[0:N_half]
     rho_2 = rho[N_half:N_max]
 
@@ -70,6 +77,8 @@ def generate_multilateral_shocks(deposits, law, vol):
         rho = np.concatenate([rho_1, rho_2, [0]])
     elif len(deposits) == N_max:
         rho = np.concatenate([rho_1, rho_2])
+    else:
+        assert False, ""
 
     # build an un-permuted array of absolute shocks
     shocks = np.zeros(len(deposits))
@@ -77,7 +86,7 @@ def generate_multilateral_shocks(deposits, law, vol):
     # compute the absolute shock from the deposit amount
     shocks[ix_p] = deposits_p * rho
 
-    return (shocks,)
+    return shocks
 
 
 def generate_dirichlet_shocks(deposits, initial_deposits, option, vol):
@@ -86,7 +95,7 @@ def generate_dirichlet_shocks(deposits, initial_deposits, option, vol):
 
     if option == "dynamic":
         dispatch = np.random.dirichlet(
-            (deposits / deposits.sum()) * std_control
+            (np.abs(deposits + 1e-8) / deposits.sum()) * std_control
         )
     elif option == "static":
         dispatch = np.random.dirichlet(
@@ -96,6 +105,8 @@ def generate_dirichlet_shocks(deposits, initial_deposits, option, vol):
         dispatch = np.random.dirichlet(
             (initial_deposits / initial_deposits.sum()) * std_control
         )
+    else:
+        assert False, ""
 
     new_deposits = deposits.sum() * dispatch
     shocks = new_deposits - deposits
@@ -114,12 +125,11 @@ def generate_non_conservative_shocks(deposits, law, vol):
             )
             * deposits
         )
-
     elif law == "normal":
         new_deposits = np.maximum(
-            self.deposits + np.random.randn(len(deposits)) * vol, 0.0
+            deposits + np.random.randn(len(deposits)) * vol, 0.0
         )
-
+    else:
+        assert False, ""
     shocks = new_deposits - deposits
-
     return shocks

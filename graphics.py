@@ -34,26 +34,31 @@ def bar_plot_deposits(deposits, path, step):
 
 
 def bar_plot_balance_sheet(
-    sheets, assets, liabilities, off_balance, path, step
+    total_assets,
+    network_assets,
+    network_liabilities,
+    network_off_balance,
+    path,
+    step,
 ):
     plt.figure(figsize=(30, 15))
     fig, (ax1, ax2, ax3) = plt.subplots(3)
     fig.set_figheight(15)
     fig.set_figwidth(30)
 
-    ix_sorted = np.argsort(sheets)
+    ix_sorted = np.argsort(total_assets)
     banks_sorted = ["Bank {}".format(str(b)) for b in ix_sorted]
 
-    a1 = assets["Cash"][ix_sorted]
-    a2 = a1 + assets["Securities Usable"][ix_sorted]
-    a3 = a2 + assets["Securities Encumbered"][ix_sorted]
-    a4 = a3 + assets["Loans"][ix_sorted]
-    a5 = a4 + assets["Reverse Repos"][ix_sorted]
+    a1 = network_assets["Cash"][ix_sorted]
+    a2 = a1 + network_assets["Securities Usable"][ix_sorted]
+    a3 = a2 + network_assets["Securities Encumbered"][ix_sorted]
+    a4 = a3 + network_assets["Loans"][ix_sorted]
+    a5 = a4 + network_assets["Reverse Repos"][ix_sorted]
 
-    b1 = liabilities["Own Funds"][ix_sorted]
-    b2 = b1 + liabilities["Deposits"][ix_sorted]
-    b3 = b2 + liabilities["Repos"][ix_sorted]
-    b4 = b3 + liabilities["MROs"][ix_sorted]
+    b1 = network_liabilities["Own Funds"][ix_sorted]
+    b2 = b1 + network_liabilities["Deposits"][ix_sorted]
+    b3 = b2 + network_liabilities["Repos"][ix_sorted]
+    b4 = b3 + network_liabilities["MROs"][ix_sorted]
 
     barWidth = 0.75
 
@@ -66,7 +71,7 @@ def bar_plot_balance_sheet(
     )
     ax1.bar(
         banks_sorted,
-        height=assets["Securities Usable"][ix_sorted],
+        height=network_assets["Securities Usable"][ix_sorted],
         bottom=a1,
         color="green",
         width=barWidth,
@@ -74,7 +79,7 @@ def bar_plot_balance_sheet(
     )
     ax1.bar(
         banks_sorted,
-        height=assets["Securities Encumbered"][ix_sorted],
+        height=network_assets["Securities Encumbered"][ix_sorted],
         bottom=a2,
         color="red",
         width=barWidth,
@@ -82,7 +87,7 @@ def bar_plot_balance_sheet(
     )
     ax1.bar(
         banks_sorted,
-        height=assets["Loans"][ix_sorted],
+        height=network_assets["Loans"][ix_sorted],
         bottom=a3,
         color="blue",
         width=barWidth,
@@ -90,7 +95,7 @@ def bar_plot_balance_sheet(
     )
     ax1.bar(
         banks_sorted,
-        height=assets["Reverse Repos"][ix_sorted],
+        height=network_assets["Reverse Repos"][ix_sorted],
         bottom=a4,
         color="yellow",
         width=barWidth,
@@ -117,7 +122,7 @@ def bar_plot_balance_sheet(
     )
     ax2.bar(
         banks_sorted,
-        height=liabilities["Deposits"][ix_sorted],
+        height=network_liabilities["Deposits"][ix_sorted],
         bottom=b1,
         color="green",
         width=barWidth,
@@ -125,7 +130,7 @@ def bar_plot_balance_sheet(
     )
     ax2.bar(
         banks_sorted,
-        height=liabilities["Repos"][ix_sorted],
+        height=network_liabilities["Repos"][ix_sorted],
         bottom=b2,
         color="red",
         width=barWidth,
@@ -133,7 +138,7 @@ def bar_plot_balance_sheet(
     )
     ax2.bar(
         banks_sorted,
-        height=liabilities["MROs"][ix_sorted],
+        height=network_liabilities["MROs"][ix_sorted],
         bottom=b3,
         color="blue",
         width=barWidth,
@@ -145,15 +150,15 @@ def bar_plot_balance_sheet(
 
     ax3.bar(
         banks_sorted,
-        height=off_balance["Securities Collateral"][ix_sorted],
+        height=network_off_balance["Securities Collateral"][ix_sorted],
         color="green",
         width=barWidth,
         label="Own Funds",
     )
     ax3.bar(
         banks_sorted,
-        height=off_balance["Securities Reused"][ix_sorted],
-        bottom=off_balance["Securities Collateral"][ix_sorted],
+        height=network_off_balance["Securities Reused"][ix_sorted],
+        bottom=network_off_balance["Securities Collateral"][ix_sorted],
         color="red",
         width=barWidth,
         label="Own Funds",
@@ -167,11 +172,11 @@ def bar_plot_balance_sheet(
     plt.close()
 
 
-def plot_loans_mro(metrics, path):
+def plot_loans_mro(time_series_metrics, path):
     plt.figure()
-    length = len(metrics["Securities Usable"])
-    plt.plot(np.arange(length), metrics["Loans"])
-    plt.plot(np.arange(length), metrics["MROs"])
+    length = len(time_series_metrics["Securities Usable"])
+    plt.plot(np.arange(length), time_series_metrics["Loans"])
+    plt.plot(np.arange(length), time_series_metrics["MROs"])
     plt.legend(["Loans", "MROs"])
     plt.xlabel("Steps")
     plt.ylabel("Total Network Amount")
@@ -180,10 +185,10 @@ def plot_loans_mro(metrics, path):
     plt.close()
 
 
-def plot_network_density(metrics, path):
+def plot_network_density(time_series_metrics, path):
     plt.figure()
-    length = len(metrics["Network Density"])
-    plt.plot(np.arange(length), metrics["Network Density"])
+    length = len(time_series_metrics["Network Density"])
+    plt.plot(np.arange(length), time_series_metrics["Network Density"])
     plt.xlabel("Steps")
     plt.ylabel("Density")
     plt.title("Network Density across time")
@@ -202,11 +207,11 @@ def plot_collateral_reuse(reuse, path):
     plt.close()
 
 
-def plot_repos(metrics, path):
+def plot_repos(time_series_metrics, path):
     plt.figure()
-    length = len(metrics["Repos"])
-    plt.plot(np.arange(length), metrics["Repos"])
-    plt.plot(np.arange(length), metrics["Reverse Repos"])
+    length = len(time_series_metrics["Repos"])
+    plt.plot(np.arange(length), time_series_metrics["Repos"])
+    plt.plot(np.arange(length), time_series_metrics["Reverse Repos"])
     plt.legend(["Repos", "Reverse Repos"])
     plt.xlabel("Steps")
     plt.ylabel("Total Network Amount")
@@ -215,10 +220,10 @@ def plot_repos(metrics, path):
     plt.close()
 
 
-def plot_jaccard(metrics, period, path):
+def plot_jaccard(time_series_metrics, period, path):
     plt.figure()
-    length = len(metrics["Jaccard Index"])
-    plt.plot(np.arange(length), metrics["Jaccard Index"])
+    length = len(time_series_metrics["Jaccard Index"])
+    plt.plot(np.arange(length), time_series_metrics["Jaccard Index"])
     plt.xlabel("Steps")
     plt.ylabel("Jaccard Index")
     plt.title(
@@ -228,11 +233,11 @@ def plot_jaccard(metrics, period, path):
     plt.close()
 
 
-def plot_excess_liquidity_and_deposits(metrics, path):
+def plot_excess_liquidity_and_deposits(time_series_metrics, path):
     plt.figure()
-    length = len(metrics["Excess Liquidity"])
-    plt.plot(np.arange(length), metrics["Excess Liquidity"])
-    plt.plot(np.arange(length), metrics["Deposits"])
+    length = len(time_series_metrics["Excess Liquidity"])
+    plt.plot(np.arange(length), time_series_metrics["Excess Liquidity"])
+    plt.plot(np.arange(length), time_series_metrics["Deposits"])
     plt.legend(["Excess Liquidity", "Deposits"])
     plt.xlabel("Steps")
     plt.ylabel("Total Network Amount")
@@ -241,13 +246,13 @@ def plot_excess_liquidity_and_deposits(metrics, path):
     plt.close()
 
 
-def plot_collateral(metrics, path):
+def plot_collateral(time_series_metrics, path):
     plt.figure()
-    length = len(metrics["Securities Usable"])
-    plt.plot(np.arange(length), metrics["Securities Usable"])
-    plt.plot(np.arange(length), metrics["Securities Encumbered"])
-    plt.plot(np.arange(length), metrics["Securities Collateral"])
-    plt.plot(np.arange(length), metrics["Securities Reused"])
+    length = len(time_series_metrics["Securities Usable"])
+    plt.plot(np.arange(length), time_series_metrics["Securities Usable"])
+    plt.plot(np.arange(length), time_series_metrics["Securities Encumbered"])
+    plt.plot(np.arange(length), time_series_metrics["Securities Collateral"])
+    plt.plot(np.arange(length), time_series_metrics["Securities Reused"])
     plt.legend(
         [
             "Securities Usable",
@@ -263,14 +268,14 @@ def plot_collateral(metrics, path):
     plt.close()
 
 
-def plot_degre_network(metrics, path):
+def plot_degre_network(time_series_metrics, path):
     plt.figure()
-    length = len(metrics["Degree"])
-    plt.plot(np.arange(length), metrics["Degree"])
+    length = len(time_series_metrics["Degree"])
+    plt.plot(np.arange(length), time_series_metrics["Degree"])
     plt.xlabel("Steps")
-    plt.ylabel("Average Repos")
-    plt.title("Average Amount of Repos in network")
-    plt.savefig(os.path.join(path, "average_repos.png"))
+    plt.ylabel("Average in-degree")
+    plt.title("Average in-degree in the reverse-repo network")
+    plt.savefig(os.path.join(path, "average_in-degree.png"))
     plt.close()
 
 
