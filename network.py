@@ -246,7 +246,7 @@ class ClassNetwork:
         # Generation of the shocks
         if self.shock_method == "bilateral":
             shocks = sh.generate_bilateral_shocks(
-                self.deposits, law="beta", vol=self.shocks_vol
+                self.deposits, law="uniform", vol=self.shocks_vol
             )
         elif self.shock_method == "multilateral":  # Damien's proposal,
             # doesn't work yet, could be enhanced
@@ -417,7 +417,7 @@ class ClassNetwork:
 
     def compute_final_metrics(self):
 
-        # maturity
+        # Print the weighted average maturity of repos
         weighted_repo_maturity = []
         total_repo_amount = 0
         for i, bank in enumerate(self.banks):
@@ -444,6 +444,7 @@ class ClassNetwork:
             )
         )
 
+        # Plot the core-periphery detection and assessment
         gx.plot_core_periphery(
             self.adj_matrix / (self.adj_matrix.std() + 1e-8),
             os.path.join(self.result_location, "Core-periphery_structure"),
