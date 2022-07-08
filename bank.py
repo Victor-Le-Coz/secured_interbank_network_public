@@ -3,7 +3,7 @@ import numpy as np
 # The parameter sets the limit to the float precision when running the
 # algorithm, a value lower than this amount is
 # considered as negligible.
-float_limit = 1e-8
+float_limit = 1e-10
 
 
 class ClassBank:
@@ -17,11 +17,11 @@ class ClassBank:
         self,
         id,
         initial_deposits,
-        alpha=1.0,
-        beta_init=10.0,
-        beta_reg=10.0,
-        beta_star=10.0,
-        gamma=3.0,
+        alpha=0.01,
+        beta_init=0.1,
+        beta_reg=0.1,
+        beta_star=0.1,
+        gamma=0.03,
         collateral_value=1.0,
         conservative_shock=True,
     ):
@@ -48,11 +48,11 @@ class ClassBank:
 
         # Initialisation of the class parameters.
         self.id = str(id)
-        self.alpha = alpha / 100.0
-        self.beta_init = beta_init / 100.0
-        self.beta_reg = beta_reg / 100.0
-        self.beta_star = beta_star / 100.0
-        self.gamma = gamma / 100.0
+        self.alpha = alpha
+        self.beta_init = beta_init
+        self.beta_reg = beta_reg
+        self.beta_star = beta_star
+        self.gamma = gamma
         self.collateral_value = collateral_value
         self.conservative_shock = conservative_shock
 
@@ -259,10 +259,10 @@ class ClassBank:
         excess_liquidity = (
             self.assets["Cash"] - self.alpha * self.liabilities["Deposits"]
         )
-        excess_liquidity = max(excess_liquidity - float_limit, 0.0)
+        excess_liquidity = max(excess_liquidity, 0.0)
         self.end_repos(excess_liquidity)
 
-    def end_repos(self, repo_amount):
+    def end_repos(self, target_repo_amount_to_close):
         """
         Instance method allows to close all the repos from an instance of
         ClassBank, as well as all the necessary
@@ -271,21 +271,73 @@ class ClassBank:
         call back in case of chain of repos ending.
         :return:
         """
+        print(
+            "The total target repo amount of bank {} to close is {}".format(
+                self.id, target_repo_amount_to_close
+            )
+        )
 
         # stop the method if the mount of repo to close is negative
-        if repo_amount <= 0.0:
+        if target_repo_amount_to_close <= 0.0:
             return
 
+        # 1) -------------------------------------------------------------
         # First step, end all off-balance repos, starting by the ones with
         # banks having the lowest trust factor.
         trust = self.trust.copy()
 
         # For loop over the sorted list of the other banks, starting by the
         # highest trust factor.
-        for b, t in sorted(trust.items(), key=lambda item: item[1]):
+        for b, t in sorted(
+            trust.items(), key=lambda item: item[1], reverse=True
+        ):
             # Definition of the target amount of off-balance repos to close
             # with a given bank b
-            end = min(self.off_balance_repos[b], repo_amount)
+            end = min(self.off_balance_repos[b], target_repo_amount_to_close)
+
+            if self.off_balance_repos[b] - end < -float_limit:
+                print(self.off_balance_repos[b])
+
+            if (
+                self.off_balance_repos[b]
+                - self.off_balance["Securities " "Reused"]
+                > float_limit
+            ):
+                print(
+                    "The end repo amount of bank {} with bank {} is {}, "
+                    "while the off_balance_repo is {} and the "
+                    "securities reused is {}".format(
+                        self.id,
+                        b,
+                        end,
+                        self.off_balance_repos[b],
+                        self.off_balance["Securities Reused"],
+                    )
+                )
+
+            # print("the sum of the "
+            #     "off-balance repos is {}, "
+            #     "while the "
+            #     "Securities Reused is {}".format(
+            #         sum(self.off_balance_repos.values()),
+            #         self.off_balance["Securities Reused"]))
+
+            # test the accuracy of self.on_balance repos:
+            assert (
+                abs(
+                    sum(self.off_balance_repos.values())
+                    - self.off_balance["Securities Reused"]
+                )
+                < float_limit
+            ), (
+                "the sum of the "
+                "off-balance repos {}, "
+                "is not equal to the "
+                "Securities Reused {}".format(
+                    sum(self.off_balance_repos.values()),
+                    self.off_balance["Securities Reused"],
+                )
+            )
 
             # Case disjunction
             if end > 0.0:
@@ -295,21 +347,36 @@ class ClassBank:
                 # end_reverse_repo calls recursively the end_repos method
                 # for the bank b in case this latter would
                 # not own sufficient colletral to end its reverse repo.
+
+                print(
+                    "Call of the end reverse repo function of the bank {} "
+                    "by the bank {} for the end amount {}, while the "
+                    "securities reused of this bank are {} and its "
+                    "off_balance_repos are {} ".format(
+                        b,
+                        self.id,
+                        end,
+                        self.off_balance["Securities Reused"],
+                        self.off_balance_repos[b],
+                    )
+                )
                 self.banks[b].end_reverse_repo(self.id, end)
 
-                # Algorithm to update the list of list of the maturities of
+                # Algorithm to update the list of the maturities of
                 # the repos performed by the instance of
                 # ClassBank, using its securities collateral.
-                end_amount = end
+                temp_end = end
                 new = self.repos_off_filo[b].copy()
-                for (amount, t) in self.repos_off_filo[b]:
-                    if amount <= end_amount:
+                for (repo_amount, t) in self.repos_off_filo[b]:
+                    if repo_amount <= temp_end:
                         del new[0]
-                        end_amount -= amount
+                        temp_end -= repo_amount
                         self.repos_off_maturities.append(self.steps - t)
-                        self.repos_off_amounts.append(amount)
+                        self.repos_off_amounts.append(repo_amount)
                     else:
-                        new[0][0] -= amount
+                        new[0][0] -= temp_end
+                        self.repos_off_maturities.append(self.steps - t)
+                        self.repos_off_amounts.append(temp_end)
                         break
                 self.repos_off_filo[b] = new
 
@@ -323,25 +390,76 @@ class ClassBank:
                 self.off_balance["Securities Reused"] -= (
                     end / self.collateral_value
                 )
+
                 self.off_balance_repos[b] -= end
-                repo_amount = max(
-                    repo_amount - self.off_balance_repos[b] - float_limit, 0.0
+
+                if self.off_balance_repos[b] < -float_limit:
+                    print(self.off_balance_repos)
+
+                # update the remaining repo amount
+                # target_repo_amount_to_close = max(
+                #     target_repo_amount_to_close - self.off_balance_repos[
+                #     b] - float_limit,
+                #     0.0
+                # )
+
+                # tests before updating the target_repo_amount_to_close
+                print(
+                    "target repo amount before update {}".format(
+                        target_repo_amount_to_close
+                    )
+                )
+                print("end amount before update {}".format(end))
+
+                target_repo_amount_to_close -= end
+
+                # tests after updating the target_repo_amount_to_close
+                print(
+                    "update of the target repo amount to close is {}".format(
+                        target_repo_amount_to_close
+                    )
+                )
+
+                assert self.off_balance["Securities Reused"] >= -float_limit, (
+                    "securities reused negative {} at step {}, due to "
+                    "retrieving of end {}".format(
+                        self.off_balance["Securities Reused"], self.steps, end
+                    )
                 )
 
             # Break the for loop if off balance repos are sufficient to
             # empty the excess liquidity
-            if repo_amount == 0.0:
+            if target_repo_amount_to_close == 0.0:
                 break
 
         # End the instance method if off balance repos are sufficient to
         # empty the excess liquidity
-        if repo_amount == 0.0:
+        if target_repo_amount_to_close == 0.0:
             return
 
+        # 2) -------------------------------------------------------------
         # Second step, end all on-balance repos, starting by the ones with
         # banks having the lowest trust factor.
-        for b, t in sorted(trust.items(), key=lambda item: item[1]):
-            end = min(self.on_balance_repos[b], repo_amount)
+        for b, t in sorted(
+            trust.items(), key=lambda item: item[1], reverse=True
+        ):
+            end = min(self.on_balance_repos[b], target_repo_amount_to_close)
+
+            # test the accuracy of self.on_balance repos:
+            assert (
+                abs(
+                    sum(self.on_balance_repos.values())
+                    - self.assets["Securities Encumbered"]
+                )
+                < float_limit
+            ), (
+                "the sum of the on-balance repos {} are not equal to "
+                "the Securities Encumbered {}".format(
+                    sum(self.on_balance_repos.values()),
+                    self.off_balance["Securities Encumbered"],
+                )
+            )
+
             if end > 0.0:
 
                 # The bank id b must close its reverse repo with the bank
@@ -351,20 +469,21 @@ class ClassBank:
                 # not own sufficient colletral to end its reverse repo.
                 self.banks[b].end_reverse_repo(self.id, end)
 
-                # Algorithm to update the list of list of the maturities of
+                # Algorithm to update the list of the maturities of
                 # the repos performed by the instance of
                 # ClassBank, using its securities usable.
-                end_amount = end
+                temp_end = end
                 new = self.repos_on_filo[b].copy()
-                for amount, t in self.repos_on_filo[b]:
-                    if amount <= end_amount:
+                for repo_amount, t in self.repos_on_filo[b]:
+                    if repo_amount <= temp_end:
                         del new[0]
-                        end_amount -= amount
+                        temp_end -= repo_amount
                         self.repos_on_maturities.append(self.steps - t)
-                        self.repos_on_amounts.append(amount)
+                        self.repos_on_amounts.append(repo_amount)
                     else:
-                        new[0][0] -= amount
-                        break
+                        new[0][0] -= temp_end
+                        self.repos_on_maturities.append(self.steps - t)
+                        self.repos_on_amounts.append(temp_end)
                 self.repos_on_filo[b] = new
 
                 # Update all the balance sheet items related to the closure
@@ -376,13 +495,19 @@ class ClassBank:
                     end / self.collateral_value
                 )
                 self.on_balance_repos[b] -= end
-                repo_amount = max(
-                    repo_amount - self.on_balance_repos[b] - float_limit, 0.0
-                )
+
+                # update the remaining repo amount
+                # target_repo_amount_to_close = max(
+                #     target_repo_amount_to_close - self.on_balance_repos[b]
+                #     - float_limit, 0.0
+                # )
+
+                # fix, it seems the previous version was an error
+                target_repo_amount_to_close -= end
 
             # Break the for loop if on balance repos are sufficient to empty
             # the excess liquidity
-            if repo_amount == 0.0:
+            if target_repo_amount_to_close == 0.0:
                 break
 
     def end_reverse_repo(self, bank_id, amount):
@@ -392,7 +517,7 @@ class ClassBank:
         upon request of of this latter. This instance method calls
         recursively the end_repos method with the missing
         amount of collateral to be provided back.
-        :param bank_id: identifier of of the bank requesting to close its
+        :param bank_id: identifier of the bank requesting to close its
         repo for a given amount.
         :param amount: amount requested to be closed.
         :return:
@@ -401,70 +526,120 @@ class ClassBank:
         if amount <= 0.0:
             return
 
-        # Debugging prints
-        # print(
-        #     "End Repo ask {}:{} => {}:SC:{}:SU:{}".format(
-        #         bank_id,
-        #         round(amount, 2),
-        #         self.id,
-        #         round(self.off_balance["Securities Collateral"], 2),
-        #         round(self.assets["Securities Usable"], 2),
-        #     )
-        # )
-
         # Definition of the amount of collateral missing to allow the
-        # closing of the reverse repo. We allow the bank
+        # closing of the reverse repo. We do not allow the bank
         # self to use its securities usable as the substitute for the
         # securities he received in the first place.
         missing_collateral = max(
             amount
-            - self.off_balance["Securities Collateral"] * self.collateral_value
-            - self.assets["Securities Usable"] * self.collateral_value
-            - 2.0 * float_limit,
+            - self.off_balance["Securities Collateral"]
+            * self.collateral_value,
             0.0,
         )
 
-        # Recursive calling of the missing amount of collateral through the
-        # ending of the own repos of the bank agent.
-        self.end_repos(missing_collateral)
+        counter = 0
 
-        # Recompute the missing amount of collateral after the end of the
-        # recursive algorithm.
-        missing_collateral = max(
-            amount
-            - self.off_balance["Securities Collateral"] * self.collateral_value
-            - self.assets["Securities Usable"] * self.collateral_value
-            - 2.0 * float_limit,
-            0.0,
+        # Loop while the missing collateral is above the float_limit in
+        # order to handle the cases where 2 banks own each other repos and
+        # reverse repo. The algorithm may converge slowly towards the
+        # positions unwinding
+        while missing_collateral > float_limit:
+            counter += 1
+
+            print(
+                "Bank {} is missing {} of "
+                "collateral, round number {} of the call of the "
+                "end_repos function ".format(
+                    self.id, missing_collateral, counter
+                )
+            )
+
+            # Recursive calling of the missing amount of collateral through the
+            # ending of the own repos of the bank agent.
+            self.end_repos(missing_collateral)
+
+            # Recompute the missing amount of collateral after the end of the
+            # recursive algorithm.
+            missing_collateral = max(
+                amount
+                - self.off_balance["Securities Collateral"]
+                * self.collateral_value,
+                0.0,
+            )
+
+        print(
+            "End of the while loop, bank {} is missing {} of "
+            "collateral".format(self.id, missing_collateral)
         )
 
         # Assert if the recursive algorithm worked adequately, otherwise
         # print an error
-        assert missing_collateral >= 0.0, (
-            self.__str__() + "\nError, the repo could not be ended as the "
-            "bank {} has not enough collateral to end its "
-            "reverse repo with bank {}".format(
+        assert missing_collateral <= float_limit, (
+            self.__str__() + "\nBank {} has not enough collateral to end "
+            "its reverse repo with bank {}, missing "
+            "amount is {}".format(
                 self.id,
                 bank_id,
+                missing_collateral,
             )
         )
 
         # Update all the required balance sheet items by the closing of the
-        # reverse repo. The bank self prefers to
-        # use first its securities collateral to end its reverse repo,
-        # then it uses its securities usable
+        # reverse repo. The bank self use only its securities collateral to
+        # end its reverse repo.
 
         # Definition of the decrease in the securities collateral and
         # securities usable
-        securities_collateral_decrease = min(
-            amount,
-            self.off_balance["Securities Collateral"] * self.collateral_value,
+        # securities_collateral_decrease = min(
+        #     amount,
+        #     self.off_balance["Securities Collateral"] * self.collateral_value,
+        # )
+        # securities_usable_decrease = max(
+        #     amount
+        #     - self.off_balance["Securities Collateral"]
+        #     * self.collateral_value,
+        #     0.0,
+        # )
+
+        assert not (
+            self.off_balance["Securities Reused"] > float_limit
+            and self.assets["Securities Usable"] > float_limit
+        ), (
+            "both reused {} and "
+            "usable {} "
+            "are positive, "
+            "while normally supposed to use all usable before using "
+            "collateral".format(
+                self.off_balance["Securities Reused"],
+                self.assets["Securities Usable"],
+            )
         )
-        securities_usable_decerease = max(
-            amount
-            - self.off_balance["Securities Collateral"]
-            * self.collateral_value,
-            0.0,
+
+        assert (
+            abs(
+                self.off_balance["Securities Collateral"]
+                + self.off_balance["Securities Reused"]
+                - self.assets["Reverse Repos"]
+            )
+            < float_limit
+        ), (
+            "incorrect balance sheet \n securities collateral {},"
+            "\n "
+            "securities reused {}"
+            "\n "
+            "reverse "
+            "repos {} "
+            ""
+            "\n "
+            "difference {}"
+            "".format(
+                self.off_balance["Securities Collateral"],
+                self.off_balance["Securities Reused"],
+                self.assets["Reverse Repos"],
+                self.assets["Reverse Repos"]
+                - self.off_balance["Securities Collateral"]
+                - self.off_balance["Securities Reused"],
+            )
         )
 
         # Update of the balance sheet items
@@ -472,22 +647,7 @@ class ClassBank:
         self.assets["Reverse Repos"] -= amount
         self.reverse_repos[bank_id] -= amount
         self.off_balance["Securities Collateral"] -= (
-            securities_collateral_decrease / self.collateral_value
-        )
-        self.assets["Securities Usable"] -= (
-            securities_usable_decerease / self.collateral_value
-        )
-
-        # Attention point: when the bank self uses its securities usable,
-        # the securities reused decrease by the same
-        # amount and the securities encumbered increase by the same amount,
-        # to ensure each security has an official
-        # owner.
-        self.off_balance["Securities Reused"] -= (
-            securities_usable_decerease / self.collateral_value
-        )
-        self.assets["Securities Encumbered"] += (
-            securities_usable_decerease / self.collateral_value
+            amount / self.collateral_value
         )
 
     def step_enter_repos(self):
@@ -504,7 +664,7 @@ class ClassBank:
         )
 
         # Case disjunction: nothing to do is the repo_ask is negative
-        if repo_ask <= 0.0:
+        if repo_ask <= float_limit:
             return
 
         # While loop over the list of banks that could accept to enter into
@@ -519,7 +679,7 @@ class ClassBank:
             rest = self.banks[b].enter_reverse_repo(self.id, repo_ask)
             self.update_learning(b, (repo_ask - rest) / repo_ask)
 
-            # Test if the the bank agent owns enough collateral to enter
+            # Test if the bank agent owns enough collateral to enter
             # into this repo
             assert (
                 self.assets["Securities Usable"] * self.collateral_value
@@ -571,15 +731,42 @@ class ClassBank:
                 securities_collateral_decrease / self.collateral_value
             )
             self.liabilities["Repos"] += repo_ask - rest
+
+            assert not (
+                self.off_balance["Securities Reused"] > float_limit
+                and self.assets["Securities Usable"] > float_limit
+            ), (
+                "both reused {} and "
+                "usable {} "
+                "are positive, "
+                "while normally "
+                "supposed to use all "
+                "usable before using "
+                "collat".format(
+                    self.off_balance["Securities Reused"],
+                    self.assets["Securities Usable"],
+                )
+            )
+
             repo_ask = rest
-            if rest == 0.0 or len(bank_list) == 0:
+            if rest <= float_limit or len(bank_list) == 0:
                 break
 
-        # fix to handle the float error when accessing the repo market
-        self.liabilities["MROs"] += repo_ask
-        self.assets["Cash"] += repo_ask
-        # for bank in bank_list:
-        #     self.visits[bank] = self.visits[bank] - 0.1 * self.visits[bank]
+        # Fix to handle the float error when accessing the repo market: we
+        # allow banks to request to the ECB the remaining amount of missing
+        # cash
+        # self.liabilities["MROs"] += repo_ask
+        # self.assets["Cash"] += repo_ask
+
+        if repo_ask > float_limit:
+            for b in self.banks.keys():
+                print(self.banks[str(b)])
+
+        assert (
+            repo_ask <= float_limit
+        ), "repo request unsatified for bank {}," " for the amount {}".format(
+            self.id, repo_ask
+        )
 
     def choose_bank_(self, bank_list):
         ucts = {}
@@ -601,7 +788,7 @@ class ClassBank:
         trusts = {}
         for b in bank_list:
             trusts[b] = self.trust[b]
-        if np.random.rand() >= 0.1:
+        if np.random.rand() >= 0:
             return max(trusts, key=trusts.get)
         else:
             return np.random.choice(list(trusts.keys()))
@@ -618,8 +805,8 @@ class ClassBank:
         """
         Instance method allowing the instance of the ClassBank to enter into
         a reverse repo with bank bank_id,
-        upon request of this latter. :param self: the bank bank_id
-        requesting a repo.
+        upon request of this latter.
+        :param self: the bank bank_id requesting a repo.
         :param bank_id: the bank that requests the repo
         :param amount: the amount of cash requested.
         :return: the remaining amount of repo to the requested by the bank
@@ -629,12 +816,12 @@ class ClassBank:
         # This is a fix on float error on excess of liquidity. A bank does
         # not accept to enter into a reverse repo if
         # it has still repos, it means it is not in excess of cash.
-        if (
-            sum(self.on_balance_repos.values())
-            + sum(self.off_balance_repos.values())
-            > 0.0
-        ):
-            return amount
+        # if (
+        #         sum(self.on_balance_repos.values())
+        #         + sum(self.off_balance_repos.values())
+        #         > float_limit
+        # ):
+        #     return amount
 
         reverse_accept = max(
             self.assets["Cash"] - self.alpha * self.liabilities["Deposits"],
@@ -766,9 +953,7 @@ class ClassBank:
         of ClassBank.
         :return:
         """
-        return self.assets["Cash"] / (
-            self.liabilities["Deposits"] + float_limit
-        )
+        return self.assets["Cash"] / (self.liabilities["Deposits"])
 
     def leverage_exposure(self):
         """
@@ -833,8 +1018,10 @@ class ClassBank:
         assert (
             self.assets["Cash"] - self.alpha * self.liabilities["Deposits"]
             >= -float_limit
-        ), self.__str__() + "\nMinimum reserves not respected for bank {} at " "step {}".format(
-            self.id, self.steps
+        ), (
+            self.__str__() + "\nMinimum reserves not respected for bank {} at"
+            " "
+            "step {}".format(self.id, self.steps)
         )
 
     def assert_leverage(self):
@@ -856,13 +1043,15 @@ class ClassBank:
 
     def assert_alm(self):
         """
-        Instance method evaluating if accounting constraints are meet for an instance of ClassBank.
-        :return: Breaks the code and returns a description of the bank and time step concerned.
+        Instance method evaluating if accounting constraints are meet for an
+        instance of ClassBank.
+        :return: Breaks the code and returns a description of the bank and
+        time step concerned.
         """
         assert (
             np.abs(self.total_assets() - self.total_liabilities())
             < float_limit
-        ), self.__str__() + "\nAssets don't match Liabilities for bank {} at step {}".format(
+        ), self.__str__() + "\nAssets don't match Liabilities for bank {} at " "step {}".format(
             self.id, self.steps
         )
 
