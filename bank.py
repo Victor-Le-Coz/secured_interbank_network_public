@@ -3,7 +3,7 @@ import numpy as np
 # The parameter sets the limit to the float precision when running the
 # algorithm, a value lower than this amount is
 # considered as negligible.
-float_limit = 1e-10
+float_limit = 1e-12
 
 
 class ClassBank:
@@ -271,11 +271,11 @@ class ClassBank:
         call back in case of chain of repos ending.
         :return:
         """
-        print(
-            "The total target repo amount of bank {} to close is {}".format(
-                self.id, target_repo_amount_to_close
-            )
-        )
+        # print(
+        #     "The total target repo amount to close for bank {}  is {}".format(
+        #         self.id, target_repo_amount_to_close
+        #     )
+        # )
 
         # stop the method if the mount of repo to close is negative
         if target_repo_amount_to_close <= 0.0:
@@ -348,18 +348,18 @@ class ClassBank:
                 # for the bank b in case this latter would
                 # not own sufficient colletral to end its reverse repo.
 
-                print(
-                    "Call of the end reverse repo function of the bank {} "
-                    "by the bank {} for the end amount {}, while the "
-                    "securities reused of this bank are {} and its "
-                    "off_balance_repos are {} ".format(
-                        b,
-                        self.id,
-                        end,
-                        self.off_balance["Securities Reused"],
-                        self.off_balance_repos[b],
-                    )
-                )
+                # print(
+                #     "Call of the end reverse repo function of the bank {} "
+                #     "by the bank {} for the end amount {}, while the "
+                #     "securities reused of this bank are {} and its "
+                #     "off_balance_repos are {} ".format(
+                #         b,
+                #         self.id,
+                #         end,
+                #         self.off_balance["Securities Reused"],
+                #         self.off_balance_repos[b],
+                #     )
+                # )
                 self.banks[b].end_reverse_repo(self.id, end)
 
                 # Algorithm to update the list of the maturities of
@@ -404,21 +404,21 @@ class ClassBank:
                 # )
 
                 # tests before updating the target_repo_amount_to_close
-                print(
-                    "target repo amount before update {}".format(
-                        target_repo_amount_to_close
-                    )
-                )
-                print("end amount before update {}".format(end))
+                # print(
+                #     "target repo amount before update {}".format(
+                #         target_repo_amount_to_close
+                #     )
+                # )
+                # print("end amount before update {}".format(end))
 
                 target_repo_amount_to_close -= end
 
                 # tests after updating the target_repo_amount_to_close
-                print(
-                    "update of the target repo amount to close is {}".format(
-                        target_repo_amount_to_close
-                    )
-                )
+                # print(
+                #     "update of the target repo amount to close is {}".format(
+                #         target_repo_amount_to_close
+                #     )
+                # )
 
                 assert self.off_balance["Securities Reused"] >= -float_limit, (
                     "securities reused negative {} at step {}, due to "
@@ -537,40 +537,36 @@ class ClassBank:
             0.0,
         )
 
-        counter = 0
-
         # Loop while the missing collateral is above the float_limit in
         # order to handle the cases where 2 banks own each other repos and
         # reverse repo. The algorithm may converge slowly towards the
         # positions unwinding
-        while missing_collateral > float_limit:
-            counter += 1
 
-            print(
-                "Bank {} is missing {} of "
-                "collateral, round number {} of the call of the "
-                "end_repos function ".format(
-                    self.id, missing_collateral, counter
-                )
-            )
+        # print(
+        #     "Bank {} is missing {} of "
+        #     "collateral, round number  of the call of the "
+        #     "end_repos function ".format(
+        #         self.id, missing_collateral,
+        #     )
+        # )
 
-            # Recursive calling of the missing amount of collateral through the
-            # ending of the own repos of the bank agent.
-            self.end_repos(missing_collateral)
+        # Recursive calling of the missing amount of collateral through the
+        # ending of the own repos of the bank agent.
+        self.end_repos(missing_collateral)
 
-            # Recompute the missing amount of collateral after the end of the
-            # recursive algorithm.
-            missing_collateral = max(
-                amount
-                - self.off_balance["Securities Collateral"]
-                * self.collateral_value,
-                0.0,
-            )
-
-        print(
-            "End of the while loop, bank {} is missing {} of "
-            "collateral".format(self.id, missing_collateral)
+        # Recompute the missing amount of collateral after the end of the
+        # recursive algorithm.
+        missing_collateral = max(
+            amount
+            - self.off_balance["Securities Collateral"]
+            * self.collateral_value,
+            0.0,
         )
+
+        # print(
+        #     "End of the while loop, bank {} is missing {} of "
+        #     "collateral".format(self.id, missing_collateral)
+        # )
 
         # Assert if the recursive algorithm worked adequately, otherwise
         # print an error
@@ -587,19 +583,6 @@ class ClassBank:
         # Update all the required balance sheet items by the closing of the
         # reverse repo. The bank self use only its securities collateral to
         # end its reverse repo.
-
-        # Definition of the decrease in the securities collateral and
-        # securities usable
-        # securities_collateral_decrease = min(
-        #     amount,
-        #     self.off_balance["Securities Collateral"] * self.collateral_value,
-        # )
-        # securities_usable_decrease = max(
-        #     amount
-        #     - self.off_balance["Securities Collateral"]
-        #     * self.collateral_value,
-        #     0.0,
-        # )
 
         assert not (
             self.off_balance["Securities Reused"] > float_limit
@@ -649,6 +632,10 @@ class ClassBank:
         self.off_balance["Securities Collateral"] -= (
             amount / self.collateral_value
         )
+
+        # Once a reverse repo is ended, there is an excess liquidity which
+        # required closing the own repos of the bank self
+        self.step_end_repos()
 
     def step_enter_repos(self):
         """
@@ -816,12 +803,12 @@ class ClassBank:
         # This is a fix on float error on excess of liquidity. A bank does
         # not accept to enter into a reverse repo if
         # it has still repos, it means it is not in excess of cash.
-        # if (
-        #         sum(self.on_balance_repos.values())
-        #         + sum(self.off_balance_repos.values())
-        #         > float_limit
-        # ):
-        #     return amount
+        if (
+            sum(self.on_balance_repos.values())
+            + sum(self.off_balance_repos.values())
+            > float_limit
+        ):
+            return amount
 
         reverse_accept = max(
             self.assets["Cash"] - self.alpha * self.liabilities["Deposits"],
