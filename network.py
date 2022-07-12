@@ -10,7 +10,7 @@ import graphics as gx
 from bank import ClassBank
 import shocks as sh
 
-float_limit = 1e-8
+float_limit = 1e-12
 
 
 class ClassNetwork:
@@ -246,7 +246,7 @@ class ClassNetwork:
         # Generation of the shocks
         if self.shock_method == "bilateral":
             shocks = sh.generate_bilateral_shocks(
-                self.deposits, law="uniform", vol=self.shocks_vol
+                self.deposits, law="beta", vol=self.shocks_vol
             )
         elif self.shock_method == "multilateral":  # Damien's proposal,
             # doesn't work yet, could be enhanced

@@ -4,7 +4,7 @@ import sys
 if __name__ == "__main__":
     sys.setrecursionlimit(5000)
     network = ClassNetwork(
-        n_banks=200,
+        n_banks=300,
         alpha_pareto=2.1,
         beta_init=0.1,
         beta_reg=0.1,
@@ -18,4 +18,4 @@ if __name__ == "__main__":
         result_location="./results/",
     )
 
-    network.simulate(time_steps=5000, save_every=5000, jaccard_period=20)
+    network.simulate(time_steps=5000, save_every=100, jaccard_period=20)
