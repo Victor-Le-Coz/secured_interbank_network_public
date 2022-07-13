@@ -18,4 +18,4 @@ if __name__ == "__main__":
         result_location="./results/",
     )
 
-    network.simulate(time_steps=5000, save_every=100, jaccard_period=20)
+    network.simulate(time_steps=5000, save_every=10, jaccard_period=20)

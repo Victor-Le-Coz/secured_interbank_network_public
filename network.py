@@ -10,8 +10,6 @@ import graphics as gx
 from bank import ClassBank
 import shocks as sh
 
-float_limit = 1e-12
-
 
 class ClassNetwork:
     """
@@ -198,6 +196,8 @@ class ClassNetwork:
             "Excess Liquidity": [],
             "Jaccard Index": [],
             "Network Density": [],
+            "Average number of repo transaction ended within a step": [],
+            "Average maturity of repos": [],
         }
         self.network_liabilities = {
             "Own Funds": np.zeros(self.n_banks),
@@ -286,10 +286,18 @@ class ClassNetwork:
             self.banks[i].set_shock(shocks[i])
             self.banks[i].set_collateral(self.collateral_value)
             self.banks[i].step_lcr_mgt()
+            self.banks[
+                i
+            ].repo_transactions_counter = (
+                0  # Reset the repo transaction ended counter to 0
+            )
         ix = np.random.permutation(ix)  # Permutation of the
         # banks' indexes to decide in which order banks can close their repos.
         for i in ix:
-            self.banks[i].step_end_repos()
+            self.banks[
+                i
+            ].step_end_repos()  # Run the step end repos for the bank self
+
         ix = np.random.permutation(ix)  # New permutation of the
         # banks' indexes to decide in which order banks can inter into repos
         for i in ix:
@@ -316,6 +324,7 @@ class ClassNetwork:
         for _ in tqdm(range(time_steps)):
             if self.steps % save_every == 0.0:
                 self.save_figs()
+                self.save_time_series()
             self.step_network()
             self.compute_step_metrics()
             self.steps += 1
@@ -338,6 +347,9 @@ class ClassNetwork:
         network_off_balance dictionaries.
         :return:
         """
+        # initialization of the list used to compute the weighted average repo maturity
+        weighted_repo_maturity = []
+        total_repo_amount = 0
 
         # Add the first item 0 to each of the time series, it is necessary
         # to allow to append a list with list[-1] => not optimal however !
@@ -385,6 +397,36 @@ class ClassNetwork:
                 self.banks[i].assets["Cash"]
                 - self.banks[i].alpha * self.banks[i].liabilities["Deposits"]
             )
+
+            # Build the weighted average maturity of repos (1/2).
+            weighted_repo_maturity += list(
+                np.array(self.banks[i].repos_on_maturities)
+                * np.array(self.banks[i].repos_on_amounts)
+            )  # add the on balance repos
+            weighted_repo_maturity += list(
+                np.array(self.banks[i].repos_off_maturities)
+                * np.array(self.banks[i].repos_off_amounts)
+            )
+            total_repo_amount += sum(self.banks[i].repos_on_amounts) + sum(
+                self.banks[i].repos_off_amounts
+            )  # add the off balance repos
+
+            # Build the time series of the Average number of repo transaction ended within a step (1/2).
+            self.time_series_metrics[
+                "Average number of repo transaction ended within a step"
+            ][-1] += self.banks[
+                i
+            ].repo_transactions_counter  # compute the sum
+
+        # Build the time series of the Average number of repo transaction ended within a step (2/2).
+        self.time_series_metrics[
+            "Average number of repo transaction ended within a step"
+        ][-1] / self.n_banks
+
+        # Build the time series of the weighted average maturity of the repo transactions (2/2)
+        self.time_series_metrics["Average maturity of repos"][-1] = (
+            np.sum(weighted_repo_maturity) / total_repo_amount
+        )
 
         # Build the average in-degree in the network.
         bank_network = nx.from_numpy_matrix(
@@ -542,5 +584,13 @@ class ClassNetwork:
 
         # Plot the time series of the network average degree
         gx.plot_degre_network(self.time_series_metrics, self.result_location)
+
+        gx.plot_average_nb_transactions(
+            self.time_series_metrics, self.result_location
+        )
+
+        gx.plot_average_maturity_repo(
+            self.time_series_metrics, self.result_location
+        )
 
     # </editor-fold>

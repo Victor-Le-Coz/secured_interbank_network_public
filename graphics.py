@@ -274,8 +274,43 @@ def plot_degre_network(time_series_metrics, path):
     plt.plot(np.arange(length), time_series_metrics["Degree"])
     plt.xlabel("Steps")
     plt.ylabel("Average in-degree")
-    plt.title("Average in-degree in the reverse-repo network")
+    plt.title("Average in-degree in the repo network")
     plt.savefig(os.path.join(path, "average_in-degree.png"))
+    plt.close()
+
+
+def plot_average_nb_transactions(time_series_metrics, path):
+    plt.figure()
+    length = len(
+        time_series_metrics[
+            "Average number of repo transaction ended within a step"
+        ]
+    )
+    plt.plot(
+        np.arange(length),
+        time_series_metrics[
+            "Average number of repo transaction ended within a step"
+        ],
+    )
+    plt.xlabel("Steps")
+    plt.ylabel("Average number of repo transaction ended within a step")
+    plt.title(
+        "Average number of repo transaction ended within a step in the network"
+    )
+    plt.savefig(os.path.join(path, "Average_nb_repo_transactions_ended.png"))
+    plt.close()
+
+
+def plot_average_maturity_repo(time_series_metrics, path):
+    plt.figure()
+    length = len(time_series_metrics["Average maturity of repos"])
+    plt.plot(
+        np.arange(length), time_series_metrics["Average maturity of repos"]
+    )
+    plt.xlabel("Steps")
+    plt.ylabel("Weighted average maturity of repos")
+    plt.title("Weighted average maturity of repos")
+    plt.savefig(os.path.join(path, "Average_maturity_repo.png"))
     plt.close()
 
 
