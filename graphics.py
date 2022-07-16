@@ -9,7 +9,9 @@ import cpnet  # Librairy for the estimation of core-periphery structures
 def bar_plot_deposits(deposits, path, step):
     plt.figure(figsize=(20, 10))
     # banks_sorted = np.argsort(deposits)
-    banks_sorted = ["Bank {}".format(str(b)) for b in range(len(deposits))]
+    banks_sorted = [
+        "Bank {}".format(str(b)) for b in range(len(deposits))
+    ]
     deposits_sorted = deposits.copy()
     # deposits_sorted = np.sort(deposits)
     # deposits_sorted = deposits_sorted / deposits_sorted.sum()
@@ -24,12 +26,16 @@ def bar_plot_deposits(deposits, path, step):
         edgecolor="grey",
         label="Deposits",
     )
-    plt.ylabel("Relative Deposits in %", fontweight="bold", fontsize=15)
+    plt.ylabel(
+        "Relative Deposits in %", fontweight="bold", fontsize=15
+    )
     plt.xticks([r for r in range(len(deposits))], banks_sorted)
     plt.tick_params(axis="x", labelrotation=90, labelsize="small")
     plt.legend()
     plt.title("Deposits of Banks at step {}".format(int(step)))
-    plt.savefig(os.path.join(path, "step_{}_deposits.png".format(step)))
+    plt.savefig(
+        os.path.join(path, "step_{}_deposits.png".format(step))
+    )
     plt.close()
 
 
@@ -150,7 +156,9 @@ def bar_plot_balance_sheet(
 
     ax3.bar(
         banks_sorted,
-        height=network_off_balance["Securities Collateral"][ix_sorted],
+        height=network_off_balance["Securities Collateral"][
+            ix_sorted
+        ],
         color="green",
         width=barWidth,
         label="Own Funds",
@@ -158,17 +166,23 @@ def bar_plot_balance_sheet(
     ax3.bar(
         banks_sorted,
         height=network_off_balance["Securities Reused"][ix_sorted],
-        bottom=network_off_balance["Securities Collateral"][ix_sorted],
+        bottom=network_off_balance["Securities Collateral"][
+            ix_sorted
+        ],
         color="red",
         width=barWidth,
         label="Own Funds",
     )
     ax3.legend(["Securities Collateral", "Securities Reused"])
     ax3.tick_params(axis="x", labelrotation=90, labelsize="small")
-    ax3.set_title("Off Balance Sheets of Banks at step {}".format(int(step)))
+    ax3.set_title(
+        "Off Balance Sheets of Banks at step {}".format(int(step))
+    )
 
     plt.subplots_adjust(hspace=0.3)
-    plt.savefig(os.path.join(path, "step_{}_balance_sheets.png".format(step)))
+    plt.savefig(
+        os.path.join(path, "step_{}_balance_sheets.png".format(step))
+    )
     plt.close()
 
 
@@ -188,7 +202,9 @@ def plot_loans_mro(time_series_metrics, path):
 def plot_network_density(time_series_metrics, path):
     plt.figure()
     length = len(time_series_metrics["Network Density"])
-    plt.plot(np.arange(length), time_series_metrics["Network Density"])
+    plt.plot(
+        np.arange(length), time_series_metrics["Network Density"]
+    )
     plt.xlabel("Steps")
     plt.ylabel("Density")
     plt.title("Network Density across time")
@@ -227,7 +243,9 @@ def plot_jaccard(time_series_metrics, period, path):
     plt.xlabel("Steps")
     plt.ylabel("Jaccard Index")
     plt.title(
-        "Temporal Developpement of Jaccard Index for {} period".format(period)
+        "Temporal Developpement of Jaccard Index for {} period".format(
+            period
+        )
     )
     plt.savefig(os.path.join(path, "jaccard_index.png"))
     plt.close()
@@ -236,23 +254,37 @@ def plot_jaccard(time_series_metrics, period, path):
 def plot_excess_liquidity_and_deposits(time_series_metrics, path):
     plt.figure()
     length = len(time_series_metrics["Excess Liquidity"])
-    plt.plot(np.arange(length), time_series_metrics["Excess Liquidity"])
+    plt.plot(
+        np.arange(length), time_series_metrics["Excess Liquidity"]
+    )
     plt.plot(np.arange(length), time_series_metrics["Deposits"])
     plt.legend(["Excess Liquidity", "Deposits"])
     plt.xlabel("Steps")
     plt.ylabel("Total Network Amount")
     plt.title("Total Excess Liquidity and total Deposits")
-    plt.savefig(os.path.join(path, "excess_liquidity_and_deposits.png"))
+    plt.savefig(
+        os.path.join(path, "excess_liquidity_and_deposits.png")
+    )
     plt.close()
 
 
 def plot_collateral(time_series_metrics, path):
     plt.figure()
     length = len(time_series_metrics["Securities Usable"])
-    plt.plot(np.arange(length), time_series_metrics["Securities Usable"])
-    plt.plot(np.arange(length), time_series_metrics["Securities Encumbered"])
-    plt.plot(np.arange(length), time_series_metrics["Securities Collateral"])
-    plt.plot(np.arange(length), time_series_metrics["Securities Reused"])
+    plt.plot(
+        np.arange(length), time_series_metrics["Securities Usable"]
+    )
+    plt.plot(
+        np.arange(length),
+        time_series_metrics["Securities Encumbered"],
+    )
+    plt.plot(
+        np.arange(length),
+        time_series_metrics["Securities Collateral"],
+    )
+    plt.plot(
+        np.arange(length), time_series_metrics["Securities Reused"]
+    )
     plt.legend(
         [
             "Securities Usable",
@@ -293,11 +325,15 @@ def plot_average_nb_transactions(time_series_metrics, path):
         ],
     )
     plt.xlabel("Steps")
-    plt.ylabel("Average number of repo transaction ended within a step")
+    plt.ylabel(
+        "Average number of repo transaction ended within a step"
+    )
     plt.title(
         "Average number of repo transaction ended within a step in the network"
     )
-    plt.savefig(os.path.join(path, "Average_nb_repo_transactions_ended.png"))
+    plt.savefig(
+        os.path.join(path, "Average_nb_repo_transactions_ended.png")
+    )
     plt.close()
 
 
@@ -305,7 +341,8 @@ def plot_average_maturity_repo(time_series_metrics, path):
     plt.figure()
     length = len(time_series_metrics["Average maturity of repos"])
     plt.plot(
-        np.arange(length), time_series_metrics["Average maturity of repos"]
+        np.arange(length),
+        time_series_metrics["Average maturity of repos"],
     )
     plt.xlabel("Steps")
     plt.ylabel("Weighted average maturity of repos")
@@ -330,11 +367,15 @@ def plot_network(adj, path, step, name):
 
     # draw the network
     plt.figure(1, figsize=(15, 15))
-    nx.draw_networkx(bank_network, pos, width=weights, with_labels=True)
+    nx.draw_networkx(
+        bank_network, pos, width=weights, with_labels=True
+    )
 
     # show the plot
     plt.title("{} network at the step {}".format(name, int(step)))
-    plt.savefig(os.path.join(path, "step_{}_network.png".format(step)))
+    plt.savefig(
+        os.path.join(path, "step_{}_network.png".format(step))
+    )
     plt.close()
 
 
@@ -348,11 +389,15 @@ def plot_core_periphery(adj, path, step, name):
     alg.detect(bank_network)  # Feed the network as an input
     x = alg.get_coreness()  # Get the coreness of nodes
     c = alg.get_pair_id()  # Get the group membership of nodes
-    ax = plt.gca()
 
     # Statistical significance test
     sig_c, sig_x, significant, p_values = cpnet.qstest(
-        c, x, bank_network, alg, significance_level=0.05, num_of_thread=4
+        c,
+        x,
+        bank_network,
+        alg,
+        significance_level=0.05,
+        num_of_thread=4,
     )
 
     print(
@@ -361,12 +406,21 @@ def plot_core_periphery(adj, path, step, name):
         "".format(len(significant), np.sum(significant), p_values)
     )
 
-    # Visualization => doesn't work, need to understand why, to be updated !
-    # fig = plt.figure(figsize=(15, 15))
-    # ax, pos = cpnet.draw(bank_network, sig_c, sig_x, ax)
+    # Visualization
+    plt.figure(figsize=(15, 15))
+    ax = plt.gca()
+    ax, pos = cpnet.draw(bank_network, sig_c, sig_x, ax)
 
     # show the plot
-    # plt.title("{} Core-periphery structure at the step {}".format(name, int(step)))
-    # plt.savefig(os.path.join(path, "step_{"
-    #                                "}_Core-periphery_structure.png".format(step)))
-    # plt.close()
+    plt.title(
+        "{} Core-periphery structure at the step {}".format(
+            name, int(step)
+        )
+    )
+    plt.savefig(
+        os.path.join(
+            path,
+            "step_{" "}_Core-periphery_structure.png".format(step),
+        )
+    )
+    plt.close()
