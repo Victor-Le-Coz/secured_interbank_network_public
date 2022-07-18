@@ -1,3 +1,4 @@
+from cProfile import label
 import os
 
 import networkx as nx
@@ -396,4 +397,64 @@ def plot_asset_per_degree(total_assets, degree, path):
         "Total assets per bank as a fonction of the degree in the network"
     )
     plt.savefig(os.path.join(path, "Asset_per_degree.png"))
+    plt.close()
+
+
+def plot_single_trajectory(single_trajectory, path):
+
+    # Plot the accounting items
+    keys = [
+        "Cash",
+        "Securities Usable",
+        "Securities Encumbered",
+        # "Loans",
+        "Reverse Repos",
+        "Own Funds",
+        # "Deposits",
+        "Repos",
+        # "MROs",
+        "Securities Collateral",
+        "Securities Reused",
+    ]
+
+    plt.figure(figsize=(30, 15))
+    length = len(single_trajectory["Cash"])
+    for key in keys:
+
+        # Log scale
+        # plt.plot(
+        #     np.arange(length), np.log10(np.abs(single_trajectory[key])+1),
+        #     label=str(key)
+        # )
+
+        # usual scale
+        plt.plot(np.arange(length), single_trajectory[key], label=str(key))
+
+    plt.xlabel("Steps")
+    # plt.ylabel("Log10 of monetary units")
+    plt.ylabel("Monetary units")
+    plt.legend(loc="upper left")
+    plt.grid()
+    plt.title("Single bank trajectory of accounting items")
+    plt.savefig(os.path.join(path, "Single_trajectory_accounting_items.png"))
+    plt.close()
+
+    # Plot the other indicators
+    keys = [
+        "In-degree",
+        "Out-degree",
+        "Number of repo transaction ended within a step",
+        "Maturity of repos",
+    ]
+    plt.figure(figsize=(30, 15))
+    length = len(single_trajectory["In-degree"])
+    for key in keys:
+        plt.plot(np.arange(length), single_trajectory[key], label=str(key))
+
+    plt.xlabel("Steps")
+    plt.ylabel("Indicators")
+    plt.legend(loc="upper left")
+    plt.grid()
+    plt.title("Single bank trajectory of indicators")
+    plt.savefig(os.path.join(path, "Single_trajectory_indicators.png"))
     plt.close()

@@ -648,8 +648,8 @@ class ClassBank:
             self.assets["Cash"] - self.alpha * self.liabilities["Deposits"]
         )
 
-        # Case disjunction: nothing to do is the repo_ask is negative
-        if repo_ask <= float_limit:
+        # Case disjunction: nothing to do if the repo_ask is negative
+        if repo_ask <= 0.0:
             return
 
         # While loop over the list of banks that could accept to enter into
@@ -734,7 +734,7 @@ class ClassBank:
             )
 
             repo_ask = rest
-            if rest <= float_limit or len(bank_list) == 0:
+            if rest <= 0.0 or len(bank_list) == 0:
                 break
 
         # Fix to handle the float error when accessing the repo market: we
@@ -802,7 +802,7 @@ class ClassBank:
         if (
             sum(self.on_balance_repos.values())
             + sum(self.off_balance_repos.values())
-            > float_limit
+            > 0.0
         ):
             return amount
 
