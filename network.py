@@ -9,6 +9,9 @@ from tqdm import tqdm
 import graphics as gx
 from bank import ClassBank
 import shocks as sh
+import indicators as ind
+
+float_limit = 1e-10
 
 
 class ClassNetwork:
@@ -61,8 +64,7 @@ class ClassNetwork:
         # Tests to ensure the adequate parameters were chosen when creating
         # the network
         assert initialization_method in ["constant", "pareto"], (
-            "Not valid initialisation method :"
-            " 'constant' or 'pareto'"
+            "Not valid initialisation method :" " 'constant' or 'pareto'"
         )
         assert shock_method in [
             "bilateral",
@@ -91,20 +93,19 @@ class ClassNetwork:
 
         # Definition of the internal parameters of the ClassNetwork.
         self.steps = 0  # Step number in the simulation process
-        self.banks = (
-            []
-        )  # List of the instances of the ClassBank existing
+        self.banks = []  # List of the instances of the ClassBank existing
         # in the ClassNetwork.
-        self.deposits = np.zeros(
+        self.network_deposits = np.zeros(
             n_banks
         )  # Numpy array of the deposits of
         # the banks in the network.
-        self.initial_deposits = np.zeros(
-            n_banks
-        )  # Numpy array of the
+        self.network_initial_deposits = np.zeros(n_banks)  # Numpy array of the
         # initial deposits of the banks in the network.
-        self.total_assets = np.zeros(n_banks)  # Numpy array of the
+        self.network_total_assets = np.zeros(n_banks)  # Numpy array of the
         # total assets of the banks in the network.
+        self.network_degree = np.zeros(
+            n_banks
+        )  # Numpy array of the degree of the banks in the network.
 
         # Definition of the dictionaries associating to each of the accounting
         # items, its corresponding numpy array of its value per bank,
@@ -118,15 +119,11 @@ class ClassNetwork:
         self.collateral_value = 1.0
 
         # Definition of the adjacency matrices
-        self.adj_matrix = np.zeros(
-            (n_banks, n_banks)
-        )  # reverse repos
+        self.adj_matrix = np.zeros((n_banks, n_banks))  # reverse repos
         # adjacency matrix
         self.trust_adj_matrix = np.zeros((n_banks, n_banks))  # trust
         # coeficients adjacency matrix
-        self.prev_adj_matrix = np.zeros(
-            (n_banks, n_banks)
-        )  # previous
+        self.prev_adj_matrix = np.zeros((n_banks, n_banks))  # previous
         # adjacency matrix, used for the computation of the jaccard index (
         # stable trading relationships)
 
@@ -166,8 +163,8 @@ class ClassNetwork:
                 deposits = 100.0
             else:
                 assert False, ""
-            self.deposits[b] = deposits
-            self.initial_deposits[b] = deposits
+            self.network_deposits[b] = deposits
+            self.network_initial_deposits[b] = deposits
             self.banks.append(
                 ClassBank(
                     id=b,
@@ -203,12 +200,13 @@ class ClassNetwork:
             "MROs": [],
             "Securities Collateral": [],
             "Securities Reused": [],
-            "Degree": [],
+            "In-degree": [],
             "Excess Liquidity": [],
             "Jaccard Index": [],
             "Network Density": [],
             "Average number of repo transaction ended within a step": [],
             "Average maturity of repos": [],
+            "Gini": [],
         }
         self.network_liabilities = {
             "Own Funds": np.zeros(self.n_banks),
@@ -232,27 +230,18 @@ class ClassNetwork:
         self.steps = 0.0
 
         # Create the required path to store the results
-        if os.path.exists(
-            self.result_location
-        ):  # Delete all previous figures
+        if os.path.exists(self.result_location):  # Delete all previous figures
             shutil.rmtree(self.result_location)
         os.makedirs(
-            os.path.join(
-                self.result_location, "Reverse_repo_Networks"
-            )
+            os.path.join(self.result_location, "Reverse_repo_Networks")
         )
+        os.makedirs(os.path.join(self.result_location, "Trust_Networks"))
         os.makedirs(
-            os.path.join(self.result_location, "Trust_Networks")
-        )
-        os.makedirs(
-            os.path.join(
-                self.result_location, "Core-periphery_structure"
-            )
+            os.path.join(self.result_location, "Core-periphery_structure")
         )
         os.makedirs(os.path.join(self.result_location, "Deposits"))
-        os.makedirs(
-            os.path.join(self.result_location, "BalanceSheets")
-        )
+        os.makedirs(os.path.join(self.result_location, "BalanceSheets"))
+        os.makedirs(os.path.join(self.result_location, "Assets_per_degree"))
 
         # Update all the metrics at time step 0
         self.compute_step_metrics()
@@ -267,32 +256,30 @@ class ClassNetwork:
         # Generation of the shocks
         if self.shock_method == "bilateral":
             shocks = sh.generate_bilateral_shocks(
-                self.deposits, law="beta", vol=self.shocks_vol
+                self.network_deposits, law="beta", vol=self.shocks_vol
             )
-        elif (
-            self.shock_method == "multilateral"
-        ):  # Damien's proposal,
+        elif self.shock_method == "multilateral":  # Damien's proposal,
             # doesn't work yet, could be enhanced
             shocks = sh.generate_multilateral_shocks(
-                self.deposits, law="uniform", vol=self.shocks_vol
+                self.network_deposits, law="uniform", vol=self.shocks_vol
             )
         elif self.shock_method == "dirichlet":
             shocks = sh.generate_dirichlet_shocks(
-                self.deposits,
-                self.initial_deposits,
+                self.network_deposits,
+                self.network_initial_deposits,
                 option="mean-reverting",
                 vol=self.shocks_vol,
             )
         elif self.shock_method == "non-conservative":
             shocks = sh.generate_non_conservative_shocks(
-                self.deposits, law="log-normal", vol=self.shocks_vol
+                self.network_deposits, law="log-normal", vol=self.shocks_vol
             )
         else:
             assert False, ""
 
         # Tests to ensure the shock created matches the required properties
         assert (
-            np.min(self.deposits + shocks) >= 0
+            np.min(self.network_deposits + shocks) >= 0
         ), "negative shocks larger than deposits"  # To ensure shocks are not
         # higher than the deposits amount of each bank
         if self.conservative_shock:
@@ -382,42 +369,20 @@ class ClassNetwork:
 
             # Build the time series of the accounting items and store the
             # network dictionaries of the accounting items values
-            for (
-                key
-            ) in bank.assets.keys():  # only loop over assets items.
-                self.time_series_metrics[key][-1] += bank.assets[
-                    key
-                ]  #
+            for key in bank.assets.keys():  # only loop over assets items.
+                self.time_series_metrics[key][-1] += bank.assets[key]  #
                 # Computes the total of a given item at a given time step.
-                self.network_assets[key][i] = bank.assets[
-                    key
-                ]  # Fill-in
+                self.network_assets[key][i] = bank.assets[key]  # Fill-in
                 # the value of each accounting item of each bank into the
                 # network asset dictionary.
-            for (
-                key
-            ) in (
-                bank.liabilities.keys()
-            ):  # only loop over liabilities
+            for key in bank.liabilities.keys():  # only loop over liabilities
                 # items.
-                self.time_series_metrics[key][-1] += bank.liabilities[
-                    key
-                ]
-                self.network_liabilities[key][i] = bank.liabilities[
-                    key
-                ]
-            for (
-                key
-            ) in (
-                bank.off_balance.keys()
-            ):  # only loop over off-balance
+                self.time_series_metrics[key][-1] += bank.liabilities[key]
+                self.network_liabilities[key][i] = bank.liabilities[key]
+            for key in bank.off_balance.keys():  # only loop over off-balance
                 # items.
-                self.time_series_metrics[key][-1] += bank.off_balance[
-                    key
-                ]
-                self.network_off_balance[key][i] = bank.off_balance[
-                    key
-                ]
+                self.time_series_metrics[key][-1] += bank.off_balance[key]
+                self.network_off_balance[key][i] = bank.off_balance[key]
 
             # Build the adjacency matrix of the reverse repos
             self.adj_matrix[i, :] = np.array(
@@ -430,16 +395,15 @@ class ClassNetwork:
             self.trust_adj_matrix[i, i + 1 :] = trusts[i:]
 
             # Build the total assets of each bank
-            self.total_assets[i] = self.banks[i].total_assets()
+            self.network_total_assets[i] = self.banks[i].total_assets()
 
             # Build the deposits numpy array of each bank
-            self.deposits[i] = self.banks[i].liabilities["Deposits"]
+            self.network_deposits[i] = self.banks[i].liabilities["Deposits"]
 
             # Build the total network excess liquidity time series
             self.time_series_metrics["Excess Liquidity"][-1] += (
                 self.banks[i].assets["Cash"]
-                - self.banks[i].alpha
-                * self.banks[i].liabilities["Deposits"]
+                - self.banks[i].alpha * self.banks[i].liabilities["Deposits"]
             )
 
             # Build the weighted average maturity of repos (1/2).
@@ -451,9 +415,7 @@ class ClassNetwork:
                 np.array(self.banks[i].repos_off_maturities)
                 * np.array(self.banks[i].repos_off_amounts)
             )
-            total_repo_amount += sum(
-                self.banks[i].repos_on_amounts
-            ) + sum(
+            total_repo_amount += sum(self.banks[i].repos_on_amounts) + sum(
                 self.banks[i].repos_off_amounts
             )  # add the off balance repos
 
@@ -475,19 +437,17 @@ class ClassNetwork:
         )
 
         # Build the average in-degree in the network.
+        binary_adj = np.where(self.adj_matrix > float_limit, True, False)
         bank_network = nx.from_numpy_matrix(
-            self.adj_matrix,
-            parallel_edges=False,
-            create_using=nx.DiGraph,
+            binary_adj, parallel_edges=False, create_using=nx.DiGraph,
         )  # first define a networkx object.
-        self.time_series_metrics["Degree"][-1] = np.array(
+        self.time_series_metrics["In-degree"][-1] = np.array(
             bank_network.in_degree()
         )[:, 1].mean()
 
         # Build the jaccard index time series.
-        binary_adj = np.where(self.adj_matrix > 0.0, True, False)
         prev_binary_adj = np.where(
-            self.prev_adj_matrix > 0.0, True, False
+            self.prev_adj_matrix > float_limit, True, False
         )
         if self.steps > 0 and self.steps % self.jaccard_period == 0:
             self.time_series_metrics["Jaccard Index"][-1] = (
@@ -502,10 +462,16 @@ class ClassNetwork:
 
         # Build the network density indicator.
         self.time_series_metrics["Network Density"][-1] = (
-            2.0
-            * binary_adj.sum()
-            / (self.n_banks * (self.n_banks - 1.0))
+            2.0 * binary_adj.sum() / (self.n_banks * (self.n_banks - 1.0))
         )
+
+        # Build the gini coeficient of the network
+        self.time_series_metrics["Gini"][-1] = ind.gini(
+            self.network_total_assets
+        )
+
+        # Build the dictionary of the degree (total of in and out) of each node in the network at a given step
+        self.network_degree = np.array(bank_network.degree())[:, 1]
 
     def compute_final_metrics(self):
 
@@ -547,17 +513,14 @@ class ClassNetwork:
         binary_adj = np.where(self.adj_matrix > 0.0, 1.0, 0.0)
         gx.plot_network(
             self.adj_matrix,
-            os.path.join(
-                self.result_location, "Reverse_Repo_Networks"
-            ),
+            os.path.join(self.result_location, "Reverse_Repo_Networks"),
             self.steps,
             "Reverse_Repo",
         )
 
         # Plot the trust network
         gx.plot_network(
-            self.trust_adj_matrix.T
-            / (self.trust_adj_matrix.std() + 1e-8),
+            self.trust_adj_matrix.T / (self.trust_adj_matrix.std() + 1e-8),
             os.path.join(self.result_location, "Trust_Networks"),
             self.steps,
             "Trust",
@@ -565,7 +528,7 @@ class ClassNetwork:
 
         # Plot the break-down of the balance per bank
         gx.bar_plot_balance_sheet(
-            self.total_assets,
+            self.network_total_assets,
             self.network_assets,
             self.network_liabilities,
             self.network_off_balance,
@@ -575,7 +538,7 @@ class ClassNetwork:
 
         # Plot the break-down of the deposits per bank in relative shares
         gx.bar_plot_deposits(
-            self.deposits,
+            self.network_deposits,
             os.path.join(self.result_location, "Deposits"),
             self.steps,
         )
@@ -583,11 +546,16 @@ class ClassNetwork:
         # Plot the core-periphery detection and assessment
         gx.plot_core_periphery(
             self.adj_matrix,
-            os.path.join(
-                self.result_location, "Core-periphery_structure"
-            ),
+            os.path.join(self.result_location, "Core-periphery_structure"),
             self.steps,
             "Repos",
+        )
+
+        # Plot the link between centrality and total asset size
+        gx.plot_asset_per_degree(
+            self.network_total_assets,
+            self.network_degree,
+            os.path.join(self.result_location, "Assets_per_degree"),
         )
 
         # Plot the time series of the total repos in the network
@@ -602,18 +570,14 @@ class ClassNetwork:
 
         # Plot the time series of the securities usable, encumbered and
         # re-used in the network
-        gx.plot_collateral(
-            self.time_series_metrics, self.result_location
-        )
+        gx.plot_collateral(self.time_series_metrics, self.result_location)
 
         # Plot the time series of the weighted average number of time the
         # collateral is reused in the network
         gx.plot_collateral_reuse(
             np.array(self.time_series_metrics["Securities Reused"])
             / (
-                np.array(
-                    self.time_series_metrics["Securities Collateral"]
-                )
+                np.array(self.time_series_metrics["Securities Collateral"])
                 + 1e-8
             ),
             self.result_location,
@@ -633,19 +597,20 @@ class ClassNetwork:
         )
 
         # Plot the time series of the network density
-        gx.plot_network_density(
-            self.time_series_metrics, self.result_location
-        )
+        gx.plot_network_density(self.time_series_metrics, self.result_location)
+
+        # Plot the time series of the gini coefficients
+        gx.plot_gini(self.time_series_metrics, self.result_location)
 
         # Plot the time series of the network average degree
-        gx.plot_degre_network(
-            self.time_series_metrics, self.result_location
-        )
+        gx.plot_degre_network(self.time_series_metrics, self.result_location)
 
+        # Plot the time series of the average nb of transactions per step and per bank
         gx.plot_average_nb_transactions(
             self.time_series_metrics, self.result_location
         )
 
+        # Plot the average maturity of repos.
         gx.plot_average_maturity_repo(
             self.time_series_metrics, self.result_location
         )

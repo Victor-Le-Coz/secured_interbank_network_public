@@ -3,24 +3,18 @@ import numpy as np
 
 def generate_bilateral_shocks(deposits, law, vol):
     # define middle of the list of banks
-    N_max = (
-        len(deposits) - len(deposits) % 2
-    )  # can not apply a shock on
+    N_max = len(deposits) - len(deposits) % 2  # can not apply a shock on
     # one bank if odd nb
     N_half = int(len(deposits) / 2)
 
     # create a permutation of all the deposits amounts
     ix = np.arange(len(deposits))  # create an index
     ix_p = np.random.permutation(ix)  # permutation of the index
-    deposits_p = deposits[
-        ix_p
-    ]  # define the permuted array of deposits
+    deposits_p = deposits[ix_p]  # define the permuted array of deposits
 
     # apply a negative relative shock on the first half of the banks
     if law == "uniform":
-        rho_1 = np.random.uniform(
-            -1, 0, size=N_half
-        )  # case uniform  law
+        rho_1 = np.random.uniform(-1, 0, size=N_half)  # case uniform  law
 
     elif law == "beta":
         rho_1 = -np.random.beta(1, 1, size=N_half)  # case beta  law
@@ -49,24 +43,18 @@ def generate_bilateral_shocks(deposits, law, vol):
 
 def generate_multilateral_shocks(deposits, law, vol):
     # define middle of the list of banks
-    N_max = (
-        len(deposits) - len(deposits) % 2
-    )  # can not apply a shock on
+    N_max = len(deposits) - len(deposits) % 2  # can not apply a shock on
     # one bank if odd nb
     N_half = int(len(deposits) / 2)
 
     # create a permutation of all the deposits amounts
     ix = np.arange(len(deposits))  # create an index
     ix_p = np.random.permutation(ix)  # permutation of the index
-    deposits_p = deposits[
-        ix_p
-    ]  # define the permuted array of deposits
+    deposits_p = deposits[ix_p]  # define the permuted array of deposits
 
     # apply a shock on the first half of the banks
     if law == "uniform":
-        rho = np.random.uniform(
-            -0.1, 0.1, size=N_max
-        )  # case uniform  law
+        rho = np.random.uniform(-0.1, 0.1, size=N_max)  # case uniform  law
 
     elif law == "beta":
         rho = -np.random.beta(1, 1, size=N_half)  # case beta  law
@@ -101,9 +89,7 @@ def generate_multilateral_shocks(deposits, law, vol):
     return shocks
 
 
-def generate_dirichlet_shocks(
-    deposits, initial_deposits, option, vol
-):
+def generate_dirichlet_shocks(deposits, initial_deposits, option, vol):
 
     std_control = 1.0 / (vol ** 2.0)
 
