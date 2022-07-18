@@ -11,8 +11,6 @@ from bank import ClassBank
 import shocks as sh
 import indicators as ind
 
-float_limit = 1e-10
-
 
 class ClassNetwork:
     """
@@ -127,6 +125,10 @@ class ClassNetwork:
         # adjacency matrix, used for the computation of the jaccard index (
         # stable trading relationships)
 
+        # Definition of the dictionary associating to each accounting item the list of its values across time for a single bank. It also includes other time serries metrics, like the excess liquidity the in-degree, the out-degree, the nb of repos transactions ended within a step and the average across time of the maturity of repos.
+        self.single_trajectory = {}
+        self.single_bank_id = 0  # the selected single bank id
+
         # Definition of the dictionary associating to each accounting item,
         # the list of its total value across time. It also includes other
         # time series metrics, like the network density, the jaccard index,
@@ -187,6 +189,25 @@ class ClassNetwork:
         for bank in self.banks:
             bank.initialize_banks(self.banks)
 
+        self.single_trajectory = {
+            "Cash": [],
+            "Securities Usable": [],
+            "Securities Encumbered": [],
+            "Loans": [],
+            "Reverse Repos": [],
+            "Own Funds": [],
+            "Deposits": [],
+            "Repos": [],
+            "MROs": [],
+            "Securities Collateral": [],
+            "Securities Reused": [],
+            "Excess Liquidity": [],
+            "In-degree": [],
+            "Out-degree": [],
+            "Number of repo transaction ended within a step": [],
+            "Maturity of repos": [],
+        }
+
         # Initialize the other network level and aggregated level parameters
         self.time_series_metrics = {
             "Cash": [],
@@ -245,6 +266,7 @@ class ClassNetwork:
 
         # Update all the metrics at time step 0
         self.compute_step_metrics()
+        self.compute_single_trajectory()
 
     def step_network(self):
         """
@@ -256,7 +278,7 @@ class ClassNetwork:
         # Generation of the shocks
         if self.shock_method == "bilateral":
             shocks = sh.generate_bilateral_shocks(
-                self.network_deposits, law="beta", vol=self.shocks_vol
+                self.network_deposits, law="uniform", vol=self.shocks_vol
             )
         elif self.shock_method == "multilateral":  # Damien's proposal,
             # doesn't work yet, could be enhanced
@@ -336,6 +358,7 @@ class ClassNetwork:
                 self.save_step_figures()
             self.step_network()
             self.compute_step_metrics()
+            self.compute_single_trajectory()
             self.steps += 1
         # for bank in self.banks:
         #     print(bank)
@@ -358,6 +381,9 @@ class ClassNetwork:
         # initialization of the list used to compute the weighted average repo maturity
         weighted_repo_maturity = []
         total_repo_amount = 0
+
+        # initialization of the counter of the repos transactions ended
+        total_repo_transactions_counter = 0
 
         # Add the first item 0 to each of the time series, it is necessary
         # to allow to append a list with list[-1] => not optimal however !
@@ -420,16 +446,14 @@ class ClassNetwork:
             )  # add the off balance repos
 
             # Build the time series of the Average number of repo transaction ended within a step (1/2).
-            self.time_series_metrics[
-                "Average number of repo transaction ended within a step"
-            ][-1] += self.banks[
+            total_repo_transactions_counter += self.banks[
                 i
             ].repo_transactions_counter  # compute the sum
 
         # Build the time series of the Average number of repo transaction ended within a step (2/2).
         self.time_series_metrics[
             "Average number of repo transaction ended within a step"
-        ][-1] / self.n_banks
+        ][-1] = (total_repo_transactions_counter / self.n_banks)
 
         # Build the time series of the weighted average maturity of the repo transactions (2/2)
         self.time_series_metrics["Average maturity of repos"][-1] = (
@@ -437,7 +461,7 @@ class ClassNetwork:
         )
 
         # Build the average in-degree in the network.
-        binary_adj = np.where(self.adj_matrix > float_limit, True, False)
+        binary_adj = np.where(self.adj_matrix > 0.0, True, False)
         bank_network = nx.from_numpy_matrix(
             binary_adj, parallel_edges=False, create_using=nx.DiGraph,
         )  # first define a networkx object.
@@ -446,9 +470,7 @@ class ClassNetwork:
         )[:, 1].mean()
 
         # Build the jaccard index time series.
-        prev_binary_adj = np.where(
-            self.prev_adj_matrix > float_limit, True, False
-        )
+        prev_binary_adj = np.where(self.prev_adj_matrix > 0.0, True, False)
         if self.steps > 0 and self.steps % self.jaccard_period == 0:
             self.time_series_metrics["Jaccard Index"][-1] = (
                 np.logical_and(binary_adj, prev_binary_adj).sum()
@@ -472,6 +494,58 @@ class ClassNetwork:
 
         # Build the dictionary of the degree (total of in and out) of each node in the network at a given step
         self.network_degree = np.array(bank_network.degree())[:, 1]
+
+        # Build the single trajectory time serries of a given bank
+        self.banks[0]
+
+    def compute_single_trajectory(self):
+
+        # defin the single bank that we want to plot
+        bank = self.banks[self.single_bank_id]
+
+        # Initialization of each time serries (necessary to append a list)
+        for key in self.single_trajectory.keys():
+            self.single_trajectory[key].append(0.0)
+
+        # Build the time series of the accounting item of the bank bank_id
+        for key in bank.assets.keys():
+            self.single_trajectory[key][-1] = bank.assets[key]
+        for key in bank.liabilities.keys():
+            self.single_trajectory[key][-1] = bank.liabilities[key]
+        for key in bank.off_balance.keys():
+            self.single_trajectory[key][-1] = bank.off_balance[key]
+
+        # In and Out-degree
+        binary_adj = np.where(self.adj_matrix > 0.0, True, False)
+        bank_network = nx.from_numpy_matrix(
+            binary_adj, parallel_edges=False, create_using=nx.DiGraph,
+        )
+        self.single_trajectory["In-degree"][-1] = bank_network.in_degree(
+            self.single_bank_id
+        )
+        self.single_trajectory["Out-degree"][-1] = bank_network.out_degree(
+            self.single_bank_id
+        )
+
+        # Number of transactions of end repos per step
+        self.single_trajectory[
+            "Number of repo transaction ended within a step"
+        ][-1] = self.banks[self.single_bank_id].repo_transactions_counter
+
+        # Average across time of the weighted average maturity of repos
+        self.single_trajectory["Maturity of repos"][-1] = np.sum(
+            list(
+                np.array(self.banks[self.single_bank_id].repos_on_maturities)
+                * np.array(self.banks[self.single_bank_id].repos_on_amounts)
+            )
+            + list(
+                np.array(self.banks[self.single_bank_id].repos_off_maturities)
+                * np.array(self.banks[self.single_bank_id].repos_off_amounts)
+            )
+        ) / (
+            sum(self.banks[self.single_bank_id].repos_on_amounts)
+            + sum(self.banks[self.single_bank_id].repos_off_amounts)
+        )
 
     def compute_final_metrics(self):
 
@@ -614,5 +688,8 @@ class ClassNetwork:
         gx.plot_average_maturity_repo(
             self.time_series_metrics, self.result_location
         )
+
+        # Plot the single bank trajectory time series.
+        gx.plot_single_trajectory(self.single_trajectory, self.result_location)
 
     # </editor-fold>
