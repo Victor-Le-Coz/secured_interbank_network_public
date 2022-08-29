@@ -19,4 +19,4 @@ if __name__ == "__main__":
     )
 
     # 1000 times steps is five years
-    network.simulate(time_steps=5000, save_every=2500, jaccard_period=20)
+    network.simulate(time_steps=100, save_every=2500, jaccard_period=20)

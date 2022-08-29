@@ -354,7 +354,7 @@ class ClassNetwork:
         :param jaccard_period: period over which the jaccard index is computed.
         :return:
         """
-        self.save_param()
+        self.save_param(time_steps, save_every, jaccard_period)
         self.jaccard_period = jaccard_period
         for _ in tqdm(range(time_steps)):
             if self.steps % save_every == 0.0:
@@ -751,7 +751,7 @@ class ClassNetwork:
 
     # </editor-fold>
 
-    def save_param(self):
+    def save_param(self, time_steps, save_every, jaccard_period):
         with open("results/param.txt", "w") as f:
             f.write(
                 (
@@ -783,8 +783,8 @@ class ClassNetwork:
                     self.shock_method,
                     self.shocks_vol,
                     self.result_location,
-                    self.time_steps,
-                    self.save_every,
-                    self.jaccard_period,
+                    time_steps,
+                    save_every,
+                    jaccard_period,
                 )
             )
