@@ -11,8 +11,6 @@ from bank import ClassBank
 import shocks as sh
 import indicators as ind
 
-min_repo_size = 1  # no repo below 1 milion
-
 
 class ClassNetwork:
     """
@@ -230,9 +228,6 @@ class ClassNetwork:
             "Average size of repo transaction ended within a step": [],
             "Average maturity of repos": [],
             "Gini": [],
-            "Reverse repo size min": [],
-            "Reverse repo size max": [],
-            "Reverse repo size mean": [],
         }
         self.network_liabilities = {
             "Own Funds": np.zeros(self.n_banks),
@@ -354,7 +349,6 @@ class ClassNetwork:
         :param jaccard_period: period over which the jaccard index is computed.
         :return:
         """
-        self.save_param()
         self.jaccard_period = jaccard_period
         for _ in tqdm(range(time_steps)):
             if self.steps % save_every == 0.0:
@@ -459,8 +453,6 @@ class ClassNetwork:
                 i
             ].repo_transactions_size  # compute the sum
 
-            # Get the
-
         # Build the time series of the Average number of repo transaction ended within a step (2/2).
         self.time_series_metrics[
             "Average number of repo transaction ended within a step"
@@ -482,7 +474,7 @@ class ClassNetwork:
         )
 
         # Build the average in-degree in the network.
-        binary_adj = np.where(self.adj_matrix > min_repo_size, True, False)
+        binary_adj = np.where(self.adj_matrix > 0.0, True, False)
         bank_network = nx.from_numpy_matrix(
             binary_adj,
             parallel_edges=False,
@@ -493,7 +485,7 @@ class ClassNetwork:
         ].mean()
 
         # Build the jaccard index time series.
-        prev_binary_adj = np.where(self.prev_adj_matrix > min_repo_size, True, False)
+        prev_binary_adj = np.where(self.prev_adj_matrix > 0.0, True, False)
         if self.steps > 0 and self.steps % self.jaccard_period == 0:
             self.time_series_metrics["Jaccard Index"][-1] = (
                 np.logical_and(binary_adj, prev_binary_adj).sum()
@@ -512,26 +504,6 @@ class ClassNetwork:
 
         # Build the gini coeficient of the network
         self.time_series_metrics["Gini"][-1] = ind.gini(self.network_total_assets)
-
-        # Build the statistics regarding the size of the reverse repos across the network at a given time step
-        non_zero_adj_matrix = self.adj_matrix[
-            np.nonzero(self.adj_matrix)
-        ]  # keep only non zero reverse repos
-
-        if len(non_zero_adj_matrix) == 0:
-            self.time_series_metrics["Reverse repo size min"][-1] = 0
-            self.time_series_metrics["Reverse repo size max"][-1] = 0
-            self.time_series_metrics["Reverse repo size mean"][-1] = 0
-        else:
-            self.time_series_metrics["Reverse repo size min"][-1] = np.min(
-                non_zero_adj_matrix
-            )
-            self.time_series_metrics["Reverse repo size max"][-1] = np.max(
-                non_zero_adj_matrix
-            )
-            self.time_series_metrics["Reverse repo size mean"][-1] = np.mean(
-                non_zero_adj_matrix
-            )
 
         # Build the dictionary of the degree (total of in and out) of each node in the network at a given step
         self.network_degree = np.array(bank_network.degree())[:, 1]
@@ -557,7 +529,7 @@ class ClassNetwork:
             self.single_trajectory[key][-1] = bank.off_balance[key]
 
         # In and Out-degree
-        binary_adj = np.where(self.adj_matrix > min_repo_size, True, False)
+        binary_adj = np.where(self.adj_matrix > 0.0, True, False)
         bank_network = nx.from_numpy_matrix(
             binary_adj,
             parallel_edges=False,
@@ -638,7 +610,7 @@ class ClassNetwork:
         """
 
         # Plot the reverse repo network
-        binary_adj = np.where(self.adj_matrix > min_repo_size, 1.0, 0.0)
+        binary_adj = np.where(self.adj_matrix > 0.0, 1.0, 0.0)
         gx.plot_network(
             self.adj_matrix,
             os.path.join(self.result_location, "Reverse_Repo_Networks"),
@@ -673,7 +645,7 @@ class ClassNetwork:
 
         # Plot the core-periphery detection and assessment
         gx.plot_core_periphery(
-            binary_adj,
+            self.adj_matrix,
             os.path.join(self.result_location, "Core-periphery_structure"),
             self.steps,
             "Repos",
@@ -729,9 +701,6 @@ class ClassNetwork:
         # Plot the time series of the gini coefficients
         gx.plot_gini(self.time_series_metrics, self.result_location)
 
-        # Plot the time series of the statistics of the size of reverse repo
-        gx.plot_reverse_repo_size_stats(self.time_series_metrics, self.result_location)
-
         # Plot the time series of the network average degree
         gx.plot_degre_network(self.time_series_metrics, self.result_location)
 
@@ -750,41 +719,3 @@ class ClassNetwork:
         gx.plot_single_trajectory(self.single_trajectory, self.result_location)
 
     # </editor-fold>
-
-    def save_param(self):
-        with open("results/param.txt", "w") as f:
-            f.write(
-                (
-                    "n_banks={} \n"
-                    "alpha_pareto={} \n"
-                    "beta_init={} \n"
-                    "beta_reg={} \n"
-                    "beta_star={} \n"
-                    "alpha={} \n"
-                    "gamma={} \n"
-                    "collateral_value={} \n"
-                    "initialization_method={} \n"
-                    "shock_method={} \n"
-                    "shocks_vol={} \n"
-                    "result_location={} \n"
-                    "time_steps={} \n"
-                    "save_every={} \n"
-                    "jaccard_period={} \n"
-                ).format(
-                    self.n_banks,
-                    self.alpha_pareto,
-                    self.beta_init,
-                    self.beta_reg,
-                    self.beta_star,
-                    self.alpha,
-                    self.gamma,
-                    self.collateral_value,
-                    self.initialization_method,
-                    self.shock_method,
-                    self.shocks_vol,
-                    self.result_location,
-                    self.time_steps,
-                    self.save_every,
-                    self.jaccard_period,
-                )
-            )
