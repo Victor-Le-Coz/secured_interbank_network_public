@@ -208,27 +208,6 @@ def plot_gini(time_series_metrics, path):
     plt.close()
 
 
-def plot_reverse_repo_size_stats(time_series_metrics, path):
-    plt.figure()
-    length = len(time_series_metrics["Reverse repo size min"])
-    plt.plot(np.arange(length), time_series_metrics["Reverse repo size min"])
-    # plt.plot(np.arange(length), time_series_metrics["Reverse repo size max"])
-    plt.plot(np.arange(length), time_series_metrics["Reverse repo size mean"])
-    plt.xlabel("Steps")
-    plt.ylabel("Reverse repo size stats")
-    # plt.gca().set_yscale("log")
-    plt.legend(
-        [
-            "min",
-            # "max",
-            "mean",
-        ]
-    )
-    plt.title("Reverse repo size statistics across time")
-    plt.savefig(os.path.join(path, "reverse_repo_stats.png"))
-    plt.close()
-
-
 def plot_collateral_reuse(reuse, path):
     plt.figure()
     length = len(reuse)
