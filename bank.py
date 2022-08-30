@@ -755,10 +755,15 @@ class ClassBank:
         return max(trusts, key=trusts.get)
 
     def update_learning(self, bank, value):
-        self.visits[bank] += 1
-        self.trust[bank] += value
-        self.visits[bank] = self.visits[bank] + 0.2 * (1.0 - self.visits[bank])
-        # self.trust[bank] = self.trust[bank] + 0.5 * (value - self.trust[bank])
+        # David's approach:
+        # self.visits[bank] += 1
+        # self.trust[bank] += value
+        # self.visits[bank] = self.visits[bank] + 0.2 * (1.0 - self.visits[bank])
+
+        # Lux's approach:
+        self.trust[bank] = self.trust[bank] + 0.5 * (
+            value - self.trust[bank]
+        )  # creates a trust between 0 and 1, when value is between 0 and 1, deacing in power 2 toward 0 in case value is 0, converging in power 2 toward 1 in case value is 1
 
     def enter_reverse_repo(self, bank_id, amount):
         """

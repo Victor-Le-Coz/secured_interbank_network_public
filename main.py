@@ -14,9 +14,9 @@ if __name__ == "__main__":
         collateral_value=1.0,
         initialization_method="pareto",
         shock_method="dirichlet",
-        shocks_vol=0.3,
+        shocks_vol=0.05,
         result_location="./results/",
     )
 
     # 1000 times steps is five years
-    network.simulate(time_steps=3000, save_every=3000, jaccard_period=20)
+    network.simulate(time_steps=500, save_every=500, jaccard_period=2)

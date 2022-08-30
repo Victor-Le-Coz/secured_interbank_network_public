@@ -259,7 +259,13 @@ def plot_jaccard(time_series_metrics, period, path):
     plt.plot(np.arange(length), time_series_metrics["Jaccard Index"])
     plt.xlabel("Steps")
     plt.ylabel("Jaccard Index")
-    plt.title("Temporal Developpement of Jaccard Index for {} period".format(period))
+    plt.title(
+        "Temporal Developpement of Jaccard Index for {} period, \n final value is {}".format(
+            period, np.mean(time_series_metrics["Jaccard Index"][:-50])
+        )
+    )
+    plt.grid()
+    plt.yticks(np.arange(0, 1, 0.05))
     plt.savefig(os.path.join(path, "jaccard_index.png"))
     plt.close()
 
