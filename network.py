@@ -258,8 +258,8 @@ class ClassNetwork:
         # Create the required path to store the results
         if os.path.exists(self.result_location):  # Delete all previous figures
             shutil.rmtree(self.result_location)
-        os.makedirs(os.path.join(self.result_location, "Reverse_repo_Networks"))
-        os.makedirs(os.path.join(self.result_location, "Trust_Networks"))
+        os.makedirs(os.path.join(self.result_location, "Reverse_repo_networks"))
+        os.makedirs(os.path.join(self.result_location, "Trust_networks"))
         os.makedirs(os.path.join(self.result_location, "Core-periphery_structure"))
         os.makedirs(os.path.join(self.result_location, "Deposits"))
         os.makedirs(os.path.join(self.result_location, "BalanceSheets"))
@@ -641,7 +641,7 @@ class ClassNetwork:
         binary_adj = np.where(self.adj_matrix > min_repo_size, 1.0, 0.0)
         gx.plot_network(
             self.adj_matrix,
-            os.path.join(self.result_location, "Reverse_Repo_Networks"),
+            os.path.join(self.result_location, "Reverse_repo_networks"),
             self.steps,
             "Reverse_Repo",
         )
@@ -649,7 +649,7 @@ class ClassNetwork:
         # Plot the trust network
         gx.plot_network(
             self.trust_adj_matrix.T / (self.trust_adj_matrix.std() + 1e-8),
-            os.path.join(self.result_location, "Trust_Networks"),
+            os.path.join(self.result_location, "Trust_networks"),
             self.steps,
             "Trust",
         )
