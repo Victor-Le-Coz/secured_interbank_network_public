@@ -4,7 +4,7 @@ import sys
 if __name__ == "__main__":
     sys.setrecursionlimit(5000)
     network = ClassNetwork(
-        n_banks=50,
+        n_banks=250,
         alpha_pareto=1.3,
         beta_init=0.1,
         beta_reg=0.1,
@@ -19,4 +19,4 @@ if __name__ == "__main__":
     )
 
     # 1000 times steps is five years
-    network.simulate(time_steps=500, save_every=500, jaccard_period=2)
+    network.simulate(time_steps=5000, save_every=500, jaccard_period=20)
