@@ -11,7 +11,7 @@ from bank import ClassBank
 import shocks as sh
 import indicators as ind
 
-min_repo_size = 1  # no repo below 1 milion
+min_repo_size = 100  # no repo below 1 milion
 
 
 class ClassNetwork:

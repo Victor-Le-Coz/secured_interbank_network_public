@@ -755,12 +755,10 @@ class ClassBank:
         return max(trusts, key=trusts.get)
 
     def update_learning(self, bank, value):
-        # self.visits[bank] += 1
-        # self.trust[bank] += value
-        # self.visits[bank] = self.visits[bank] + 0.2 * (
-        #     1.0 - self.visits[bank]
-        # )
-        self.trust[bank] = self.trust[bank] + 0.5 * (value - self.trust[bank])
+        self.visits[bank] += 1
+        self.trust[bank] += value
+        self.visits[bank] = self.visits[bank] + 0.2 * (1.0 - self.visits[bank])
+        # self.trust[bank] = self.trust[bank] + 0.5 * (value - self.trust[bank])
 
     def enter_reverse_repo(self, bank_id, amount):
         """
