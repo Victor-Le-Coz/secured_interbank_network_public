@@ -1,10 +1,10 @@
 from cProfile import label
 import os
-
+import cpnet  # Librairy for the estimation of core-periphery structures
 import networkx as nx
 import numpy as np
 from matplotlib import pyplot as plt
-import cpnet  # Librairy for the estimation of core-periphery structures
+import function as fct
 
 
 def bar_plot_deposits(deposits, path, step):
@@ -173,16 +173,17 @@ def bar_plot_balance_sheet(
     plt.close()
 
 
-def plot_loans_mro(time_series_metrics, path):
+def plot_assets_loans_mros(time_series_metrics, path):
     plt.figure()
     length = len(time_series_metrics["Securities Usable"])
     plt.plot(np.arange(length), time_series_metrics["Loans"])
     plt.plot(np.arange(length), time_series_metrics["MROs"])
-    plt.legend(["Loans", "MROs"])
+    plt.plot(np.arange(length), time_series_metrics["Assets"])
+    plt.legend(["Loans", "MROs", "Assets"])
     plt.xlabel("Steps")
     plt.ylabel("Total Network Amount")
-    plt.title("Total Amount of Loans/MROs in Network")
-    plt.savefig(os.path.join(path, "loans_mros.png"))
+    plt.title("Total Amount of Assets, Loans, and MROs in Network")
+    plt.savefig(os.path.join(path, "Assets_loans_mros.png"))
     plt.close()
 
 
@@ -213,7 +214,7 @@ def plot_reverse_repo_size_stats(time_series_metrics, path):
     length = len(time_series_metrics["Reverse repo size min"])
     plt.plot(np.arange(length), time_series_metrics["Reverse repo size min"])
     # plt.plot(np.arange(length), time_series_metrics["Reverse repo size max"])
-    plt.plot(np.arange(length), time_series_metrics["Reverse repo size mean"])
+    # plt.plot(np.arange(length), time_series_metrics["Reverse repo size mean"])
     plt.xlabel("Steps")
     plt.ylabel("Reverse repo size stats")
     # plt.gca().set_yscale("log")
@@ -221,7 +222,7 @@ def plot_reverse_repo_size_stats(time_series_metrics, path):
         [
             "min",
             # "max",
-            "mean",
+            # "mean",
         ]
     )
     plt.title("Reverse repo size statistics across time")
@@ -261,7 +262,7 @@ def plot_jaccard(time_series_metrics, period, path):
     plt.ylabel("Jaccard Index")
     plt.title(
         "Temporal Developpement of Jaccard Index for {} period, \n final value is {}".format(
-            period, np.mean(time_series_metrics["Jaccard Index"][:-50])
+            period, np.mean(time_series_metrics["Jaccard Index"][-50:])
         )
     )
     plt.grid()
@@ -391,44 +392,18 @@ def plot_network(adj, path, step, name):
     plt.close()
 
 
-def plot_core_periphery(adj, path, step, name):
-    # build a network from an adjacency matrix
-    bank_network = nx.from_numpy_matrix(
-        adj, parallel_edges=False, create_using=nx.DiGraph
-    )
-
-    alg = cpnet.BE()  # Load the Borgatti-Everett algorithm
-    alg.detect(bank_network)  # Feed the network as an input
-    x = alg.get_coreness()  # Get the coreness of nodes
-    c = alg.get_pair_id()  # Get the group membership of nodes
-
-    # Statistical significance test
-    sig_c, sig_x, significant, p_values = cpnet.qstest(
-        c,
-        x,
-        bank_network,
-        alg,
-        significance_level=0.05,
-        num_of_thread=4,
-    )
-
-    print(
-        "{} core-periphery structure(s) detected, but {} significant, "
-        "p-values are {} "
-        "".format(len(significant), np.sum(significant), p_values)
-    )
-
+def plot_core_periphery(bank_network, sig_c, sig_x, path, step, name):
     # Visualization
     plt.figure(figsize=(15, 15))
     ax = plt.gca()
     ax, pos = cpnet.draw(bank_network, sig_c, sig_x, ax)
 
     # show the plot
-    plt.title("{} Core-periphery structure at the step {}".format(name, int(step)))
+    plt.title("{} core-periphery structure at the step {}".format(name, int(step)))
     plt.savefig(
         os.path.join(
             path,
-            "step_{" "}_Core-periphery_structure.png".format(step),
+            "step_{" "}_core-periphery_structure.png".format(step),
         )
     )
     plt.close()
@@ -502,3 +477,16 @@ def plot_single_trajectory(single_trajectory, path):
     plt.title("Single bank trajectory of indicators")
     plt.savefig(os.path.join(path, "Single_trajectory_indicators.png"))
     plt.close()
+
+
+def plot_output_by_args(args, axe, output, path):
+    output = fct.reformat_output(output)
+    for key in output.keys():
+        plt.plot(args, output[key], "-o")
+        plt.xlabel(axe)
+        if axe == "min_repo_size":
+            plt.gca().set_xscale("log")
+        plt.ylabel(key)
+        plt.title(key + " as a function of " + axe)
+        plt.savefig(os.path.join(path, key + "_" + axe + ".png"))
+        plt.close()
