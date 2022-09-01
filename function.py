@@ -19,11 +19,11 @@ def gini(x):
 
 def build_axe_args(axe):
     if axe == "n_banks":
-        axe_args = [n_banks_test for n_banks_test in np.arange(10, 50, 10)]
+        axe_args = [n_banks_test for n_banks_test in np.arange(10, 250, 10)]
     elif axe == "beta":
-        axe_args = [beta for beta in np.arange(0.02, 0.18, 0.02)]
+        axe_args = [beta for beta in np.arange(0.02, 0.50, 0.02)]
     elif axe == "shocks_vol":
-        axe_args = [shocks_vol_test for shocks_vol_test in np.arange(0.02, 0.18, 0.02)]
+        axe_args = [shocks_vol_test for shocks_vol_test in np.arange(0.02, 0.50, 0.02)]
     elif axe == "min_repo_size":
         axe_args = [
             min_repo_size_test for min_repo_size_test in np.logspace(-16, -8, num=8)

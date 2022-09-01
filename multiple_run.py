@@ -29,9 +29,9 @@ if __name__ == "__main__":
             shock_method="bilateral",
             shocks_vol=0.05,
             result_location=result_location,
-            min_repo_size=1e-11,
-            time_steps=2000,
-            save_every=2000,
+            min_repo_size=0.0,
+            time_steps=5000,
+            save_every=2500,
             jaccard_period=20,
             output_opt=True,
         )
