@@ -22,7 +22,7 @@ def generate_bilateral_shocks(deposits, law, vol):
 
     elif law == "log-normal":
         std_control = np.sqrt(np.log(1.0 + vol**2.0))
-        rho_1 = get_trunc_lognorm(
+        rho_1 = -get_trunc_lognorm(
             mu=-0.5 * std_control**2,
             sigma=std_control,
             lower_bound=0,

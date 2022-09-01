@@ -9,7 +9,7 @@ from tqdm import tqdm
 import graphics as gx
 from bank import ClassBank
 import shocks as sh
-import indicators as ind
+import function as fct
 
 
 class ClassNetwork:
@@ -503,7 +503,7 @@ class ClassNetwork:
         )
 
         # Build the gini coeficient of the network
-        self.time_series_metrics["Gini"][-1] = ind.gini(self.network_total_assets)
+        self.time_series_metrics["Gini"][-1] = fct.gini(self.network_total_assets)
 
         # Build the dictionary of the degree (total of in and out) of each node in the network at a given step
         self.network_degree = np.array(bank_network.degree())[:, 1]
@@ -665,7 +665,7 @@ class ClassNetwork:
         )
 
         # Plot the time series of the total MROS and loans in the network
-        gx.plot_loans_mro(
+        gx.plot_assets_loans_mros(
             self.time_series_metrics,
             self.result_location,
         )
