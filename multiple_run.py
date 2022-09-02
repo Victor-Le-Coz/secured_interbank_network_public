@@ -10,14 +10,14 @@ if __name__ == "__main__":
 
     # define the parameters for the run
     result_location = "./results/"
-    # axes = [
-    #     "beta",
-    #     "shocks_vol",
-    #     "n_banks",
-    #     "min_repo_size",
-    #     "alpha_pareto",
-    # ]
-    axes = ["alpha_pareto"]
+    axes = [
+        "beta",
+        "shocks_vol",
+        "n_banks",
+        "min_repo_size",
+        "alpha_pareto",
+    ]
+    # axes = ["alpha_pareto"]
 
     for axe in axes:
         # build the arguments
