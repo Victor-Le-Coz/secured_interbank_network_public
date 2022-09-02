@@ -5,7 +5,6 @@ import numpy as np
 # considered as negligible.
 float_limit = 1e-10
 
-
 class ClassBank:
     """
     This class models a bank agent.

@@ -10,7 +10,7 @@ if __name__ == "__main__":
 
     # define the parameters for the run
     result_location = "./results/"
-    axes = ["n_banks", "beta", "shocks_vol", "min_repo_size"]
+    axes = ["beta", "shocks_vol", "n_banks", "min_repo_size"]
     # axes = ["min_repo_size"]
 
     for axe in axes:
@@ -41,7 +41,7 @@ if __name__ == "__main__":
         fct.init_path(result_location + axe + "/output_by_args/")
 
         # run the simulation in multiprocessing across arguments
-        with Pool(processes=8) as p:
+        with Pool(processes=16) as p:
             output = p.starmap(fct.single_run, args)
 
         # plot the results
