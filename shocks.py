@@ -78,7 +78,8 @@ def generate_multilateral_shocks(deposits, law, vol):
     rho_2 = rho[N_half:N_max]
 
     correction_factor = -(
-        np.sum(rho_1 * deposits_p[0:N_half]) / np.sum(rho_2 * deposits_p[N_half:N_max])
+        np.sum(rho_1 * deposits_p[0:N_half])
+        / np.sum(rho_2 * deposits_p[N_half:N_max])
     )
 
     rho_2 = rho_2 * correction_factor
@@ -137,7 +138,9 @@ def generate_non_conservative_shocks(deposits, law, vol):
             * deposits
         )
     elif law == "normal":
-        new_deposits = np.maximum(deposits + np.random.randn(len(deposits)) * vol, 0.0)
+        new_deposits = np.maximum(
+            deposits + np.random.randn(len(deposits)) * vol, 0.0
+        )
     else:
         assert False, ""
     shocks = new_deposits - deposits
@@ -148,7 +151,10 @@ def get_trunc_lognorm(mu, sigma, lower_bound, upper_bound=np.inf, size=10000):
     norm_lower = np.log(lower_bound)
     norm_upper = np.log(upper_bound)
     X = stats.truncnorm(
-        (norm_lower - mu) / sigma, (norm_upper - mu) / sigma, loc=mu, scale=sigma
+        (norm_lower - mu) / sigma,
+        (norm_upper - mu) / sigma,
+        loc=mu,
+        scale=sigma,
     )
     norm_data = X.rvs(size)
     log_norm_data = np.exp(norm_data)
