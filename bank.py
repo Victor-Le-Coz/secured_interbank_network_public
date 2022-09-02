@@ -1,9 +1,13 @@
+import os
+
+os.environ["OMP_NUM_THREADS"] = "1"
 import numpy as np
 
 # The parameter sets the limit to the float precision when running the
 # algorithm, a value lower than this amount is
 # considered as negligible.
 float_limit = 1e-10
+
 
 class ClassBank:
     """

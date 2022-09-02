@@ -1,5 +1,7 @@
-from cProfile import label
 import os
+
+os.environ["OMP_NUM_THREADS"] = "1"
+from cProfile import label
 import cpnet  # Librairy for the estimation of core-periphery structures
 import networkx as nx
 import numpy as np
@@ -179,10 +181,11 @@ def plot_assets_loans_mros(time_series_metrics, path):
     plt.plot(np.arange(length), time_series_metrics["Loans"])
     plt.plot(np.arange(length), time_series_metrics["MROs"])
     plt.plot(np.arange(length), time_series_metrics["Assets"])
+    # plt.plot(np.arange(length), time_series_metrics["Deposits"])
     plt.legend(["Loans", "MROs", "Assets"])
     plt.xlabel("Steps")
-    plt.ylabel("Total Network Amount")
-    plt.title("Total Amount of Assets, Loans, and MROs in Network")
+    plt.ylabel("Total network amount")
+    plt.title("Total amount of assets, loans,  and MROs in Network")
     plt.savefig(os.path.join(path, "Assets_loans_mros.png"))
     plt.close()
 
@@ -445,7 +448,7 @@ def plot_single_trajectory(single_trajectory, path):
         # "Loans",
         "Reverse Repos",
         "Own Funds",
-        # "Deposits",
+        "Deposits",
         "Repos",
         # "MROs",
         "Securities Collateral",

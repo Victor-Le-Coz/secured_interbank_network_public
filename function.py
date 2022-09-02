@@ -1,3 +1,7 @@
+import os
+
+os.environ["OMP_NUM_THREADS"] = "1"
+
 import numpy as np
 import cpnet  # Librairy for the estimation of core-periphery structures
 import os
@@ -19,14 +23,23 @@ def gini(x):
 
 def build_axe_args(axe):
     if axe == "n_banks":
-        axe_args = [n_banks_test for n_banks_test in np.arange(10, 170, 10)]
+        axe_args = [n_banks_test for n_banks_test in np.arange(10, 260, 10)]
     elif axe == "beta":
         axe_args = [beta for beta in np.arange(0.02, 0.42, 0.02)]
     elif axe == "shocks_vol":
-        axe_args = [shocks_vol_test for shocks_vol_test in np.arange(0.02, 0.42, 0.02)]
+        axe_args = [
+            shocks_vol_test
+            for shocks_vol_test in np.arange(0.005, 0.255, 0.005)
+        ]
     elif axe == "min_repo_size":
         axe_args = [
-            min_repo_size_test for min_repo_size_test in np.logspace(-16, 0, num=16)
+            min_repo_size_test
+            for min_repo_size_test in np.logspace(-16, 2, num=25)
+        ]
+    elif axe == "alpha_pareto":
+        axe_args = [
+            alpha_pareto_test
+            for alpha_pareto_test in np.logspace(0, 10, num=25)
         ]
     return axe_args
 
@@ -145,6 +158,30 @@ def build_args(
                     shocks_vol,
                     result_location + axe + "/" + str(axe_arg) + "/",
                     axe_arg,
+                    time_steps,
+                    save_every,
+                    jaccard_period,
+                    output_opt,
+                )
+            )
+
+    elif axe == "alpha_pareto":
+        for axe_arg in axe_args:
+            args.append(
+                (
+                    n_banks,
+                    axe_arg,
+                    beta_init,
+                    beta_reg,
+                    beta_star,
+                    alpha,
+                    gamma,
+                    collateral_value,
+                    "pareto",
+                    shock_method,
+                    shocks_vol,
+                    result_location + axe + "/" + str(axe_arg) + "/",
+                    min_repo_size,
                     time_steps,
                     save_every,
                     jaccard_period,

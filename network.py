@@ -1,5 +1,6 @@
 import os
-import shutil
+
+os.environ["OMP_NUM_THREADS"] = "1"
 
 import networkx as nx
 import numpy as np
@@ -211,6 +212,7 @@ class ClassNetwork:
             "Number of repo transaction ended within a step": [],
             "Size of repo transaction ended within a step": [],
             "Maturity of repos": [],
+            "Deposits": [],
         }
 
         # Initialize the other network level and aggregated level parameters
@@ -238,6 +240,7 @@ class ClassNetwork:
             "Reverse repo size max": [],
             "Reverse repo size mean": [],
             "Assets": [],
+            "Deposits": [],
         }
         self.network_liabilities = {
             "Own Funds": np.zeros(self.n_banks),
@@ -449,6 +452,11 @@ class ClassNetwork:
 
             # Build the deposits numpy array of each bank
             self.network_deposits[i] = self.banks[i].liabilities["Deposits"]
+
+            # Build the time serie of the total deposits across all banks
+            self.time_series_metrics["Deposits"][-1] += bank.liabilities[
+                "Deposits"
+            ]
 
             # Build the total network excess liquidity time series
             self.time_series_metrics["Excess Liquidity"][-1] += (

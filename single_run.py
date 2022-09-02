@@ -18,7 +18,7 @@ fct.single_run(
     shocks_vol=0.05,
     result_location="./results/single_run/",
     min_repo_size=0.0,
-    time_steps=10000,
+    time_steps=1000,
     save_every=10000,
     jaccard_period=20,
     output_opt=False,

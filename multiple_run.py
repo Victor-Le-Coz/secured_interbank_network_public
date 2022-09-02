@@ -10,8 +10,14 @@ if __name__ == "__main__":
 
     # define the parameters for the run
     result_location = "./results/"
-    axes = ["beta", "shocks_vol", "n_banks", "min_repo_size"]
-    # axes = ["min_repo_size"]
+    # axes = [
+    #     "beta",
+    #     "shocks_vol",
+    #     "n_banks",
+    #     "min_repo_size",
+    #     "alpha_pareto",
+    # ]
+    axes = ["alpha_pareto"]
 
     for axe in axes:
         # build the arguments
@@ -27,9 +33,9 @@ if __name__ == "__main__":
             collateral_value=1.0,
             initialization_method="constant",
             shock_method="bilateral",
-            shocks_vol=0.05,
+            shocks_vol=0.01,
             result_location=result_location,
-            min_repo_size=0.0,
+            min_repo_size=1e-10,
             time_steps=5000,
             save_every=2500,
             jaccard_period=20,
@@ -41,7 +47,7 @@ if __name__ == "__main__":
         fct.init_path(result_location + axe + "/output_by_args/")
 
         # run the simulation in multiprocessing across arguments
-        with Pool(processes=16) as p:
+        with Pool(processes=25) as p:
             output = p.starmap(fct.single_run, args)
 
         # plot the results
