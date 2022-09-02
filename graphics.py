@@ -329,21 +329,15 @@ def plot_degre_network(time_series_metrics, path):
 def plot_average_nb_transactions(time_series_metrics, path):
     plt.figure()
     length = len(
-        time_series_metrics[
-            "Average number of repo transaction ended within a step"
-        ]
+        time_series_metrics["Average number of repo transaction ended within a step"]
     )
     plt.plot(
         np.arange(length),
-        time_series_metrics[
-            "Average number of repo transaction ended within a step"
-        ],
+        time_series_metrics["Average number of repo transaction ended within a step"],
     )
     plt.xlabel("Steps")
     plt.ylabel("Number of transactions")
-    plt.title(
-        "Average number of repo transaction ended within a step in the network"
-    )
+    plt.title("Average number of repo transaction ended within a step in the network")
     plt.savefig(os.path.join(path, "Average_nb_repo_transactions_ended.png"))
     plt.close()
 
@@ -351,21 +345,15 @@ def plot_average_nb_transactions(time_series_metrics, path):
 def plot_average_size_transactions(time_series_metrics, path):
     plt.figure()
     length = len(
-        time_series_metrics[
-            "Average size of repo transaction ended within a step"
-        ]
+        time_series_metrics["Average size of repo transaction ended within a step"]
     )
     plt.plot(
         np.arange(length),
-        time_series_metrics[
-            "Average size of repo transaction ended within a step"
-        ],
+        time_series_metrics["Average size of repo transaction ended within a step"],
     )
     plt.xlabel("Steps")
     plt.ylabel("Size of transactions")
-    plt.title(
-        "Average size of repo transaction ended within a step in the network"
-    )
+    plt.title("Average size of repo transaction ended within a step in the network")
     plt.savefig(os.path.join(path, "Average_size_repo_transactions_ended.png"))
     plt.close()
 
@@ -391,8 +379,7 @@ def plot_network(adj, path, step, name):
     )
     # define the weight list from the weight information
     weights = [
-        bank_network[node1][node2]["weight"]
-        for node1, node2 in bank_network.edges()
+        bank_network[node1][node2]["weight"] for node1, node2 in bank_network.edges()
     ]
 
     # define the position of the nodes
@@ -415,9 +402,7 @@ def plot_core_periphery(bank_network, sig_c, sig_x, path, step, name):
     ax, pos = cpnet.draw(bank_network, sig_c, sig_x, ax)
 
     # show the plot
-    plt.title(
-        "{} core-periphery structure at the step {}".format(name, int(step))
-    )
+    plt.title("{} core-periphery structure at the step {}".format(name, int(step)))
     plt.savefig(
         os.path.join(
             path,
@@ -431,9 +416,7 @@ def plot_asset_per_degree(total_assets, degree, path):
     plt.plot(degree, total_assets, ".")
     plt.xlabel("Degree")
     plt.ylabel("Total assets")
-    plt.title(
-        "Total assets per bank as a fonction of the degree in the network"
-    )
+    plt.title("Total assets per bank as a fonction of the degree in the network")
     plt.savefig(os.path.join(path, "Asset_per_degree.png"))
     plt.close()
 
@@ -504,7 +487,7 @@ def plot_output_by_args(args, axe, output, path):
     for key in output.keys():
         plt.plot(args, output[key], "-o")
         plt.xlabel(axe)
-        if axe == "min_repo_size":
+        if axe == "min_repo_size" or axe == "alpha_pareto":
             plt.gca().set_xscale("log")
         plt.ylabel(key)
         plt.title(key + " as a function of " + axe)
