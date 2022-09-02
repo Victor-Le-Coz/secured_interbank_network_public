@@ -281,8 +281,8 @@ class ClassBank:
         trust = self.trust.copy()
 
         # For loop over the sorted list of the other banks, starting by the
-        # highest trust factor.
-        for b, t in sorted(trust.items(), key=lambda item: item[1], reverse=True):
+        # lowest trust factor.
+        for b, t in sorted(trust.items(), key=lambda item: item[1], reverse=False):
             # Definition of the target amount of off-balance repos to close
             # with a given bank b
             end = min(self.off_balance_repos[b], target_repo_amount_to_close)

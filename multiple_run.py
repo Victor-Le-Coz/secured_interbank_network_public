@@ -10,8 +10,8 @@ if __name__ == "__main__":
 
     # define the parameters for the run
     result_location = "./results/"
-    # axes = ["n_banks", "beta", "shocks_vol", "min_repo_size"]
-    axes = ["min_repo_size"]
+    axes = ["n_banks", "beta", "shocks_vol", "min_repo_size"]
+    # axes = ["min_repo_size"]
 
     for axe in axes:
         # build the arguments
