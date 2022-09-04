@@ -39,7 +39,7 @@ if __name__ == "__main__":
             shocks_vol=0.05,
             result_location=result_location,
             min_repo_size=1e-10,
-            time_steps=100,
+            time_steps=5000,
             save_every=2500,
             jaccard_period=20,
             output_opt=True,
