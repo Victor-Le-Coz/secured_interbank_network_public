@@ -6,7 +6,6 @@ import numpy as np
 import cpnet  # Librairy for the estimation of core-periphery structures
 import os
 import shutil
-from network import ClassNetwork
 
 
 def gini(x):
@@ -25,21 +24,18 @@ def build_axe_args(axe):
     if axe == "n_banks":
         axe_args = [n_banks_test for n_banks_test in np.arange(10, 260, 10)]
     elif axe == "beta":
-        axe_args = [beta for beta in np.arange(0.02, 0.42, 0.02)]
+        axe_args = [beta for beta in np.arange(0.01, 0.50, 0.02)]
+    elif axe == "collateral":  # can not be higher than the targeted LCR
+        axe_args = [beta_init_test for beta_init_test in np.arange(0.0, 0.1, 0.005)]
     elif axe == "shocks_vol":
-        axe_args = [
-            shocks_vol_test
-            for shocks_vol_test in np.arange(0.005, 0.255, 0.005)
-        ]
+        axe_args = [shocks_vol_test for shocks_vol_test in np.logspace(-3, 2, num=25)]
     elif axe == "min_repo_size":
         axe_args = [
-            min_repo_size_test
-            for min_repo_size_test in np.logspace(-16, 2, num=25)
+            min_repo_size_test for min_repo_size_test in np.logspace(-16, 2, num=25)
         ]
     elif axe == "alpha_pareto":
         axe_args = [
-            alpha_pareto_test
-            for alpha_pareto_test in np.logspace(0, 10, num=25)
+            alpha_pareto_test for alpha_pareto_test in np.logspace(0, 10, num=25)
         ]
     return axe_args
 
@@ -47,18 +43,19 @@ def build_axe_args(axe):
 def build_args(
     axe,
     n_banks=50,
-    alpha_pareto=1.3,
+    alpha=0.01,
     beta_init=0.1,
     beta_reg=0.1,
     beta_star=0.1,
-    alpha=0.01,
     gamma=0.03,
     collateral_value=1.0,
     initialization_method="constant",
-    shock_method="bilateral",
+    alpha_pareto=1.3,
+    shocks_method="bilateral",
+    shocks_law="normal",
     shocks_vol=0.05,
     result_location="./results/",
-    min_repo_size=0.0,
+    min_repo_size=1e-10,
     time_steps=500,
     save_every=500,
     jaccard_period=20,
@@ -74,15 +71,16 @@ def build_args(
             args.append(
                 (
                     axe_arg,
-                    alpha_pareto,
+                    alpha,
                     beta_init,
                     beta_reg,
                     beta_star,
-                    alpha,
                     gamma,
                     collateral_value,
                     initialization_method,
-                    shock_method,
+                    alpha_pareto,
+                    shocks_method,
+                    shocks_law,
                     shocks_vol,
                     result_location + axe + "/" + str(axe_arg) + "/",
                     min_repo_size,
@@ -98,15 +96,41 @@ def build_args(
             args.append(
                 (
                     n_banks,
-                    alpha_pareto,
-                    axe_arg,
-                    axe_arg,
-                    axe_arg,
                     alpha,
+                    axe_arg,
+                    axe_arg,
+                    axe_arg,
                     gamma,
                     collateral_value,
                     initialization_method,
-                    shock_method,
+                    alpha_pareto,
+                    shocks_method,
+                    shocks_law,
+                    shocks_vol,
+                    result_location + axe + "/" + str(axe_arg) + "/",
+                    min_repo_size,
+                    time_steps,
+                    save_every,
+                    jaccard_period,
+                    output_opt,
+                )
+            )
+
+    elif axe == "collateral":
+        for axe_arg in axe_args:
+            args.append(
+                (
+                    n_banks,
+                    alpha,
+                    axe_arg,
+                    beta_reg,
+                    beta_star,
+                    gamma,
+                    collateral_value,
+                    initialization_method,
+                    alpha_pareto,
+                    shocks_method,
+                    shocks_law,
                     shocks_vol,
                     result_location + axe + "/" + str(axe_arg) + "/",
                     min_repo_size,
@@ -122,15 +146,16 @@ def build_args(
             args.append(
                 (
                     n_banks,
-                    alpha_pareto,
+                    alpha,
                     beta_init,
                     beta_reg,
                     beta_star,
-                    alpha,
                     gamma,
                     collateral_value,
                     initialization_method,
-                    shock_method,
+                    alpha_pareto,
+                    shocks_method,
+                    shocks_law,
                     axe_arg,
                     result_location + axe + "/" + str(axe_arg) + "/",
                     min_repo_size,
@@ -146,15 +171,16 @@ def build_args(
             args.append(
                 (
                     n_banks,
-                    alpha_pareto,
+                    alpha,
                     beta_init,
                     beta_reg,
                     beta_star,
-                    alpha,
                     gamma,
                     collateral_value,
                     initialization_method,
-                    shock_method,
+                    alpha_pareto,
+                    shocks_method,
+                    shocks_law,
                     shocks_vol,
                     result_location + axe + "/" + str(axe_arg) + "/",
                     axe_arg,
@@ -170,15 +196,16 @@ def build_args(
             args.append(
                 (
                     n_banks,
-                    axe_arg,
+                    alpha,
                     beta_init,
                     beta_reg,
                     beta_star,
-                    alpha,
                     gamma,
                     collateral_value,
                     "pareto",
-                    shock_method,
+                    axe_arg,
+                    shocks_method,
+                    shocks_law,
                     shocks_vol,
                     result_location + axe + "/" + str(axe_arg) + "/",
                     min_repo_size,
@@ -243,56 +270,3 @@ def init_path(path):
     if os.path.exists(path):  # Delete all previous figures
         shutil.rmtree(path)
     os.makedirs(path)  # create the path
-
-
-def single_run(
-    n_banks=10,
-    alpha_pareto=1.3,
-    beta_init=0.1,
-    beta_reg=0.1,
-    beta_star=0.1,
-    alpha=0.01,
-    gamma=0.03,
-    collateral_value=1.0,
-    initialization_method="constant",
-    shock_method="bilateral",
-    shocks_vol=0.05,
-    result_location="./results/",
-    min_repo_size=0.0,
-    time_steps=500,
-    save_every=500,
-    jaccard_period=20,
-    output_opt=False,
-):
-
-    network = ClassNetwork(
-        n_banks=n_banks,
-        alpha_pareto=alpha_pareto,
-        beta_init=beta_init,
-        beta_reg=beta_reg,
-        beta_star=beta_star,
-        alpha=alpha,
-        gamma=gamma,
-        collateral_value=collateral_value,
-        initialization_method=initialization_method,
-        shock_method=shock_method,
-        shocks_vol=shocks_vol,
-        result_location=result_location,
-        min_repo_size=min_repo_size,
-    )
-
-    if output_opt:
-        return network.simulate(
-            time_steps=time_steps,
-            save_every=save_every,
-            jaccard_period=jaccard_period,
-            output_opt=output_opt,
-        )
-
-    else:
-        network.simulate(
-            time_steps=time_steps,
-            save_every=save_every,
-            jaccard_period=jaccard_period,
-            output_opt=output_opt,
-        )

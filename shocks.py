@@ -23,7 +23,7 @@ def generate_bilateral_shocks(deposits, law, vol):
     elif law == "beta":
         rho_1 = -np.random.beta(1, 1, size=N_half)
 
-    elif law == "log-normal":
+    elif law == "log-normal":  # wrong !
         std_control = np.sqrt(np.log(1.0 + vol**2.0))
         rho_1 = -get_trunc_lognorm(
             mu=-0.5 * std_control**2,
@@ -32,6 +32,14 @@ def generate_bilateral_shocks(deposits, law, vol):
             upper_bound=1,
             size=N_half,
         )
+
+    elif law == "normal":
+        norm_lower = -1
+        norm_upper = 0
+        mu = 0
+        rho_1 = stats.truncnorm(
+            (norm_lower - mu) / vol, (norm_upper - mu) / vol, loc=mu, scale=vol
+        ).rvs(N_half)
 
     else:
         assert False, ""
@@ -81,8 +89,7 @@ def generate_multilateral_shocks(deposits, law, vol):
     rho_2 = rho[N_half:N_max]
 
     correction_factor = -(
-        np.sum(rho_1 * deposits_p[0:N_half])
-        / np.sum(rho_2 * deposits_p[N_half:N_max])
+        np.sum(rho_1 * deposits_p[0:N_half]) / np.sum(rho_2 * deposits_p[N_half:N_max])
     )
 
     rho_2 = rho_2 * correction_factor
@@ -141,9 +148,7 @@ def generate_non_conservative_shocks(deposits, law, vol):
             * deposits
         )
     elif law == "normal":
-        new_deposits = np.maximum(
-            deposits + np.random.randn(len(deposits)) * vol, 0.0
-        )
+        new_deposits = np.maximum(deposits + np.random.randn(len(deposits)) * vol, 0.0)
     else:
         assert False, ""
     shocks = new_deposits - deposits

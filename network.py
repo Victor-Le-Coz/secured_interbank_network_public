@@ -20,18 +20,19 @@ class ClassNetwork:
     def __init__(
         self,
         n_banks,
-        alpha=1.0,
-        beta_init=1,
-        beta_reg=10.0,
-        beta_star=10.0,
-        gamma=3.0,
+        alpha=0.01,
+        beta_init=0.1,
+        beta_reg=0.1,
+        beta_star=0.1,
+        gamma=0.03,
         collateral_value=1.0,
         initialization_method="constant",
-        alpha_pareto=0.5,
-        shock_method="dirichlet",
-        shocks_vol=0.1,
+        alpha_pareto=1.3,
+        shocks_method="bilateral",
+        shocks_law="normal",
+        shocks_vol=0.01,
         result_location="./results/",
-        min_repo_size=0.0,  # no repo below 1 k,
+        min_repo_size=1e-10,
     ):
         """
         Instance methode initializing the ClassNetwork.
@@ -65,7 +66,7 @@ class ClassNetwork:
         assert initialization_method in ["constant", "pareto"], (
             "Not valid initialisation method :" " 'constant' or 'pareto'"
         )
-        assert shock_method in [
+        assert shocks_method in [
             "bilateral",
             "multilateral",
             "dirichlet",
@@ -82,11 +83,12 @@ class ClassNetwork:
         self.collateral_value = collateral_value
         self.initialization_method = initialization_method
         self.alpha_pareto = alpha_pareto
-        self.shock_method = shock_method
-        if shock_method == "non-conservative":
+        self.shocks_method = shocks_method
+        if shocks_method == "non-conservative":
             self.conservative_shock = False
         else:
             self.conservative_shock = True
+        self.shocks_law = shocks_law
         self.shocks_vol = shocks_vol
         self.result_location = result_location
         self.min_repo_size = min_repo_size
@@ -95,9 +97,7 @@ class ClassNetwork:
         self.steps = 0  # Step number in the simulation process
         self.banks = []  # List of the instances of the ClassBank existing
         # in the ClassNetwork.
-        self.network_deposits = np.zeros(
-            n_banks
-        )  # Numpy array of the deposits of
+        self.network_deposits = np.zeros(n_banks)  # Numpy array of the deposits of
         # the banks in the network.
         self.network_initial_deposits = np.zeros(n_banks)  # Numpy array of the
         # initial deposits of the banks in the network.
@@ -150,6 +150,9 @@ class ClassNetwork:
         chosen approach.
         :return:
         """
+
+        #firt: reset the banks parameter of the instance of ClassNetwork
+        self.banks = []
 
         # For loop over the number of banks in the network to build the
         # deposits and initial deposits numpy arrays according to the chosen
@@ -265,13 +268,9 @@ class ClassNetwork:
 
         # Create the required path to store the results
         fct.init_path(self.result_location)
-        os.makedirs(
-            os.path.join(self.result_location, "Reverse_repo_networks")
-        )
+        os.makedirs(os.path.join(self.result_location, "Reverse_repo_networks"))
         os.makedirs(os.path.join(self.result_location, "Trust_networks"))
-        os.makedirs(
-            os.path.join(self.result_location, "Core-periphery_structure")
-        )
+        os.makedirs(os.path.join(self.result_location, "Core-periphery_structure"))
         os.makedirs(os.path.join(self.result_location, "Deposits"))
         os.makedirs(os.path.join(self.result_location, "BalanceSheets"))
 
@@ -287,25 +286,25 @@ class ClassNetwork:
         """
 
         # Generation of the shocks
-        if self.shock_method == "bilateral":
+        if self.shocks_method == "bilateral":
             shocks = sh.generate_bilateral_shocks(
-                self.network_deposits, law="log-normal", vol=self.shocks_vol
+                self.network_deposits, law=self.shocks_law, vol=self.shocks_vol
             )
-        elif self.shock_method == "multilateral":  # Damien's proposal,
+        elif self.shocks_method == "multilateral":  # Damien's proposal,
             # doesn't work yet, could be enhanced
             shocks = sh.generate_multilateral_shocks(
-                self.network_deposits, law="uniform", vol=self.shocks_vol
+                self.network_deposits, law=self.shocks_law, vol=self.shocks_vol
             )
-        elif self.shock_method == "dirichlet":
+        elif self.shocks_method == "dirichlet":
             shocks = sh.generate_dirichlet_shocks(
                 self.network_deposits,
                 self.network_initial_deposits,
                 option="mean-reverting",
                 vol=self.shocks_vol,
             )
-        elif self.shock_method == "non-conservative":
+        elif self.shocks_method == "non-conservative":
             shocks = sh.generate_non_conservative_shocks(
-                self.network_deposits, law="log-normal", vol=self.shocks_vol
+                self.network_deposits, law=self.shocks_law, vol=self.shocks_vol
             )
         else:
             assert False, ""
@@ -318,9 +317,7 @@ class ClassNetwork:
         if self.conservative_shock:
             assert (
                 abs(shocks.sum()) == 0.0,
-                "Shock doesn't sum to zero, sum is {}".format(
-                    abs(shocks.sum())
-                ),
+                "Shock doesn't sum to zero, sum is {}".format(abs(shocks.sum())),
             )  # To ensure that the conservative shocks are dully conservative
 
         # For loops over the instances of ClassBank in the ClassNetwork.
@@ -342,9 +339,7 @@ class ClassNetwork:
         ix = np.random.permutation(ix)  # Permutation of the
         # banks' indexes to decide in which order banks can close their repos.
         for i in ix:
-            self.banks[
-                i
-            ].step_end_repos()  # Run the step end repos for the bank self
+            self.banks[i].step_end_repos()  # Run the step end repos for the bank self
 
         ix = np.random.permutation(ix)  # New permutation of the
         # banks' indexes to decide in which order banks can enter into repos
@@ -357,9 +352,7 @@ class ClassNetwork:
             # self.banks[i].assert_leverage()
             self.banks[i].steps += 1
 
-    def simulate(
-        self, time_steps, save_every=10, jaccard_period=10, output_opt=False
-    ):
+    def simulate(self, time_steps, save_every=10, jaccard_period=10, output_opt=False):
         """
         Instance method for the simulation of the ABM.
         :param time_steps: number of time_steps of the simulation, could be
@@ -438,9 +431,7 @@ class ClassNetwork:
                 self.network_off_balance[key][i] = bank.off_balance[key]
 
             # Build the adjacency matrix of the reverse repos
-            self.adj_matrix[i, :] = np.array(
-                list(self.banks[i].reverse_repos.values())
-            )
+            self.adj_matrix[i, :] = np.array(list(self.banks[i].reverse_repos.values()))
 
             # Build the adjacency matrix of the trust coefficients
             trusts = np.array(list(self.banks[i].trust.values()))
@@ -454,9 +445,7 @@ class ClassNetwork:
             self.network_deposits[i] = self.banks[i].liabilities["Deposits"]
 
             # Build the time serie of the total deposits across all banks
-            self.time_series_metrics["Deposits"][-1] += bank.liabilities[
-                "Deposits"
-            ]
+            self.time_series_metrics["Deposits"][-1] += bank.liabilities["Deposits"]
 
             # Build the total network excess liquidity time series
             self.time_series_metrics["Excess Liquidity"][-1] += (
@@ -502,9 +491,7 @@ class ClassNetwork:
         if total_repo_transactions_counter != 0:
             self.time_series_metrics[
                 "Average size of repo transaction ended within a step"
-            ][-1] = (
-                total_repo_transactions_size / total_repo_transactions_counter
-            )
+            ][-1] = (total_repo_transactions_size / total_repo_transactions_counter)
         else:
             self.time_series_metrics[
                 "Average size of repo transaction ended within a step"
@@ -516,17 +503,15 @@ class ClassNetwork:
         )
 
         # Build the average in-degree in the network.
-        binary_adj = np.where(
-            self.adj_matrix > self.min_repo_size, True, False
-        )
+        binary_adj = np.where(self.adj_matrix > self.min_repo_size, True, False)
         bank_network = nx.from_numpy_matrix(
             binary_adj,
             parallel_edges=False,
             create_using=nx.DiGraph,
         )  # first define a networkx object.
-        self.time_series_metrics["In-degree"][-1] = np.array(
-            bank_network.in_degree()
-        )[:, 1].mean()
+        self.time_series_metrics["In-degree"][-1] = np.array(bank_network.in_degree())[
+            :, 1
+        ].mean()
 
         # Build the jaccard index time series.
         prev_binary_adj = np.where(
@@ -539,9 +524,9 @@ class ClassNetwork:
             )
             self.prev_adj_matrix = self.adj_matrix.copy()
         elif self.steps > 0:
-            self.time_series_metrics["Jaccard Index"][
-                -1
-            ] = self.time_series_metrics["Jaccard Index"][-2]
+            self.time_series_metrics["Jaccard Index"][-1] = self.time_series_metrics[
+                "Jaccard Index"
+            ][-2]
 
         # Build the network density indicator.
         self.time_series_metrics["Network Density"][-1] = (
@@ -549,9 +534,7 @@ class ClassNetwork:
         )
 
         # Build the gini coeficient of the network
-        self.time_series_metrics["Gini"][-1] = fct.gini(
-            self.network_total_assets
-        )
+        self.time_series_metrics["Gini"][-1] = fct.gini(self.network_total_assets)
 
         # Build the statistics regarding the size of the reverse repos across the network at a given time step
         non_zero_adj_matrix = self.adj_matrix[
@@ -597,9 +580,7 @@ class ClassNetwork:
             self.single_trajectory[key][-1] = bank.off_balance[key]
 
         # In and Out-degree
-        binary_adj = np.where(
-            self.adj_matrix > self.min_repo_size, True, False
-        )
+        binary_adj = np.where(self.adj_matrix > self.min_repo_size, True, False)
         bank_network = nx.from_numpy_matrix(
             binary_adj,
             parallel_edges=False,
@@ -613,22 +594,22 @@ class ClassNetwork:
         )
 
         # Number of transactions of end repos per step
-        self.single_trajectory[
-            "Number of repo transaction ended within a step"
-        ][-1] = self.banks[self.single_bank_id].repo_transactions_counter
+        self.single_trajectory["Number of repo transaction ended within a step"][
+            -1
+        ] = self.banks[self.single_bank_id].repo_transactions_counter
 
         # size of transactions of end repos per step
         if self.banks[self.single_bank_id].repo_transactions_counter != 0:
-            self.single_trajectory[
-                "Size of repo transaction ended within a step"
-            ][-1] = (
+            self.single_trajectory["Size of repo transaction ended within a step"][
+                -1
+            ] = (
                 self.banks[self.single_bank_id].repo_transactions_size
                 / self.banks[self.single_bank_id].repo_transactions_counter
             )
         else:
-            self.single_trajectory[
-                "Size of repo transaction ended within a step"
-            ][-1] = 0
+            self.single_trajectory["Size of repo transaction ended within a step"][
+                -1
+            ] = 0
 
         # Average across time of the weighted average maturity of repos
         self.single_trajectory["Maturity of repos"][-1] = np.sum(
@@ -652,12 +633,10 @@ class ClassNetwork:
         total_repo_amount = 0
         for i, bank in enumerate(self.banks):
             weighted_repo_maturity += list(
-                np.array(bank.repos_on_maturities)
-                * np.array(bank.repos_on_amounts)
+                np.array(bank.repos_on_maturities) * np.array(bank.repos_on_amounts)
             )
             weighted_repo_maturity += list(
-                np.array(bank.repos_off_maturities)
-                * np.array(bank.repos_off_amounts)
+                np.array(bank.repos_off_maturities) * np.array(bank.repos_off_amounts)
             )
             total_repo_amount += sum(bank.repos_on_amounts) + sum(
                 bank.repos_off_amounts
@@ -760,10 +739,7 @@ class ClassNetwork:
         # collateral is reused in the network
         gx.plot_collateral_reuse(
             np.array(self.time_series_metrics["Securities Reused"])
-            / (
-                np.array(self.time_series_metrics["Securities Collateral"])
-                + 1e-10
-            ),
+            / (np.array(self.time_series_metrics["Securities Collateral"]) + 1e-10),
             self.result_location,
         )
 
@@ -787,17 +763,13 @@ class ClassNetwork:
         gx.plot_gini(self.time_series_metrics, self.result_location)
 
         # Plot the time series of the statistics of the size of reverse repo
-        gx.plot_reverse_repo_size_stats(
-            self.time_series_metrics, self.result_location
-        )
+        gx.plot_reverse_repo_size_stats(self.time_series_metrics, self.result_location)
 
         # Plot the time series of the network average degree
         gx.plot_degre_network(self.time_series_metrics, self.result_location)
 
         # Plot the time series of the average nb of transactions per step and per bank
-        gx.plot_average_nb_transactions(
-            self.time_series_metrics, self.result_location
-        )
+        gx.plot_average_nb_transactions(self.time_series_metrics, self.result_location)
 
         # Plot the time series of the average nb of transactions per step and per bank
         gx.plot_average_size_transactions(
@@ -805,9 +777,7 @@ class ClassNetwork:
         )
 
         # Plot the average maturity of repos.
-        gx.plot_average_maturity_repo(
-            self.time_series_metrics, self.result_location
-        )
+        gx.plot_average_maturity_repo(self.time_series_metrics, self.result_location)
 
         # Plot the single bank trajectory time series.
         gx.plot_single_trajectory(self.single_trajectory, self.result_location)
@@ -819,15 +789,16 @@ class ClassNetwork:
             f.write(
                 (
                     "n_banks={} \n"
-                    "alpha_pareto={} \n"
+                    "alpha={} \n"
                     "beta_init={} \n"
                     "beta_reg={} \n"
                     "beta_star={} \n"
-                    "alpha={} \n"
                     "gamma={} \n"
                     "collateral_value={} \n"
                     "initialization_method={} \n"
+                    "alpha_pareto={} \n"
                     "shock_method={} \n"
+                    "shocks_law={} \n"
                     "shocks_vol={} \n"
                     "result_location={} \n"
                     "min_repo_size={} \n"
@@ -836,15 +807,16 @@ class ClassNetwork:
                     "jaccard_period={} \n"
                 ).format(
                     self.n_banks,
-                    self.alpha_pareto,
+                    self.alpha,
                     self.beta_init,
                     self.beta_reg,
                     self.beta_star,
-                    self.alpha,
                     self.gamma,
                     self.collateral_value,
                     self.initialization_method,
-                    self.shock_method,
+                    self.alpha_pareto,
+                    self.shocks_method,
+                    self.shocks_law,
                     self.shocks_vol,
                     self.result_location,
                     self.min_repo_size,
@@ -866,11 +838,7 @@ class ClassNetwork:
                     (
                         np.array(self.time_series_metrics["Securities Reused"])
                         / (
-                            np.array(
-                                self.time_series_metrics[
-                                    "Securities Collateral"
-                                ]
-                            )
+                            np.array(self.time_series_metrics["Securities Collateral"])
                             + 1e-10
                         )
                     )[-stat_len_step:]
@@ -882,9 +850,7 @@ class ClassNetwork:
         output.update(
             {
                 "Jaccard index": np.mean(
-                    np.array(self.time_series_metrics["Jaccard Index"])[
-                        -stat_len_step:
-                    ]
+                    np.array(self.time_series_metrics["Jaccard Index"])[-stat_len_step:]
                 )
             }
         )
@@ -902,9 +868,7 @@ class ClassNetwork:
         output.update(
             {
                 "Average in-degree": np.mean(
-                    np.array(self.time_series_metrics["In-degree"])[
-                        -stat_len_step:
-                    ]
+                    np.array(self.time_series_metrics["In-degree"])[-stat_len_step:]
                 )
             }
         )
@@ -924,9 +888,9 @@ class ClassNetwork:
         output.update(
             {
                 "Average maturity of repos": np.nanmean(
-                    np.array(
-                        self.time_series_metrics["Average maturity of repos"]
-                    )[-stat_len_step:]
+                    np.array(self.time_series_metrics["Average maturity of repos"])[
+                        -stat_len_step:
+                    ]
                 )
             }
         )
@@ -935,9 +899,9 @@ class ClassNetwork:
         output.update(
             {
                 "Repo size mean": np.nanmean(
-                    np.array(
-                        self.time_series_metrics["Reverse repo size mean"]
-                    )[-stat_len_step:]
+                    np.array(self.time_series_metrics["Reverse repo size mean"])[
+                        -stat_len_step:
+                    ]
                 )
             }
         )
@@ -946,9 +910,7 @@ class ClassNetwork:
         output.update(
             {
                 "Repo market size": np.nanmean(
-                    np.array(self.time_series_metrics["Repos"])[
-                        -stat_len_step:
-                    ]
+                    np.array(self.time_series_metrics["Repos"])[-stat_len_step:]
                 )
             }
         )
@@ -957,3 +919,58 @@ class ClassNetwork:
         output.update({"p_value": self.p_value})
 
         return output
+
+
+def single_run(
+    n_banks=50,
+    alpha=0.01,
+    beta_init=0.1,
+    beta_reg=0.1,
+    beta_star=0.1,
+    gamma=0.03,
+    collateral_value=1.0,
+    initialization_method="constant",
+    alpha_pareto=1.3,
+    shocks_method="bilateral",
+    shocks_law="normal",
+    shocks_vol=0.01,
+    result_location="./results/",
+    min_repo_size=1e-10,
+    time_steps=500,
+    save_every=500,
+    jaccard_period=20,
+    output_opt=False,
+):
+
+    network = ClassNetwork(
+        n_banks=n_banks,
+        beta_init=beta_init,
+        beta_reg=beta_reg,
+        beta_star=beta_star,
+        alpha=alpha,
+        gamma=gamma,
+        collateral_value=collateral_value,
+        initialization_method=initialization_method,
+        alpha_pareto=alpha_pareto,
+        shocks_method=shocks_method,
+        shocks_law=shocks_law,
+        shocks_vol=shocks_vol,
+        result_location=result_location,
+        min_repo_size=min_repo_size,
+    )
+
+    if output_opt:
+        return network.simulate(
+            time_steps=time_steps,
+            save_every=save_every,
+            jaccard_period=jaccard_period,
+            output_opt=output_opt,
+        )
+
+    else:
+        network.simulate(
+            time_steps=time_steps,
+            save_every=save_every,
+            jaccard_period=jaccard_period,
+            output_opt=output_opt,
+        )

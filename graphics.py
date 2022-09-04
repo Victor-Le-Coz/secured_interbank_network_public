@@ -422,33 +422,16 @@ def plot_asset_per_degree(total_assets, degree, path):
 
 
 def plot_single_trajectory(single_trajectory, path):
-
-    # Plot the accounting items
-    keys = [
-        "Cash",
-        "Securities Usable",
-        "Securities Encumbered",
-        # "Loans",
-        "Reverse Repos",
-        "Own Funds",
+    # Plot the accounting items (big)
+    keys_s = [
+        "Loans",
         "Deposits",
-        "Repos",
-        # "MROs",
-        "Securities Collateral",
-        "Securities Reused",
+        "MROs",
     ]
 
     plt.figure(figsize=(30, 15))
-    length = len(single_trajectory["Cash"])
-    for key in keys:
-
-        # Log scale
-        # plt.plot(
-        #     np.arange(length), np.log10(np.abs(single_trajectory[key])+1),
-        #     label=str(key)
-        # )
-
-        # usual scale
+    length = len(single_trajectory["Loans"])
+    for key in keys_s:
         plt.plot(np.arange(length), single_trajectory[key], label=str(key))
 
     plt.xlabel("Steps")
@@ -456,12 +439,38 @@ def plot_single_trajectory(single_trajectory, path):
     plt.ylabel("Monetary units")
     plt.legend(loc="upper left")
     plt.grid()
-    plt.title("Single bank trajectory of accounting items")
-    plt.savefig(os.path.join(path, "Single_trajectory_accounting_items.png"))
+    plt.title("Single bank trajectory of (large) accounting items")
+    plt.savefig(os.path.join(path, "Single_trajectory_accounting_items_big.png"))
+    plt.close()
+
+    # Plot the accounting items (small)
+    keys_s = [
+        "Cash",
+        "Securities Usable",
+        "Securities Encumbered",
+        "Reverse Repos",
+        "Own Funds",
+        "Repos",
+        "Securities Collateral",
+        "Securities Reused",
+    ]
+
+    plt.figure(figsize=(30, 15))
+    length = len(single_trajectory["Cash"])
+    for key in keys_s:
+        plt.plot(np.arange(length), single_trajectory[key], label=str(key))
+
+    plt.xlabel("Steps")
+    # plt.ylabel("Log10 of monetary units")
+    plt.ylabel("Monetary units")
+    plt.legend(loc="upper left")
+    plt.grid()
+    plt.title("Single bank trajectory of (small) accounting items")
+    plt.savefig(os.path.join(path, "Single_trajectory_accounting_items_small.png"))
     plt.close()
 
     # Plot the other indicators
-    keys = [
+    keys_s = [
         "In-degree",
         "Out-degree",
         "Number of repo transaction ended within a step",
@@ -470,7 +479,7 @@ def plot_single_trajectory(single_trajectory, path):
     ]
     plt.figure(figsize=(30, 15))
     length = len(single_trajectory["In-degree"])
-    for key in keys:
+    for key in keys_s:
         plt.plot(np.arange(length), single_trajectory[key], label=str(key))
 
     plt.xlabel("Steps")
