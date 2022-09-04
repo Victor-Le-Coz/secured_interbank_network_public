@@ -19,7 +19,7 @@ if __name__ == "__main__":
         "min_repo_size",
         "alpha_pareto",
     ]
-    axes = ["alpha_pareto"]
+    # axes = ["alpha_pareto"]
 
     for axe in axes:
         # build the arguments
