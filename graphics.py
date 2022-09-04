@@ -496,7 +496,7 @@ def plot_output_by_args(args, axe, output, path):
     for key in output.keys():
         plt.plot(args, output[key], "-o")
         plt.xlabel(axe)
-        if axe == "min_repo_size" or axe == "alpha_pareto":
+        if axe == "min_repo_size" or axe == "alpha_pareto" or axe == "shocks_vol":
             plt.gca().set_xscale("log")
         plt.ylabel(key)
         plt.title(key + " as a function of " + axe)

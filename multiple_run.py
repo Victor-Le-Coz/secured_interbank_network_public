@@ -36,7 +36,7 @@ if __name__ == "__main__":
             alpha_pareto=1.3,
             shocks_method="bilateral",
             shocks_law="normal",
-            shocks_vol=0.05,
+            shocks_vol=0.10,
             result_location=result_location,
             min_repo_size=1e-10,
             time_steps=5000,
