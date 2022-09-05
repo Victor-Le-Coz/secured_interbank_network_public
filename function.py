@@ -26,7 +26,7 @@ def build_axe_args(axe):
     elif axe == "beta":
         axe_args = [beta for beta in np.arange(0.01, 1, 0.02)]
     elif axe == "collateral":  # can not be higher than the targeted LCR
-        axe_args = [beta_init_test for beta_init_test in np.arange(0.0, 0.1, 0.005)]
+        axe_args = [beta_init_test for beta_init_test in np.arange(0.0, 0.5, 0.005)]
     elif axe == "shocks_vol":
         axe_args = [shocks_vol_test for shocks_vol_test in np.logspace(-3, 1, num=25)]
     elif axe == "min_repo_size":

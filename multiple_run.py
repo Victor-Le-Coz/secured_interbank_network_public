@@ -19,7 +19,7 @@ if __name__ == "__main__":
         "min_repo_size",
         "alpha_pareto",
     ]
-    # axes = ["alpha_pareto"]
+    axes = ["collateral"]
 
     for axe in axes:
         # build the arguments
@@ -28,15 +28,15 @@ if __name__ == "__main__":
             n_banks=50,
             alpha=0.01,
             beta_init=0.1,  # for the initial collateral available
-            beta_reg=0.1,
-            beta_star=0.1,
+            beta_reg=0.5,
+            beta_star=0.5,
             gamma=0.03,
             collateral_value=1.0,
             initialization_method="constant",
             alpha_pareto=1.3,
             shocks_method="bilateral",
             shocks_law="normal",
-            shocks_vol=0.10,
+            shocks_vol=2,
             result_location=result_location,
             min_repo_size=1e-10,
             time_steps=5000,
