@@ -32,7 +32,7 @@ def bar_plot_deposits(deposits, path, step):
     plt.tick_params(axis="x", labelrotation=90, labelsize="small")
     plt.legend()
     plt.title("Deposits of Banks at step {}".format(int(step)))
-    plt.savefig(os.path.join(path, "step_{}_deposits.png".format(step)))
+    plt.savefig(os.path.join(path, "step_{}_deposits.pdf".format(step)))
     plt.close()
 
 
@@ -171,7 +171,7 @@ def bar_plot_balance_sheet(
     ax3.set_title("Off Balance Sheets of Banks at step {}".format(int(step)))
 
     plt.subplots_adjust(hspace=0.3)
-    plt.savefig(os.path.join(path, "step_{}_balance_sheets.png".format(step)))
+    plt.savefig(os.path.join(path, "step_{}_balance_sheets.pdf".format(step)))
     plt.close()
 
 
@@ -186,7 +186,7 @@ def plot_assets_loans_mros(time_series_metrics, path):
     plt.xlabel("Steps")
     plt.ylabel("Total network amount")
     plt.title("Total amount of assets, loans,  and MROs in Network")
-    plt.savefig(os.path.join(path, "Assets_loans_mros.png"))
+    plt.savefig(os.path.join(path, "Assets_loans_mros.pdf"))
     plt.close()
 
 
@@ -197,7 +197,7 @@ def plot_network_density(time_series_metrics, path):
     plt.xlabel("Steps")
     plt.ylabel("Density")
     plt.title("Network Density across time")
-    plt.savefig(os.path.join(path, "network_density.png"))
+    plt.savefig(os.path.join(path, "network_density.pdf"))
     plt.close()
 
 
@@ -208,7 +208,7 @@ def plot_gini(time_series_metrics, path):
     plt.xlabel("Steps")
     plt.ylabel("Gini")
     plt.title("Gini coefficient across time of the total assets per bank")
-    plt.savefig(os.path.join(path, "gini.png"))
+    plt.savefig(os.path.join(path, "gini.pdf"))
     plt.close()
 
 
@@ -229,7 +229,7 @@ def plot_reverse_repo_size_stats(time_series_metrics, path):
         ]
     )
     plt.title("Reverse repo size statistics across time")
-    plt.savefig(os.path.join(path, "reverse_repo_stats.png"))
+    plt.savefig(os.path.join(path, "reverse_repo_stats.pdf"))
     plt.close()
 
 
@@ -240,7 +240,7 @@ def plot_collateral_reuse(reuse, path):
     plt.xlabel("Steps")
     plt.ylabel("Reused/Total Collateral")
     plt.title("Reuse of collateral over time")
-    plt.savefig(os.path.join(path, "collateral_reuse.png"))
+    plt.savefig(os.path.join(path, "collateral_reuse.pdf"))
     plt.close()
 
 
@@ -253,7 +253,7 @@ def plot_repos(time_series_metrics, path):
     plt.xlabel("Steps")
     plt.ylabel("Total Network Amount")
     plt.title("Total Amount of Repos/Reverse Repos")
-    plt.savefig(os.path.join(path, "Repos.png"))
+    plt.savefig(os.path.join(path, "Repos.pdf"))
     plt.close()
 
 
@@ -270,7 +270,7 @@ def plot_jaccard(time_series_metrics, period, path):
     )
     plt.grid()
     plt.yticks(np.arange(0, 1, 0.05))
-    plt.savefig(os.path.join(path, "jaccard_index.png"))
+    plt.savefig(os.path.join(path, "jaccard_index.pdf"))
     plt.close()
 
 
@@ -283,7 +283,7 @@ def plot_excess_liquidity_and_deposits(time_series_metrics, path):
     plt.xlabel("Steps")
     plt.ylabel("Total Network Amount")
     plt.title("Total Excess Liquidity and total Deposits")
-    plt.savefig(os.path.join(path, "excess_liquidity_and_deposits.png"))
+    plt.savefig(os.path.join(path, "excess_liquidity_and_deposits.pdf"))
     plt.close()
 
 
@@ -311,7 +311,7 @@ def plot_collateral(time_series_metrics, path):
     plt.xlabel("Steps")
     plt.ylabel("Total Network Amount")
     plt.title("Total Amount of Collateral in Network")
-    plt.savefig(os.path.join(path, "collateral.png"))
+    plt.savefig(os.path.join(path, "collateral.pdf"))
     plt.close()
 
 
@@ -322,7 +322,7 @@ def plot_degre_network(time_series_metrics, path):
     plt.xlabel("Steps")
     plt.ylabel("Average in-degree")
     plt.title("Average in-degree in the repo network")
-    plt.savefig(os.path.join(path, "average_in-degree.png"))
+    plt.savefig(os.path.join(path, "average_in-degree.pdf"))
     plt.close()
 
 
@@ -338,7 +338,7 @@ def plot_average_nb_transactions(time_series_metrics, path):
     plt.xlabel("Steps")
     plt.ylabel("Number of transactions")
     plt.title("Average number of repo transaction ended within a step in the network")
-    plt.savefig(os.path.join(path, "Average_nb_repo_transactions_ended.png"))
+    plt.savefig(os.path.join(path, "Average_nb_repo_transactions_ended.pdf"))
     plt.close()
 
 
@@ -354,7 +354,7 @@ def plot_average_size_transactions(time_series_metrics, path):
     plt.xlabel("Steps")
     plt.ylabel("Size of transactions")
     plt.title("Average size of repo transaction ended within a step in the network")
-    plt.savefig(os.path.join(path, "Average_size_repo_transactions_ended.png"))
+    plt.savefig(os.path.join(path, "Average_size_repo_transactions_ended.pdf"))
     plt.close()
 
 
@@ -368,7 +368,7 @@ def plot_average_maturity_repo(time_series_metrics, path):
     plt.xlabel("Steps")
     plt.ylabel("Weighted average maturity of repos")
     plt.title("Weighted average maturity of repos")
-    plt.savefig(os.path.join(path, "Average_maturity_repo.png"))
+    plt.savefig(os.path.join(path, "Average_maturity_repo.pdf"))
     plt.close()
 
 
@@ -391,7 +391,7 @@ def plot_network(adj, path, step, name):
 
     # show the plot
     plt.title("{} network at the step {}".format(name, int(step)))
-    plt.savefig(os.path.join(path, "step_{}_network.png".format(step)))
+    plt.savefig(os.path.join(path, "step_{}_network.pdf".format(step)))
     plt.close()
 
 
@@ -406,7 +406,7 @@ def plot_core_periphery(bank_network, sig_c, sig_x, path, step, name):
     plt.savefig(
         os.path.join(
             path,
-            "step_{" "}_core-periphery_structure.png".format(step),
+            "step_{" "}_core-periphery_structure.pdf".format(step),
         )
     )
     plt.close()
@@ -417,7 +417,7 @@ def plot_asset_per_degree(total_assets, degree, path):
     plt.xlabel("Degree")
     plt.ylabel("Total assets")
     plt.title("Total assets per bank as a fonction of the degree in the network")
-    plt.savefig(os.path.join(path, "Asset_per_degree.png"))
+    plt.savefig(os.path.join(path, "Asset_per_degree.pdf"))
     plt.close()
 
 
@@ -440,7 +440,7 @@ def plot_single_trajectory(single_trajectory, path):
     plt.legend(loc="upper left")
     plt.grid()
     plt.title("Single bank trajectory of (large) accounting items")
-    plt.savefig(os.path.join(path, "Single_trajectory_accounting_items_big.png"))
+    plt.savefig(os.path.join(path, "Single_trajectory_accounting_items_big.pdf"))
     plt.close()
 
     # Plot the accounting items (small)
@@ -466,7 +466,7 @@ def plot_single_trajectory(single_trajectory, path):
     plt.legend(loc="upper left")
     plt.grid()
     plt.title("Single bank trajectory of (small) accounting items")
-    plt.savefig(os.path.join(path, "Single_trajectory_accounting_items_small.png"))
+    plt.savefig(os.path.join(path, "Single_trajectory_accounting_items_small.pdf"))
     plt.close()
 
     # Plot the other indicators
@@ -487,7 +487,7 @@ def plot_single_trajectory(single_trajectory, path):
     plt.legend(loc="upper left")
     plt.grid()
     plt.title("Single bank trajectory of indicators")
-    plt.savefig(os.path.join(path, "Single_trajectory_indicators.png"))
+    plt.savefig(os.path.join(path, "Single_trajectory_indicators.pdf"))
     plt.close()
 
 
@@ -500,5 +500,5 @@ def plot_output_by_args(args, axe, output, path):
             plt.gca().set_xscale("log")
         plt.ylabel(key)
         plt.title(key + " as a function of " + axe)
-        plt.savefig(os.path.join(path, key + "_" + axe + ".png"))
+        plt.savefig(os.path.join(path, key + "_" + axe + ".pdf"))
         plt.close()

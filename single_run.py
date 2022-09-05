@@ -7,7 +7,7 @@ sys.setrecursionlimit(5000)
 single_run(
     n_banks=50,
     alpha=0.01,
-    beta_init=0.1,  # for the initial collateral available
+    beta_init=0.5,  # for the initial collateral available
     beta_reg=0.5,
     beta_star=0.5,
     gamma=0.03,

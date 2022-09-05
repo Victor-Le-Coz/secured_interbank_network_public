@@ -13,13 +13,12 @@ if __name__ == "__main__":
     result_location = "./results/"
     axes = [
         "beta",
-        "collateral",
         "shocks_vol",
         "n_banks",
         "min_repo_size",
         "alpha_pareto",
     ]
-    axes = ["collateral"]
+    # axes = ["collateral"]
 
     for axe in axes:
         # build the arguments
@@ -27,7 +26,7 @@ if __name__ == "__main__":
             axe=axe,
             n_banks=50,
             alpha=0.01,
-            beta_init=0.1,  # for the initial collateral available
+            beta_init=0.5,  # for the initial collateral available
             beta_reg=0.5,
             beta_star=0.5,
             gamma=0.03,
@@ -36,7 +35,7 @@ if __name__ == "__main__":
             alpha_pareto=1.3,
             shocks_method="bilateral",
             shocks_law="normal",
-            shocks_vol=2,
+            shocks_vol=0.05,
             result_location=result_location,
             min_repo_size=1e-10,
             time_steps=5000,
