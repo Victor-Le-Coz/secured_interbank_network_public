@@ -17,8 +17,8 @@ if __name__ == "__main__":
         "n_banks",
         "min_repo_size",
         "alpha_pareto",
+        "collateral",
     ]
-    # axes = ["collateral"]
 
     for axe in axes:
         # build the arguments
@@ -49,7 +49,7 @@ if __name__ == "__main__":
         fct.init_path(result_location + axe + "/output_by_args/")
 
         # run the simulation in multiprocessing across arguments
-        with Pool(processes=25) as p:
+        with Pool(processes=20) as p:
             output = p.starmap(single_run, args)
 
         # plot the results

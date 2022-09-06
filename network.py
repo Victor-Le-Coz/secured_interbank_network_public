@@ -151,7 +151,7 @@ class ClassNetwork:
         :return:
         """
 
-        #firt: reset the banks parameter of the instance of ClassNetwork
+        # firt: reset the banks parameter of the instance of ClassNetwork
         self.banks = []
 
         # For loop over the number of banks in the network to build the
@@ -664,6 +664,7 @@ class ClassNetwork:
         binary_adj = np.where(self.adj_matrix > self.min_repo_size, 1.0, 0.0)
         gx.plot_network(
             self.adj_matrix,
+            self.network_total_assets,
             os.path.join(self.result_location, "Reverse_repo_networks"),
             self.steps,
             "Reverse_Repo",
@@ -672,6 +673,7 @@ class ClassNetwork:
         # Plot the trust network
         gx.plot_network(
             self.trust_adj_matrix.T / (self.trust_adj_matrix.std() + 1e-8),
+            self.network_total_assets,
             os.path.join(self.result_location, "Trust_networks"),
             self.steps,
             "Trust",
