@@ -51,6 +51,7 @@ if __name__ == "__main__":
         # initialize the paths
         fct.init_path(result_location + axe + "/")
         fct.init_path(result_location + axe + "/output_by_args/")
+        fct.init_path(result_location + axe + "/output_by_args/log_scale/")
 
         # run the simulation in multiprocessing across arguments
         if gethostname() == "gibi":
