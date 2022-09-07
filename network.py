@@ -33,6 +33,7 @@ class ClassNetwork:
         shocks_vol=0.01,
         result_location="./results/",
         min_repo_size=1e-10,
+        LCR_mgt_opt=True,
     ):
         """
         Instance methode initializing the ClassNetwork.
@@ -92,6 +93,7 @@ class ClassNetwork:
         self.shocks_vol = shocks_vol
         self.result_location = result_location
         self.min_repo_size = min_repo_size
+        self.LCR_mgt_opt = LCR_mgt_opt
 
         # Definition of the internal parameters of the ClassNetwork.
         self.steps = 0  # Step number in the simulation process
@@ -186,6 +188,7 @@ class ClassNetwork:
                     gamma=self.gamma,
                     collateral_value=self.collateral_value,
                     conservative_shock=self.conservative_shock,
+                    LCR_mgt_opt=self.LCR_mgt_opt,
                 )
             )
 
@@ -304,7 +307,11 @@ class ClassNetwork:
             )
         elif self.shocks_method == "non-conservative":
             shocks = sh.generate_non_conservative_shocks(
-                self.network_deposits, law=self.shocks_law, vol=self.shocks_vol
+                self.network_deposits,
+                self.network_initial_deposits,
+                self.network_total_assets,
+                law=self.shocks_law,
+                vol=self.shocks_vol,
             )
         else:
             assert False, ""
@@ -325,7 +332,8 @@ class ClassNetwork:
         for i in ix:
             self.banks[i].set_shock(shocks[i])
             self.banks[i].set_collateral(self.collateral_value)
-            self.banks[i].step_lcr_mgt()
+            if self.LCR_mgt_opt:
+                self.banks[i].step_lcr_mgt()
             self.banks[
                 i
             ].repo_transactions_counter = (
@@ -348,7 +356,8 @@ class ClassNetwork:
         for i in ix:
             self.banks[i].assert_minimum_reserves()
             self.banks[i].assert_alm()
-            self.banks[i].assert_lcr()
+            if self.LCR_mgt_opt:
+                self.banks[i].assert_lcr()
             # self.banks[i].assert_leverage()
             self.banks[i].steps += 1
 
@@ -942,6 +951,7 @@ def single_run(
     save_every=500,
     jaccard_period=20,
     output_opt=False,
+    LCR_mgt_opt=True,
 ):
 
     network = ClassNetwork(
@@ -959,6 +969,7 @@ def single_run(
         shocks_vol=shocks_vol,
         result_location=result_location,
         min_repo_size=min_repo_size,
+        LCR_mgt_opt=LCR_mgt_opt,
     )
 
     if output_opt:

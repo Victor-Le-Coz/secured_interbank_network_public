@@ -136,7 +136,9 @@ def generate_dirichlet_shocks(deposits, initial_deposits, option, vol):
     return shocks
 
 
-def generate_non_conservative_shocks(deposits, law, vol):
+def generate_non_conservative_shocks(
+    deposits, initial_deposits, total_assets, law, vol
+):
     if law == "log-normal":
         std_control = np.sqrt(np.log(1.0 + vol**2.0))
         new_deposits = (
@@ -147,10 +149,24 @@ def generate_non_conservative_shocks(deposits, law, vol):
             )
             * deposits
         )
+
     elif law == "normal":
         new_deposits = np.maximum(deposits + np.random.randn(len(deposits)) * vol, 0.0)
+
+    elif law == "normal-mean-reverting":
+        mean_reversion = 0.01
+        epsilon = np.random.normal(loc=0, scale=vol, size=len(deposits))
+        shocks = mean_reversion * (initial_deposits - deposits) + epsilon * deposits
+
+        # center the shocks
+        shocks = shocks - np.mean(shocks)
+
+        # clip the negative shocks to the deposits size
+        new_deposits = (deposits + shocks).clip(min=0)
+
     else:
         assert False, ""
+
     shocks = new_deposits - deposits
     return shocks
 

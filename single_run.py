@@ -5,7 +5,7 @@ import sys
 sys.setrecursionlimit(5000)
 
 single_run(
-    n_banks=50,
+    n_banks=10,
     alpha=0.01,
     beta_init=0.5,  # for the initial collateral available
     beta_reg=0.5,
@@ -17,10 +17,10 @@ single_run(
     shocks_method="bilateral",
     shocks_law="normal",
     shocks_vol=0.05,
-    result_location="./results/tests/",
+    result_location="./results/single_run/10_banks/",
     min_repo_size=1e-10,
-    time_steps=50,
-    save_every=250,
+    time_steps=5000,
+    save_every=2500,
     jaccard_period=20,
     output_opt=False,
 )

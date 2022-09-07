@@ -27,6 +27,7 @@ class ClassBank:
         gamma=0.03,
         collateral_value=1.0,
         conservative_shock=True,
+        LCR_mgt_opt=True,
     ):
         """
         Instance methode initializing the ClassBank.
@@ -58,6 +59,7 @@ class ClassBank:
         self.gamma = gamma
         self.collateral_value = collateral_value
         self.conservative_shock = conservative_shock
+        self.LCR_mgt_opt = LCR_mgt_opt
 
         # Other parameters initialization
         self.excess_liquidity = (
@@ -629,6 +631,16 @@ class ClassBank:
         # if there is a liquidity need)
         repo_ask = -(self.assets["Cash"] - self.alpha * self.liabilities["Deposits"])
 
+        # if there is no LCR mgt, we might have a biger shock to absorb than the available collateral, so only a part of the shock is absorded on the repo market
+        if not (self.LCR_mgt_opt):
+            temp = repo_ask
+            repo_ask = min(
+                repo_ask,
+                self.assets["Securities Usable"] * self.collateral_value
+                + self.off_balance["Securities Collateral"] * self.collateral_value,
+            )
+            repo_ask_cb = temp - repo_ask
+
         # Case disjunction: nothing to do if the repo_ask is negative
         if repo_ask <= 0.0:
             return
@@ -713,9 +725,13 @@ class ClassBank:
                 break
 
         # In case shocks a non conversative, banks may request cash to the central bank as a last resort when there is not enough cash available on the repo market
-        if not (self.conservative_shock):
-            self.liabilities["MROs"] += repo_ask
-            self.assets["Cash"] += repo_ask
+        if not (self.LCR_mgt_opt):
+            self.liabilities["MROs"] += repo_ask_cb + repo_ask
+            self.assets["Cash"] += repo_ask_cb + repo_ask
+        elif self.LCR_mgt_opt:
+            if not (self.conservative_shock):
+                self.liabilities["MROs"] += repo_ask
+                self.assets["Cash"] += repo_ask
 
         # check for errors
         if repo_ask > float_limit:

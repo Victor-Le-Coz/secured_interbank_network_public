@@ -11,7 +11,7 @@ if __name__ == "__main__":
     sys.setrecursionlimit(5000)
 
     # define the parameters for the run
-    result_location = "./results/tests/"
+    result_location = "./results/"
     axes = [
         "beta",
         "shocks_vol",

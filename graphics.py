@@ -444,7 +444,7 @@ def plot_network(adj, network_total_assets, path, step, name):
     pos = nx.circular_layout(bank_network)
 
     # draw the network
-    fig = plt.figure(figsize=halfslide_figsize)
+    fig = plt.figure(figsize=small_figsize)
     nx.draw_networkx(
         bank_network, pos, width=log_weights, with_labels=True, node_size=node_sizes
     )
@@ -576,9 +576,11 @@ def plot_output_by_args(args, axe, output, path):
     for key in output.keys():
         fig = plt.figure(figsize=figsize)
         plt.plot(args, output[key], "-o")
-        plt.xlabel(axe)
         if axe == "min_repo_size" or axe == "alpha_pareto" or axe == "shocks_vol":
             plt.gca().set_xscale("log")
+            plt.xlabel("log " + axe)
+        else:
+            plt.xlabel(axe)
         plt.ylabel(key)
         plt.title(key + " as a fct. of " + axe)
         fig.tight_layout()
@@ -589,10 +591,9 @@ def plot_output_by_args(args, axe, output, path):
     for key in output.keys():
         fig = plt.figure(figsize=figsize)
         plt.plot(args, output[key], "-o")
-        plt.xlabel(axe)
-        if axe == "min_repo_size" or axe == "alpha_pareto" or axe == "shocks_vol":
-            plt.gca().set_xscale("log")
-        plt.ylabel("log" + key)
+        plt.xlabel("log " + axe)
+        plt.gca().set_xscale("log")
+        plt.ylabel("log " + key)
         plt.gca().set_yscale("log")
         plt.title(key + " as a fct. of " + axe)
         fig.tight_layout()
