@@ -1,8 +1,9 @@
-import sys
+import sys, os
 from multiprocessing import Pool
 from network import single_run
 import function as fct
 import graphics as gx
+from socket import gethostname
 
 if __name__ == "__main__":
 
@@ -10,7 +11,7 @@ if __name__ == "__main__":
     sys.setrecursionlimit(5000)
 
     # define the parameters for the run
-    result_location = "./results/"
+    result_location = "./results/tests/"
     axes = [
         "beta",
         "shocks_vol",
@@ -19,6 +20,9 @@ if __name__ == "__main__":
         "alpha_pareto",
         "collateral",
     ]
+    # axes = [
+    #     "n_banks",
+    # ]
 
     for axe in axes:
         # build the arguments
@@ -49,7 +53,11 @@ if __name__ == "__main__":
         fct.init_path(result_location + axe + "/output_by_args/")
 
         # run the simulation in multiprocessing across arguments
-        with Pool(processes=20) as p:
+        if gethostname() == "gibi":
+            nb_threads = int(os.cpu_count() / 2)
+        else:
+            nb_threads = int(os.cpu_count() - 1)
+        with Pool(processes=nb_threads) as p:
             output = p.starmap(single_run, args)
 
         # plot the results

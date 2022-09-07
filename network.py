@@ -869,7 +869,7 @@ class ClassNetwork:
         # Average in-degree stationary value
         output.update(
             {
-                "Average in-degree": np.mean(
+                "Av. in-degree": np.mean(
                     np.array(self.time_series_metrics["In-degree"])[-stat_len_step:]
                 )
             }
@@ -889,7 +889,7 @@ class ClassNetwork:
         # Average maturity of repos stationary value
         output.update(
             {
-                "Average maturity of repos": np.nanmean(
+                "Repo av. maturity": np.nanmean(
                     np.array(self.time_series_metrics["Average maturity of repos"])[
                         -stat_len_step:
                     ]
@@ -918,7 +918,7 @@ class ClassNetwork:
         )
 
         # p_value
-        output.update({"p_value": self.p_value})
+        output.update({"Core-Peri. p_val.": self.p_value})
 
         return output
 
