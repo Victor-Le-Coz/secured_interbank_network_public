@@ -135,7 +135,7 @@ class ClassNetwork:
                 {jaccard_period: np.zeros((n_banks, n_banks))}
             )
 
-        # Definition of the dictionary associating to each accounting item the list of its values across time for a single bank. It also includes other time serries metrics, like the excess liquidity the in-degree, the out-degree, the nb of repos transactions ended within a step and the average across time of the maturity of repos.
+        # Definition of the dictionary associating to each accounting item the list of its values across time for a single bank. It also includes other time serries metrics, like the excess liquidity the in-degree, the out-degree, the nb of repo transactions ended within a step and the average across time of the maturity of repos.
         self.single_trajectory = {}
         self.single_bank_id = 0  # the selected single bank id
 
@@ -219,45 +219,44 @@ class ClassNetwork:
             "Securities Collateral": [],
             "Securities Reused": [],
             "Excess Liquidity": [],
-            "In-degree": [],
-            "Out-degree": [],
-            "Number of repo transaction ended within a step": [],
-            "Size of repo transaction ended within a step": [],
-            "Maturity of repos": [],
-            "Deposits": [],
+            "Av. in-degree": [],
+            "Av. out-degree": [],
+            "Nb. of repo transactions ended": [],
+            "Av. volume of repo transactions ended": [],
+            "Repos av. maturity": [],
         }
 
         # Initialize the other network level and aggregated level parameters
         self.time_series_metrics = {
-            "Cash": [],
-            "Securities Usable": [],
-            "Securities Encumbered": [],
-            "Loans": [],
-            "Reverse Repos": [],
-            "Own Funds": [],
-            "Deposits": [],
-            "Repos": [],
-            "MROs": [],
-            "Securities Collateral": [],
-            "Securities Reused": [],
-            "In-degree": [],
+            "Cash tot. volume": [],
+            "Securities Usable tot. volume": [],
+            "Securities Encumbered tot. volume": [],
+            "Loans tot. volume": [],
+            "Reverse Repos tot. volume": [],
+            "Own Funds tot. volume": [],
+            "Deposits tot. volume": [],
+            "Repos tot. volume": [],
+            "MROs tot. volume": [],
+            "Securities Collateral tot. volume": [],
+            "Securities Reused tot. volume": [],
+            "Av. in-degree": [],
             "Excess Liquidity": [],
-            "Network Density": [],
-            "Average number of repo transaction ended within a step": [],
-            "Average size of repo transaction ended within a step": [],
-            "Average maturity of repos": [],
+            "Network density": [],
+            "Av. nb. of repo transactions ended": [],
+            "Av. volume of repo transactions ended": [],
+            "Repos av. maturity": [],
             "Gini": [],
-            "Reverse repo size min": [],
-            "Reverse repo size max": [],
-            "Reverse repo size mean": [],
-            "Assets": [],
-            "Deposits": [],
+            "Repos min volume": [],
+            "Repos max volume": [],
+            "Repos av. volume": [],
+            "Assets tot. volume": [],
+            "Collateral reuse": [],
         }
 
         # Specific case of the Jaccard periods
         for jaccard_period in self.jaccard_periods:
             self.time_series_metrics.update(
-                {"Jaccard Index " + str(jaccard_period) + " time steps": []}
+                {"Jaccard index " + str(jaccard_period) + " time steps": []}
             )
 
         self.network_liabilities = {
@@ -373,12 +372,7 @@ class ClassNetwork:
             # self.banks[i].assert_leverage()
             self.banks[i].steps += 1
 
-    def simulate(
-        self,
-        time_steps,
-        save_every=10,
-        output_opt=False,
-    ):
+    def simulate(self, time_steps, save_every=10, output_opt=False, output_keys=None):
         """
         Instance method for the simulation of the ABM.
         :param time_steps: number of time_steps of the simulation, could be
@@ -409,7 +403,7 @@ class ClassNetwork:
 
         # build output
         if output_opt:
-            output = self.build_output()
+            output = self.build_output(output_keys)
             return output
 
     # <editor-fold desc="Metrics updates, saving, and printing">
@@ -424,10 +418,10 @@ class ClassNetwork:
         weighted_repo_maturity = []
         total_repo_amount = 0
 
-        # initialization of the counter of the repos transactions ended within a step across all banks
+        # initialization of the counter of the repo transactions ended within a step across all banks
         total_repo_transactions_counter = 0
 
-        # initialization of the total amount of the repos transaction ended ended within a step across all banks
+        # initialization of the total amount of the repo transactions ended ended within a step across all banks
         total_repo_transactions_size = 0
 
         # Add the first item 0 to each of the time series, it is necessary
@@ -441,18 +435,24 @@ class ClassNetwork:
             # Build the time series of the accounting items and store the
             # network dictionaries of the accounting items values
             for key in bank.assets.keys():  # only loop over assets items.
-                self.time_series_metrics[key][-1] += bank.assets[key]  #
+                self.time_series_metrics[key + " tot. volume"][-1] += bank.assets[
+                    key
+                ]  #
                 # Computes the total of a given item at a given time step.
                 self.network_assets[key][i] = bank.assets[key]  # Fill-in
                 # the value of each accounting item of each bank into the
                 # network asset dictionary.
             for key in bank.liabilities.keys():  # only loop over liabilities
                 # items.
-                self.time_series_metrics[key][-1] += bank.liabilities[key]
+                self.time_series_metrics[key + " tot. volume"][-1] += bank.liabilities[
+                    key
+                ]
                 self.network_liabilities[key][i] = bank.liabilities[key]
             for key in bank.off_balance.keys():  # only loop over off-balance
                 # items.
-                self.time_series_metrics[key][-1] += bank.off_balance[key]
+                self.time_series_metrics[key + " tot. volume"][-1] += bank.off_balance[
+                    key
+                ]
                 self.network_off_balance[key][i] = bank.off_balance[key]
 
             # Build the adjacency matrix of the reverse repos
@@ -468,9 +468,6 @@ class ClassNetwork:
 
             # Build the deposits numpy array of each bank
             self.network_deposits[i] = self.banks[i].liabilities["Deposits"]
-
-            # Build the time serie of the total deposits across all banks
-            self.time_series_metrics["Deposits"][-1] += bank.liabilities["Deposits"]
 
             # Build the total network excess liquidity time series
             self.time_series_metrics["Excess Liquidity"][-1] += (
@@ -502,28 +499,26 @@ class ClassNetwork:
             ].repo_transactions_size  # compute the sum
 
             # Build the time serie of the total assets across all banks
-            self.time_series_metrics["Assets"][-1] += bank.total_assets()
+            self.time_series_metrics["Assets tot. volume"][-1] += bank.total_assets()
 
         # clean the adj matrix from the negative values (otherwise the algo generate -1e-14 values for the reverse repos)
         self.adj_matrix[self.adj_matrix < 0] = 0
 
-        # Build the time series of the Average number of repo transaction ended within a step (2/2).
-        self.time_series_metrics[
-            "Average number of repo transaction ended within a step"
-        ][-1] = (total_repo_transactions_counter / self.n_banks)
+        # Build the time series of the Av. nb. of repo transactions ended (2/2).
+        self.time_series_metrics["Av. nb. of repo transactions ended"][-1] = (
+            total_repo_transactions_counter / self.n_banks
+        )
 
-        # Build the time series of the Average number of repo transaction ended within a step (2/2).
+        # Build the time series of the Average volume of repo transaction ended within a step (2/2).
         if total_repo_transactions_counter != 0:
-            self.time_series_metrics[
-                "Average size of repo transaction ended within a step"
-            ][-1] = (total_repo_transactions_size / total_repo_transactions_counter)
+            self.time_series_metrics["Av. volume of repo transactions ended"][-1] = (
+                total_repo_transactions_size / total_repo_transactions_counter
+            )
         else:
-            self.time_series_metrics[
-                "Average size of repo transaction ended within a step"
-            ][-1] = 0
+            self.time_series_metrics["Av. volume of repo transactions ended"][-1] = 0
 
         # Build the time series of the weighted average maturity of the repo transactions (2/2)
-        self.time_series_metrics["Average maturity of repos"][-1] = (
+        self.time_series_metrics["Repos av. maturity"][-1] = (
             np.sum(weighted_repo_maturity) / total_repo_amount
         )
 
@@ -534,16 +529,16 @@ class ClassNetwork:
             parallel_edges=False,
             create_using=nx.DiGraph,
         )  # first define a networkx object.
-        self.time_series_metrics["In-degree"][-1] = np.array(bank_network.in_degree())[
-            :, 1
-        ].mean()
+        self.time_series_metrics["Av. in-degree"][-1] = np.array(
+            bank_network.in_degree()
+        )[:, 1].mean()
 
         # Build the jaccard index time series.
         for jaccard_period in self.jaccard_periods:
             if self.steps > 0 and self.steps % jaccard_period == 0:
 
                 self.time_series_metrics[
-                    "Jaccard Index " + str(jaccard_period) + " time steps"
+                    "Jaccard index " + str(jaccard_period) + " time steps"
                 ][-1] = (
                     np.logical_and(
                         binary_adj, self.prev_binary_adj_dic[jaccard_period]
@@ -555,15 +550,15 @@ class ClassNetwork:
                 self.prev_binary_adj_dic.update({jaccard_period: binary_adj.copy()})
             elif self.steps > 0:
                 self.time_series_metrics[
-                    "Jaccard Index " + str(jaccard_period) + " time steps"
+                    "Jaccard index " + str(jaccard_period) + " time steps"
                 ][-1] = self.time_series_metrics[
-                    "Jaccard Index " + str(jaccard_period) + " time steps"
+                    "Jaccard index " + str(jaccard_period) + " time steps"
                 ][
                     -2
                 ]
 
         # Build the network density indicator.
-        self.time_series_metrics["Network Density"][-1] = binary_adj.sum() / (
+        self.time_series_metrics["Network density"][-1] = binary_adj.sum() / (
             self.n_banks * (self.n_banks - 1.0)
         )  # for a directed graph
 
@@ -576,25 +571,27 @@ class ClassNetwork:
         ]  # keep only non zero reverse repos
 
         if len(non_zero_adj_matrix) == 0:
-            self.time_series_metrics["Reverse repo size min"][-1] = 0
-            self.time_series_metrics["Reverse repo size max"][-1] = 0
-            self.time_series_metrics["Reverse repo size mean"][-1] = 0
+            self.time_series_metrics["Repos min volume"][-1] = 0
+            self.time_series_metrics["Repos max volume"][-1] = 0
+            self.time_series_metrics["Repos av. volume"][-1] = 0
         else:
-            self.time_series_metrics["Reverse repo size min"][-1] = np.min(
+            self.time_series_metrics["Repos min volume"][-1] = np.min(
                 non_zero_adj_matrix
             )
-            self.time_series_metrics["Reverse repo size max"][-1] = np.max(
+            self.time_series_metrics["Repos max volume"][-1] = np.max(
                 non_zero_adj_matrix
             )
-            self.time_series_metrics["Reverse repo size mean"][-1] = np.mean(
+            self.time_series_metrics["Repos av. volume"][-1] = np.mean(
                 non_zero_adj_matrix
             )
+
+        # build the time serrie of Collateral reuse
+        self.time_series_metrics["Collateral reuse"][-1] = (
+            self.time_series_metrics["Securities Reused tot. volume"][-1]
+        ) / (self.time_series_metrics["Securities Collateral tot. volume"][-1] + 1e-10)
 
         # Build the dictionary of the degree (total of in and out) of each node in the network at a given step
         self.network_degree = np.array(bank_network.degree())[:, 1]
-
-        # Build the single trajectory time serries of a given bank
-        self.banks[0]
 
     def compute_single_trajectory(self):
 
@@ -620,33 +617,29 @@ class ClassNetwork:
             parallel_edges=False,
             create_using=nx.DiGraph,
         )
-        self.single_trajectory["In-degree"][-1] = bank_network.in_degree(
+        self.single_trajectory["Av. in-degree"][-1] = bank_network.in_degree(
             self.single_bank_id
         )
-        self.single_trajectory["Out-degree"][-1] = bank_network.out_degree(
+        self.single_trajectory["Av. out-degree"][-1] = bank_network.out_degree(
             self.single_bank_id
         )
 
         # Number of transactions of end repos per step
-        self.single_trajectory["Number of repo transaction ended within a step"][
-            -1
-        ] = self.banks[self.single_bank_id].repo_transactions_counter
+        self.single_trajectory["Nb. of repo transactions ended"][-1] = self.banks[
+            self.single_bank_id
+        ].repo_transactions_counter
 
         # size of transactions of end repos per step
         if self.banks[self.single_bank_id].repo_transactions_counter != 0:
-            self.single_trajectory["Size of repo transaction ended within a step"][
-                -1
-            ] = (
+            self.single_trajectory["Av. volume of repo transactions ended"][-1] = (
                 self.banks[self.single_bank_id].repo_transactions_size
                 / self.banks[self.single_bank_id].repo_transactions_counter
             )
         else:
-            self.single_trajectory["Size of repo transaction ended within a step"][
-                -1
-            ] = 0
+            self.single_trajectory["Av. volume of repo transactions ended"][-1] = 0
 
         # Average across time of the weighted average maturity of repos
-        self.single_trajectory["Maturity of repos"][-1] = np.sum(
+        self.single_trajectory["Repos av. maturity"][-1] = np.sum(
             list(
                 np.array(self.banks[self.single_bank_id].repos_on_maturities)
                 * np.array(self.banks[self.single_bank_id].repos_on_amounts)
@@ -682,8 +675,8 @@ class ClassNetwork:
         )
 
         print(
-            "Average amount of repos {}".format(
-                np.mean(self.time_series_metrics["Repos"])
+            "Mean of repos tot. volume {}".format(
+                np.mean(self.time_series_metrics["Repos tot. volume"])
             )
         )
 
@@ -774,8 +767,7 @@ class ClassNetwork:
         # Plot the time series of the weighted average number of time the
         # collateral is reused in the network
         gx.plot_collateral_reuse(
-            np.array(self.time_series_metrics["Securities Reused"])
-            / (np.array(self.time_series_metrics["Securities Collateral"]) + 1e-10),
+            self.time_series_metrics,
             self.result_location,
         )
 
@@ -864,94 +856,45 @@ class ClassNetwork:
                 )
             )
 
-    def build_output(self):
+    def build_output(self, output_keys):
         output = {}
-
         stat_len_step = 250
 
-        # collateral reuse stationary value
-        output.update(
-            {
-                "Collateral reuse": np.mean(
-                    (
-                        np.array(self.time_series_metrics["Securities Reused"])
-                        / (
-                            np.array(self.time_series_metrics["Securities Collateral"])
-                            + 1e-10
+        # build the time series metrics outputs
+        for key in output_keys:
+
+            # handeling specific cases
+            if key == "Core-Peri. p_val.":
+                output.update({"Core-Peri. p_val.": self.p_value})
+
+            elif key == "Jaccard index":
+                for jaccard_period in self.jaccard_periods:
+                    output.update(
+                        {
+                            "Jaccard index "
+                            + str(jaccard_period)
+                            + " time steps": np.mean(
+                                (
+                                    np.array(
+                                        self.time_series_metrics[
+                                            "Jaccard index "
+                                            + str(jaccard_period)
+                                            + " time steps"
+                                        ]
+                                    )
+                                )[-stat_len_step:]
+                            )
+                        }
+                    )
+
+            else:
+                output.update(
+                    {
+                        key: np.mean(
+                            (np.array(self.time_series_metrics[key]))[-stat_len_step:]
                         )
-                    )[-stat_len_step:]
+                    }
                 )
-            }
-        )
-
-        # jaccard index stationary value
-        output.update(
-            {
-                "Jaccard index": np.mean(
-                    np.array(self.time_series_metrics["Jaccard Index"])[-stat_len_step:]
-                )
-            }
-        )
-
-        # Gini stationary value
-        output.update(
-            {
-                "Gini": np.mean(
-                    np.array(self.time_series_metrics["Gini"])[-stat_len_step:]
-                )
-            }
-        )
-
-        # Average in-degree stationary value
-        output.update(
-            {
-                "Av. in-degree": np.mean(
-                    np.array(self.time_series_metrics["In-degree"])[-stat_len_step:]
-                )
-            }
-        )
-
-        # Network Density stationary value
-        output.update(
-            {
-                "Network density": np.mean(
-                    np.array(self.time_series_metrics["Network Density"])[
-                        -stat_len_step:
-                    ]
-                )
-            }
-        )
-
-        # Average maturity of repos stationary value
-        output.update(
-            {
-                "Repo av. maturity": np.nanmean(
-                    np.array(self.time_series_metrics["Average maturity of repos"])[
-                        -stat_len_step:
-                    ]
-                )
-            }
-        )
-
-        # Average size of reverse repos stationary value
-        output.update(
-            {
-                "Repo size mean": np.nanmean(
-                    np.array(self.time_series_metrics["Reverse repo size mean"])[
-                        -stat_len_step:
-                    ]
-                )
-            }
-        )
-
-        # Average size of reverse repos stationary value
-        output.update(
-            {
-                "Repo market size": np.nanmean(
-                    np.array(self.time_series_metrics["Repos"])[-stat_len_step:]
-                )
-            }
-        )
 
         # p_value
         output.update({"Core-Peri. p_val.": self.p_value})
@@ -976,9 +919,10 @@ def single_run(
     min_repo_size=1e-10,
     time_steps=500,
     save_every=500,
-    jaccard_periods=[20, 100, 250],
+    jaccard_periods=[20, 100, 250, 500],
     output_opt=False,
     LCR_mgt_opt=True,
+    output_keys=None,
 ):
 
     network = ClassNetwork(
@@ -1005,6 +949,7 @@ def single_run(
             time_steps=time_steps,
             save_every=save_every,
             output_opt=output_opt,
+            output_keys=output_keys,
         )
 
     else:
@@ -1012,4 +957,5 @@ def single_run(
             time_steps=time_steps,
             save_every=save_every,
             output_opt=output_opt,
+            output_keys=output_keys,
         )

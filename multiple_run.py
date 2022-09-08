@@ -21,8 +21,19 @@ if __name__ == "__main__":
         "collateral",
     ]
     # axes = [
-    #     "n_banks",
+    #     "beta",
     # ]
+    output_keys = [
+        "Av. in-degree",
+        "Collateral reuse",
+        "Core-Peri. p_val.",
+        "Gini",
+        "Jaccard index",
+        "Network density",
+        "Repos av. maturity",
+        "Repos tot. volume",
+        "Repos av. volume",
+    ]
 
     for axe in axes:
         # build the arguments
@@ -44,8 +55,10 @@ if __name__ == "__main__":
             min_repo_size=1e-10,
             time_steps=5000,
             save_every=2500,
-            jaccard_period=20,
+            jaccard_periods=[20, 100, 250, 500],
             output_opt=True,
+            LCR_mgt_opt=True,
+            output_keys=output_keys,
         )
 
         # initialize the paths

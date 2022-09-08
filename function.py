@@ -26,16 +26,22 @@ def build_axe_args(axe):
     elif axe == "beta":
         axe_args = [beta for beta in np.arange(0.01, 1, 0.02)]
     elif axe == "collateral":  # can not be higher than the targeted LCR
-        axe_args = [beta_init_test for beta_init_test in np.arange(0.0, 0.5, 0.005)]
+        axe_args = [
+            beta_init_test for beta_init_test in np.arange(0.0, 0.5, 0.005)
+        ]
     elif axe == "shocks_vol":
-        axe_args = [shocks_vol_test for shocks_vol_test in np.logspace(-4, 2, num=50)]
+        axe_args = [
+            shocks_vol_test for shocks_vol_test in np.logspace(-4, 2, num=50)
+        ]
     elif axe == "min_repo_size":
         axe_args = [
-            min_repo_size_test for min_repo_size_test in np.logspace(-16, 2, num=25)
+            min_repo_size_test
+            for min_repo_size_test in np.logspace(-16, 2, num=25)
         ]
     elif axe == "alpha_pareto":
         axe_args = [
-            alpha_pareto_test for alpha_pareto_test in np.logspace(0, 3, num=50)
+            alpha_pareto_test
+            for alpha_pareto_test in np.logspace(0, 3, num=50)
         ]
     return axe_args
 
@@ -58,8 +64,10 @@ def build_args(
     min_repo_size=1e-10,
     time_steps=500,
     save_every=500,
-    jaccard_period=20,
+    jaccard_periods=[20, 100, 250, 500],
     output_opt=False,
+    LCR_mgt_opt=True,
+    output_keys=None,
 ):
 
     args = []
@@ -86,8 +94,10 @@ def build_args(
                     min_repo_size,
                     time_steps,
                     save_every,
-                    jaccard_period,
+                    jaccard_periods,
                     output_opt,
+                    LCR_mgt_opt,
+                    output_keys,
                 )
             )
 
@@ -111,8 +121,10 @@ def build_args(
                     min_repo_size,
                     time_steps,
                     save_every,
-                    jaccard_period,
+                    jaccard_periods,
                     output_opt,
+                    LCR_mgt_opt,
+                    output_keys,
                 )
             )
 
@@ -136,8 +148,10 @@ def build_args(
                     min_repo_size,
                     time_steps,
                     save_every,
-                    jaccard_period,
+                    jaccard_periods,
                     output_opt,
+                    LCR_mgt_opt,
+                    output_keys,
                 )
             )
 
@@ -161,8 +175,10 @@ def build_args(
                     min_repo_size,
                     time_steps,
                     save_every,
-                    jaccard_period,
+                    jaccard_periods,
                     output_opt,
+                    LCR_mgt_opt,
+                    output_keys,
                 )
             )
 
@@ -186,8 +202,10 @@ def build_args(
                     axe_arg,
                     time_steps,
                     save_every,
-                    jaccard_period,
+                    jaccard_periods,
                     output_opt,
+                    LCR_mgt_opt,
+                    output_keys,
                 )
             )
 
@@ -211,8 +229,10 @@ def build_args(
                     min_repo_size,
                     time_steps,
                     save_every,
-                    jaccard_period,
+                    jaccard_periods,
                     output_opt,
+                    LCR_mgt_opt,
+                    output_keys,
                 )
             )
 
