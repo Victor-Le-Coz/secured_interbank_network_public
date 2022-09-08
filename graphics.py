@@ -292,18 +292,24 @@ def plot_repos(time_series_metrics, path):
     plt.close()
 
 
-def plot_jaccard(time_series_metrics, period, path):
+def plot_jaccard(time_series_metrics, jaccard_periods, path):
     fig = plt.figure(figsize=figsize)
-    length = len(time_series_metrics["Jaccard Index"])
-    plt.plot(np.arange(length), time_series_metrics["Jaccard Index"])
+    length = len(
+        time_series_metrics["Jaccard Index " + str(jaccard_periods[0]) + " time steps"]
+    )
+    for jaccard_period in jaccard_periods:
+        plt.plot(
+            np.arange(length),
+            time_series_metrics["Jaccard Index " + str(jaccard_period) + " time steps"],
+        )
+
     plt.xlabel("Steps")
     plt.ylabel("Jaccard index")
-    # plt.title(
-    #     "Temporal Developpement of Jaccard Index for {} period, \n final value is {}".format(
-    #         period, np.mean(time_series_metrics["Jaccard Index"][-50:])
-    #     )
-    # )
-    plt.title("Jaccard index at 1 month")
+    plt.title("Jaccard index")
+    plt.legend(
+        [str(jaccard_period) + " time steps" for jaccard_period in jaccard_periods],
+        loc="upper left",
+    )
     plt.grid()
     # plt.yticks(np.arange(0, 1, 0.05))
     fig.tight_layout()
@@ -578,7 +584,7 @@ def plot_output_by_args(args, axe, output, path):
         plt.plot(args, output[key], "-o")
         if axe == "min_repo_size" or axe == "alpha_pareto" or axe == "shocks_vol":
             plt.gca().set_xscale("log")
-            plt.xlabel("log " + axe)
+            plt.xlabel("log-scale " + axe)
         else:
             plt.xlabel(axe)
         plt.ylabel(key)
@@ -591,9 +597,9 @@ def plot_output_by_args(args, axe, output, path):
     for key in output.keys():
         fig = plt.figure(figsize=figsize)
         plt.plot(args, output[key], "-o")
-        plt.xlabel("log " + axe)
+        plt.xlabel("log-scale " + axe)
         plt.gca().set_xscale("log")
-        plt.ylabel("log " + key)
+        plt.ylabel("log-scale " + key)
         plt.gca().set_yscale("log")
         plt.title(key + " as a fct. of " + axe)
         fig.tight_layout()

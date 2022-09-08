@@ -34,6 +34,7 @@ class ClassNetwork:
         result_location="./results/",
         min_repo_size=1e-10,
         LCR_mgt_opt=True,
+        jaccard_periods=[20, 100, 250],
     ):
         """
         Instance methode initializing the ClassNetwork.
@@ -94,6 +95,7 @@ class ClassNetwork:
         self.result_location = result_location
         self.min_repo_size = min_repo_size
         self.LCR_mgt_opt = LCR_mgt_opt
+        self.jaccard_periods = jaccard_periods
 
         # Definition of the internal parameters of the ClassNetwork.
         self.steps = 0  # Step number in the simulation process
@@ -125,9 +127,13 @@ class ClassNetwork:
         # adjacency matrix
         self.trust_adj_matrix = np.zeros((n_banks, n_banks))  # trust
         # coeficients adjacency matrix
-        self.prev_adj_matrix = np.zeros((n_banks, n_banks))  # previous
-        # adjacency matrix, used for the computation of the jaccard index (
-        # stable trading relationships)
+        self.prev_binary_adj_dic = (
+            {}
+        )  # dictionary of the previous adjacency matrix, used for the computation of the jaccard index (stable trading relationships) of different time length
+        for jaccard_period in jaccard_periods:
+            self.prev_binary_adj_dic.update(
+                {jaccard_period: np.zeros((n_banks, n_banks))}
+            )
 
         # Definition of the dictionary associating to each accounting item the list of its values across time for a single bank. It also includes other time serries metrics, like the excess liquidity the in-degree, the out-degree, the nb of repos transactions ended within a step and the average across time of the maturity of repos.
         self.single_trajectory = {}
@@ -236,7 +242,6 @@ class ClassNetwork:
             "Securities Reused": [],
             "In-degree": [],
             "Excess Liquidity": [],
-            "Jaccard Index": [],
             "Network Density": [],
             "Average number of repo transaction ended within a step": [],
             "Average size of repo transaction ended within a step": [],
@@ -248,6 +253,13 @@ class ClassNetwork:
             "Assets": [],
             "Deposits": [],
         }
+
+        # Specific case of the Jaccard periods
+        for jaccard_period in self.jaccard_periods:
+            self.time_series_metrics.update(
+                {"Jaccard Index " + str(jaccard_period) + " time steps": []}
+            )
+
         self.network_liabilities = {
             "Own Funds": np.zeros(self.n_banks),
             "Deposits": np.zeros(self.n_banks),
@@ -361,7 +373,12 @@ class ClassNetwork:
             # self.banks[i].assert_leverage()
             self.banks[i].steps += 1
 
-    def simulate(self, time_steps, save_every=10, jaccard_period=10, output_opt=False):
+    def simulate(
+        self,
+        time_steps,
+        save_every=10,
+        output_opt=False,
+    ):
         """
         Instance method for the simulation of the ABM.
         :param time_steps: number of time_steps of the simulation, could be
@@ -372,8 +389,7 @@ class ClassNetwork:
         :param jaccard_period: period over which the jaccard index is computed.
         :return:
         """
-        self.save_param(time_steps, save_every, jaccard_period)
-        self.jaccard_period = jaccard_period
+        self.save_param(time_steps, save_every)
         for _ in tqdm(range(time_steps)):
             if self.steps % save_every == 0.0:
                 self.save_step_figures()
@@ -523,24 +539,33 @@ class ClassNetwork:
         ].mean()
 
         # Build the jaccard index time series.
-        prev_binary_adj = np.where(
-            self.prev_adj_matrix > self.min_repo_size, True, False
-        )
-        if self.steps > 0 and self.steps % self.jaccard_period == 0:
-            self.time_series_metrics["Jaccard Index"][-1] = (
-                np.logical_and(binary_adj, prev_binary_adj).sum()
-                / np.logical_or(binary_adj, prev_binary_adj).sum()
-            )
-            self.prev_adj_matrix = self.adj_matrix.copy()
-        elif self.steps > 0:
-            self.time_series_metrics["Jaccard Index"][-1] = self.time_series_metrics[
-                "Jaccard Index"
-            ][-2]
+        for jaccard_period in self.jaccard_periods:
+            if self.steps > 0 and self.steps % jaccard_period == 0:
+
+                self.time_series_metrics[
+                    "Jaccard Index " + str(jaccard_period) + " time steps"
+                ][-1] = (
+                    np.logical_and(
+                        binary_adj, self.prev_binary_adj_dic[jaccard_period]
+                    ).sum()
+                    / np.logical_or(
+                        binary_adj, self.prev_binary_adj_dic[jaccard_period]
+                    ).sum()
+                )
+                self.prev_binary_adj_dic.update({jaccard_period: binary_adj.copy()})
+            elif self.steps > 0:
+                self.time_series_metrics[
+                    "Jaccard Index " + str(jaccard_period) + " time steps"
+                ][-1] = self.time_series_metrics[
+                    "Jaccard Index " + str(jaccard_period) + " time steps"
+                ][
+                    -2
+                ]
 
         # Build the network density indicator.
-        self.time_series_metrics["Network Density"][-1] = (
-            2.0 * binary_adj.sum() / (self.n_banks * (self.n_banks - 1.0))
-        )
+        self.time_series_metrics["Network Density"][-1] = binary_adj.sum() / (
+            self.n_banks * (self.n_banks - 1.0)
+        )  # for a directed graph
 
         # Build the gini coeficient of the network
         self.time_series_metrics["Gini"][-1] = fct.gini(self.network_total_assets)
@@ -757,7 +782,7 @@ class ClassNetwork:
         # Plot the time series of the jaccard index
         gx.plot_jaccard(
             self.time_series_metrics,
-            self.jaccard_period,
+            self.jaccard_periods,
             self.result_location,
         )
 
@@ -795,7 +820,7 @@ class ClassNetwork:
 
     # </editor-fold>
 
-    def save_param(self, time_steps, save_every, jaccard_period):
+    def save_param(self, time_steps, save_every):
         with open(self.result_location + "param.txt", "w") as f:
             f.write(
                 (
@@ -815,7 +840,8 @@ class ClassNetwork:
                     "min_repo_size={} \n"
                     "time_steps={} \n"
                     "save_every={} \n"
-                    "jaccard_period={} \n"
+                    "jaccard_periods={} \n"
+                    "LCR_mgt_opt={} \n"
                 ).format(
                     self.n_banks,
                     self.alpha,
@@ -833,7 +859,8 @@ class ClassNetwork:
                     self.min_repo_size,
                     time_steps,
                     save_every,
-                    jaccard_period,
+                    self.jaccard_periods,
+                    self.LCR_mgt_opt,
                 )
             )
 
@@ -949,7 +976,7 @@ def single_run(
     min_repo_size=1e-10,
     time_steps=500,
     save_every=500,
-    jaccard_period=20,
+    jaccard_periods=[20, 100, 250],
     output_opt=False,
     LCR_mgt_opt=True,
 ):
@@ -970,13 +997,13 @@ def single_run(
         result_location=result_location,
         min_repo_size=min_repo_size,
         LCR_mgt_opt=LCR_mgt_opt,
+        jaccard_periods=jaccard_periods,
     )
 
     if output_opt:
         return network.simulate(
             time_steps=time_steps,
             save_every=save_every,
-            jaccard_period=jaccard_period,
             output_opt=output_opt,
         )
 
@@ -984,6 +1011,5 @@ def single_run(
         network.simulate(
             time_steps=time_steps,
             save_every=save_every,
-            jaccard_period=jaccard_period,
             output_opt=output_opt,
         )
