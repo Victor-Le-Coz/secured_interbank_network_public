@@ -577,28 +577,33 @@ def plot_single_trajectory(single_trajectory, path):
     plt.close()
 
 
-def plot_output_by_args(args, axe, output, path):
+def plot_output_by_args(args, axe, output, jaccard_periods, path):
     output = fct.reformat_output(output)
 
-    # linear chart
-    for key in output.keys():  # plot all jaccard on same chart
+    # plot all jaccard on same chart
+    fig = plt.figure(figsize=figsize)
+    for key in output.keys():
         if key[0:13] == "Jaccard index":
-            fig = plt.figure(figsize=figsize)
             plt.plot(args, output[key], "-o")
-            if axe == "min_repo_size" or axe == "alpha_pareto" or axe == "shocks_vol":
-                plt.gca().set_xscale("log")
-                plt.xlabel(axe + " (log-scale)")
-            else:
-                plt.xlabel(axe)
-            plt.ylabel(key)
-            plt.title(key + " as a fct. of " + axe)
-            fig.tight_layout()
+    if axe == "min_repo_size" or axe == "alpha_pareto" or axe == "shocks_vol":
+        plt.gca().set_xscale("log")
+        plt.xlabel(axe + " (log-scale)")
+    else:
+        plt.xlabel(axe)
+    plt.legend(
+        [str(jaccard_period) + " time steps" for jaccard_period in jaccard_periods],
+        loc="upper left",
+    )
+    plt.title("Jaccard index as a fct. of " + axe)
+    fig.tight_layout()
     plt.savefig(
-        os.path.join(path, "Jaccard index" + "_" + axe + ".pdf"),
+        os.path.join(path, "Jaccard index_" + axe + ".pdf"),
         bbox_inches="tight",
     )
     plt.close()
-    for key in output.keys():  # plot all separated charts
+
+    # plot all separated charts, linear scale
+    for key in output.keys():
         fig = plt.figure(figsize=figsize)
         plt.plot(args, output[key], "-o")
         if axe == "min_repo_size" or axe == "alpha_pareto" or axe == "shocks_vol":

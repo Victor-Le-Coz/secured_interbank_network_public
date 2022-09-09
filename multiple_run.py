@@ -34,6 +34,7 @@ if __name__ == "__main__":
         "Repos tot. volume",
         "Repos av. volume",
     ]
+    jaccard_periods = [20, 100, 250, 500]
 
     for axe in axes:
         # build the arguments
@@ -53,9 +54,9 @@ if __name__ == "__main__":
             shocks_vol=0.05,
             result_location=result_location,
             min_repo_size=1e-10,
-            time_steps=5000,
+            time_steps=10000,
             save_every=2500,
-            jaccard_periods=[20, 100, 250, 500],
+            jaccard_periods=jaccard_periods,
             output_opt=True,
             LCR_mgt_opt=True,
             output_keys=output_keys,
@@ -77,5 +78,9 @@ if __name__ == "__main__":
         # plot the results
         axe_args = fct.build_axe_args(axe)
         gx.plot_output_by_args(
-            axe_args, axe, output, result_location + axe + "/output_by_args/"
+            axe_args,
+            axe,
+            output,
+            jaccard_periods,
+            result_location + axe + "/output_by_args/",
         )
