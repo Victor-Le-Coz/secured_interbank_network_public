@@ -35,6 +35,7 @@ class ClassNetwork:
         min_repo_size=1e-10,
         LCR_mgt_opt=True,
         jaccard_periods=[20, 100, 250],
+        agg_periods=[20, 100, 250],
     ):
         """
         Instance methode initializing the ClassNetwork.
@@ -96,6 +97,7 @@ class ClassNetwork:
         self.min_repo_size = min_repo_size
         self.LCR_mgt_opt = LCR_mgt_opt
         self.jaccard_periods = jaccard_periods
+        self.agg_periods = agg_periods
 
         # Definition of the internal parameters of the ClassNetwork.
         self.steps = 0  # Step number in the simulation process
@@ -135,9 +137,11 @@ class ClassNetwork:
                 {jaccard_period: np.zeros((n_banks, n_banks))}
             )
 
-        self.agg_binary_adj_dic = {}  # aggregated ajency matrix
-        # for agg_period in agg_periods: # on going work
-        #     self.agg_binary_adj_dic.update({agg_period: np.zeros((n_banks, n_banks))})
+        self.agg_binary_adj_dic = (
+            {}
+        )  # dictionary of the aggregated ajency matrix over a given period
+        for agg_period in agg_periods:
+            self.agg_binary_adj_dic.update({agg_period: np.zeros((n_banks, n_banks))})
 
         # Definition of the dictionary associating to each accounting item the list of its values across time for a single bank. It also includes other time serries metrics, like the excess liquidity the in-degree, the out-degree, the nb of repo transactions ended within a step and the average across time of the maturity of repos.
         self.single_trajectory = {}
