@@ -12,27 +12,27 @@ if __name__ == "__main__":
 
     # define the parameters for the run
     result_location = "./results/"
-    axes = [
-        "beta",
-        "shocks_vol",
-        "n_banks",
-        "min_repo_size",
-        "alpha_pareto",
-        "collateral",
-    ]
     # axes = [
     #     "beta",
+    #     "shocks_vol",
+    #     "n_banks",
+    #     "min_repo_size",
+    #     "alpha_pareto",
+    #     "collateral",
     # ]
+    axes = [
+        "alpha_pareto",
+    ]
     output_keys = [
-        "Av. in-degree",
-        "Collateral reuse",
-        "Core-Peri. p_val.",
-        "Gini",
+        # "Av. in-degree",
+        # "Collateral reuse",
+        # "Core-Peri. p_val.",
+        # "Gini",
         "Jaccard index",
-        "Network density",
-        "Repos av. maturity",
-        "Repos tot. volume",
-        "Repos av. volume",
+        # "Network density",
+        # "Repos av. maturity",
+        # "Repos tot. volume",
+        # "Repos av. volume",
     ]
     jaccard_periods = [20, 100, 250, 500]
 

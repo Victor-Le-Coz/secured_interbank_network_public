@@ -617,7 +617,7 @@ def plot_output_by_args(args, axe, output, jaccard_periods, path):
         plt.savefig(os.path.join(path, key + "_" + axe + ".pdf"), bbox_inches="tight")
         plt.close()
 
-    # log chart - to answer Michael's comment when required
+    # log chart - to have also the log-log file ready if needed
     for key in output.keys():
         fig = plt.figure(figsize=figsize)
         plt.plot(args, output[key], "-o")

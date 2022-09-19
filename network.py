@@ -135,6 +135,10 @@ class ClassNetwork:
                 {jaccard_period: np.zeros((n_banks, n_banks))}
             )
 
+        self.agg_binary_adj_dic = {}  # aggregated ajency matrix
+        # for agg_period in agg_periods: # on going work
+        #     self.agg_binary_adj_dic.update({agg_period: np.zeros((n_banks, n_banks))})
+
         # Definition of the dictionary associating to each accounting item the list of its values across time for a single bank. It also includes other time serries metrics, like the excess liquidity the in-degree, the out-degree, the nb of repo transactions ended within a step and the average across time of the maturity of repos.
         self.single_trajectory = {}
         self.single_bank_id = 0  # the selected single bank id
