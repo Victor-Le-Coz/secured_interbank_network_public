@@ -4,7 +4,7 @@ Cython==0.29.30
 matplotlib==3.3.4
 networkx==2.6.3
 numpy==1.20.3
-python_igraph==0.9.11
+python_igraph==0.10.1
 scipy==1.7.3
 setuptools==57.0.0
 tqdm==4.62.3

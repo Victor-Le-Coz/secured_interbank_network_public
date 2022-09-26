@@ -220,13 +220,29 @@ def plot_assets_loans_mros(time_series_metrics, path):
     plt.close()
 
 
-def plot_network_density(time_series_metrics, path):
+def plot_network_density(time_series_metrics, agg_periods, path):
     fig = plt.figure(figsize=figsize)
-    length = len(time_series_metrics["Network density"])
-    plt.plot(np.arange(length), time_series_metrics["Network density"])
+    length = len(
+        time_series_metrics[
+            "Network density over " + str(agg_periods[0]) + " time steps"
+        ]
+    )
+    for agg_period in agg_periods:
+        plt.plot(
+            np.arange(length),
+            time_series_metrics[
+                "Network density over " + str(agg_period) + " time steps"
+            ],
+        )
+
     plt.xlabel("Steps")
-    plt.ylabel("Density")
+    plt.ylabel("Network density")
     plt.title("Network density")
+    plt.legend(
+        [str(agg_period) + " time steps" for agg_period in agg_periods],
+        loc="upper left",
+    )
+    plt.grid()
     fig.tight_layout()
     plt.savefig(os.path.join(path, "network_density.pdf"), bbox_inches="tight")
     plt.close()
@@ -291,7 +307,7 @@ def plot_repos(time_series_metrics, path):
     plt.close()
 
 
-def plot_jaccard(time_series_metrics, jaccard_periods, path):
+def plot_jaccard_not_aggregated(time_series_metrics, jaccard_periods, path):
     fig = plt.figure(figsize=figsize)
     length = len(
         time_series_metrics["Jaccard index " + str(jaccard_periods[0]) + " time steps"]
@@ -310,9 +326,34 @@ def plot_jaccard(time_series_metrics, jaccard_periods, path):
         loc="upper left",
     )
     plt.grid()
-    # plt.yticks(np.arange(0, 1, 0.05))
     fig.tight_layout()
     plt.savefig(os.path.join(path, "jaccard_index.pdf"), bbox_inches="tight")
+    plt.close()
+
+
+def plot_jaccard_aggregated(time_series_metrics, agg_periods, path):
+    fig = plt.figure(figsize=figsize)
+    length = len(
+        time_series_metrics["Jaccard index over " + str(agg_periods[0]) + " time steps"]
+    )
+    for agg_period in agg_periods:
+        plt.plot(
+            np.arange(length),
+            time_series_metrics[
+                "Jaccard index over " + str(agg_period) + " time steps"
+            ],
+        )
+
+    plt.xlabel("Steps")
+    plt.ylabel("Jaccard index")
+    plt.title("Jaccard index aggregated")
+    plt.legend(
+        [str(agg_period) + " time steps" for agg_period in agg_periods],
+        loc="upper left",
+    )
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig(os.path.join(path, "jaccard_index_agg.pdf"), bbox_inches="tight")
     plt.close()
 
 
@@ -439,11 +480,11 @@ def plot_network(adj, network_total_assets, path, step, name):
     log_weights = [0 if i <= 1 else np.log(i) + 1 for i in weights]
 
     # define the size of the nodes a a function of the total deposits
-    node_sizes = network_total_assets
+    log_node_sizes = [0 if i <= 1 else np.log(i) + 1 for i in network_total_assets]
 
     # define the position of the nodes
-    # pos = nx.spring_layout(bank_network)
-    pos = nx.circular_layout(bank_network)
+    pos = nx.spring_layout(bank_network)
+    # pos = nx.circular_layout(bank_network)
 
     # draw the network
     fig = plt.figure(figsize=small_figsize)
@@ -452,7 +493,7 @@ def plot_network(adj, network_total_assets, path, step, name):
         pos,
         width=log_weights,
         with_labels=True,
-        node_size=node_sizes,
+        node_size=log_node_sizes,
     )
 
     # show the plot
@@ -577,13 +618,11 @@ def plot_single_trajectory(single_trajectory, path):
     plt.close()
 
 
-def plot_output_by_args(args, axe, output, jaccard_periods, path):
-    output = fct.reformat_output(output)
-
+def plot_multiple_key(args, axe, output, agg_periods, path, start_key, nb_char):
     # plot all jaccard on same chart
     fig = plt.figure(figsize=figsize)
     for key in output.keys():
-        if key[0:13] == "Jaccard index":
+        if key[0:nb_char] == start_key:
             plt.plot(args, output[key], "-o")
     if axe == "min_repo_size" or axe == "alpha_pareto" or axe == "shocks_vol":
         plt.gca().set_xscale("log")
@@ -591,16 +630,25 @@ def plot_output_by_args(args, axe, output, jaccard_periods, path):
     else:
         plt.xlabel(axe)
     plt.legend(
-        [str(jaccard_period) + " time steps" for jaccard_period in jaccard_periods],
+        [str(agg_period) + " time steps" for agg_period in agg_periods],
         loc="upper left",
     )
-    plt.title("Jaccard index as a fct. of " + axe)
+    plt.title(start_key + "x periods as a fct. of " + axe)
     fig.tight_layout()
     plt.savefig(
-        os.path.join(path, "Jaccard index_" + axe + ".pdf"),
+        os.path.join(path, start_key + "_agg_" + axe + ".pdf"),
         bbox_inches="tight",
     )
     plt.close()
+
+
+def plot_output_by_args(args, axe, output, jaccard_periods, agg_periods, path):
+    output = fct.reformat_output(output)
+
+    # plot all jaccard on same chart
+    plot_multiple_key(args, axe, output, jaccard_periods, path, "Jaccard index", 13)
+    plot_multiple_key(args, axe, output, agg_periods, path, "Jaccard index over ", 19)
+    plot_multiple_key(args, axe, output, agg_periods, path, "Network density over ", 21)
 
     # plot all separated charts, linear scale
     for key in output.keys():

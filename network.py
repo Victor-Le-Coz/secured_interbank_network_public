@@ -36,6 +36,7 @@ class ClassNetwork:
         LCR_mgt_opt=True,
         jaccard_periods=[20, 100, 250],
         agg_periods=[20, 100, 250],
+        cp_option=False,
     ):
         """
         Instance methode initializing the ClassNetwork.
@@ -98,6 +99,7 @@ class ClassNetwork:
         self.LCR_mgt_opt = LCR_mgt_opt
         self.jaccard_periods = jaccard_periods
         self.agg_periods = agg_periods
+        self.cp_option = cp_option
 
         # Definition of the internal parameters of the ClassNetwork.
         self.steps = 0  # Step number in the simulation process
@@ -142,6 +144,14 @@ class ClassNetwork:
         )  # dictionary of the aggregated ajency matrix over a given period
         for agg_period in agg_periods:
             self.agg_binary_adj_dic.update({agg_period: np.zeros((n_banks, n_banks))})
+
+        self.prev_agg_binary_adj_dic = (
+            {}
+        )  # dictionary of the previous aggregated binary adjency matrices for different aggregation periods
+        for agg_period in agg_periods:
+            self.prev_agg_binary_adj_dic.update(
+                {agg_period: np.zeros((n_banks, n_banks))}
+            )
 
         # Definition of the dictionary associating to each accounting item the list of its values across time for a single bank. It also includes other time serries metrics, like the excess liquidity the in-degree, the out-degree, the nb of repo transactions ended within a step and the average across time of the maturity of repos.
         self.single_trajectory = {}
@@ -249,7 +259,6 @@ class ClassNetwork:
             "Securities Reused tot. volume": [],
             "Av. in-degree": [],
             "Excess Liquidity": [],
-            "Network density": [],
             "Av. nb. of repo transactions ended": [],
             "Av. volume of repo transactions ended": [],
             "Repos av. maturity": [],
@@ -265,6 +274,15 @@ class ClassNetwork:
         for jaccard_period in self.jaccard_periods:
             self.time_series_metrics.update(
                 {"Jaccard index " + str(jaccard_period) + " time steps": []}
+            )
+
+        # Specific case for the network density
+        for agg_period in self.agg_periods:
+            self.time_series_metrics.update(
+                {"Network density over " + str(agg_period) + " time steps": []}
+            )
+            self.time_series_metrics.update(
+                {"Jaccard index over " + str(agg_period) + " time steps": []}
             )
 
         self.network_liabilities = {
@@ -372,6 +390,8 @@ class ClassNetwork:
         # banks' indexes to decide in which order banks can enter into repos
         for i in ix:
             self.banks[i].step_enter_repos()
+            if not (self.conservative_shock) or not (self.LCR_mgt_opt):
+                self.banks[i].step_MRO()
         for i in ix:
             self.banks[i].assert_minimum_reserves()
             self.banks[i].assert_alm()
@@ -512,6 +532,25 @@ class ClassNetwork:
         # clean the adj matrix from the negative values (otherwise the algo generate -1e-14 values for the reverse repos)
         self.adj_matrix[self.adj_matrix < 0] = 0
 
+        # build a binary adjency matrix from the weighted adjency matrix
+        binary_adj = np.where(self.adj_matrix > self.min_repo_size, True, False)
+
+        # build the aggregated adjancency matrix of the reverse repos at different aggregation periods
+        if self.steps > 0:
+            for agg_period in self.agg_periods:
+                if self.steps % agg_period > 0:
+                    self.agg_binary_adj_dic.update(
+                        {
+                            agg_period: np.logical_or(
+                                binary_adj, self.agg_binary_adj_dic[agg_period]
+                            )
+                        }
+                    )
+                if self.steps % agg_period == 0:
+                    self.agg_binary_adj_dic.update(
+                        {agg_period: np.zeros((self.n_banks, self.n_banks))}
+                    )
+
         # Build the time series of the Av. nb. of repo transactions ended (2/2).
         self.time_series_metrics["Av. nb. of repo transactions ended"][-1] = (
             total_repo_transactions_counter / self.n_banks
@@ -531,7 +570,6 @@ class ClassNetwork:
         )
 
         # Build the average in-degree in the network.
-        binary_adj = np.where(self.adj_matrix > self.min_repo_size, True, False)
         bank_network = nx.from_numpy_matrix(
             binary_adj,
             parallel_edges=False,
@@ -541,7 +579,7 @@ class ClassNetwork:
             bank_network.in_degree()
         )[:, 1].mean()
 
-        # Build the jaccard index time series.
+        # Build the jaccard index time series - version non aggregated.
         for jaccard_period in self.jaccard_periods:
             if self.steps > 0 and self.steps % jaccard_period == 0:
 
@@ -565,10 +603,49 @@ class ClassNetwork:
                     -2
                 ]
 
+        # Build the jaccard index time series - version aggregated.
+        for agg_period in self.agg_periods:
+            if self.steps % agg_period == agg_period - 1:
+                self.time_series_metrics[
+                    "Jaccard index over " + str(agg_period) + " time steps"
+                ][-1] = (
+                    np.logical_and(
+                        self.agg_binary_adj_dic[agg_period],
+                        self.prev_agg_binary_adj_dic[agg_period],
+                    ).sum()
+                    / np.logical_or(
+                        self.agg_binary_adj_dic[agg_period],
+                        self.prev_agg_binary_adj_dic[agg_period],
+                    ).sum()
+                )
+                self.prev_agg_binary_adj_dic.update(
+                    {agg_period: self.agg_binary_adj_dic[agg_period].copy()}
+                )
+            elif self.steps > 0:
+                self.time_series_metrics[
+                    "Jaccard index over " + str(agg_period) + " time steps"
+                ][-1] = self.time_series_metrics[
+                    "Jaccard index over " + str(agg_period) + " time steps"
+                ][
+                    -2
+                ]
+
         # Build the network density indicator.
-        self.time_series_metrics["Network density"][-1] = binary_adj.sum() / (
-            self.n_banks * (self.n_banks - 1.0)
-        )  # for a directed graph
+        for agg_period in self.agg_periods:
+            if self.steps % agg_period == agg_period - 1:
+                self.time_series_metrics[
+                    "Network density over " + str(agg_period) + " time steps"
+                ][-1] = self.agg_binary_adj_dic[agg_period].sum() / (
+                    self.n_banks * (self.n_banks - 1.0)
+                )  # for a directed graph
+            elif self.steps > 0:
+                self.time_series_metrics[
+                    "Network density over " + str(agg_period) + " time steps"
+                ][-1] = self.time_series_metrics[
+                    "Network density over " + str(agg_period) + " time steps"
+                ][
+                    -2
+                ]
 
         # Build the gini coeficient of the network
         self.time_series_metrics["Gini"][-1] = fct.gini(self.network_total_assets)
@@ -733,21 +810,23 @@ class ClassNetwork:
 
         # Plot the core-periphery detection and assessment
         # special case here, an intermediary computation to keep track of p-values
-        bank_network = nx.from_numpy_matrix(
-            binary_adj, parallel_edges=False, create_using=nx.DiGraph
-        )  # build nx object
-        sig_c, sig_x, significant, p_value = fct.cpnet_test(
-            bank_network
-        )  # run cpnet test
-        self.p_value = p_value  # record p_value
-        gx.plot_core_periphery(
-            bank_network,
-            sig_c,
-            sig_x,
-            os.path.join(self.result_location, "Core-periphery_structure"),
-            self.steps,
-            "Reverse repos",
-        )  # plot charts
+        if self.cp_option:
+            if self.steps > 0:
+                bank_network = nx.from_numpy_matrix(
+                    binary_adj, parallel_edges=False, create_using=nx.DiGraph
+                )  # build nx object
+                sig_c, sig_x, significant, p_value = fct.cpnet_test(
+                    bank_network
+                )  # run cpnet test
+                self.p_value = p_value  # record p_value
+                gx.plot_core_periphery(
+                    bank_network,
+                    sig_c,
+                    sig_x,
+                    os.path.join(self.result_location, "Core-periphery_structure"),
+                    self.steps,
+                    "Reverse repos",
+                )  # plot charts
 
         # Plot the link between centrality and total asset size
         gx.plot_asset_per_degree(
@@ -780,9 +859,16 @@ class ClassNetwork:
         )
 
         # Plot the time series of the jaccard index
-        gx.plot_jaccard(
+        gx.plot_jaccard_not_aggregated(
             self.time_series_metrics,
             self.jaccard_periods,
+            self.result_location,
+        )
+
+        # Plot the time series of the jaccard index
+        gx.plot_jaccard_aggregated(
+            self.time_series_metrics,
+            self.agg_periods,
             self.result_location,
         )
 
@@ -793,7 +879,9 @@ class ClassNetwork:
         )
 
         # Plot the time series of the network density
-        gx.plot_network_density(self.time_series_metrics, self.result_location)
+        gx.plot_network_density(
+            self.time_series_metrics, self.agg_periods, self.result_location
+        )
 
         # Plot the time series of the gini coefficients
         gx.plot_gini(self.time_series_metrics, self.result_location)
@@ -895,6 +983,24 @@ class ClassNetwork:
                         }
                     )
 
+            elif key in ["Jaccard index over ", "Network density over "]:
+                for agg_period in self.agg_periods:
+                    output.update(
+                        {
+                            key
+                            + str(agg_period)
+                            + " time steps": np.mean(
+                                (
+                                    np.array(
+                                        self.time_series_metrics[
+                                            key + str(agg_period) + " time steps"
+                                        ]
+                                    )
+                                )[-stat_len_step:]
+                            )
+                        }
+                    )
+
             else:
                 output.update(
                     {
@@ -903,9 +1009,6 @@ class ClassNetwork:
                         )
                     }
                 )
-
-        # p_value
-        output.update({"Core-Peri. p_val.": self.p_value})
 
         return output
 
@@ -928,6 +1031,8 @@ def single_run(
     time_steps=500,
     save_every=500,
     jaccard_periods=[20, 100, 250, 500],
+    agg_periods=[20, 100, 250],
+    cp_option=False,
     output_opt=False,
     LCR_mgt_opt=True,
     output_keys=None,
@@ -950,6 +1055,8 @@ def single_run(
         min_repo_size=min_repo_size,
         LCR_mgt_opt=LCR_mgt_opt,
         jaccard_periods=jaccard_periods,
+        agg_periods=agg_periods,
+        cp_option=cp_option,
     )
 
     if output_opt:

@@ -6,7 +6,7 @@ import numpy as np
 # The parameter sets the limit to the float precision when running the
 # algorithm, a value lower than this amount is
 # considered as negligible.
-float_limit = 1e-9
+float_limit = 1e-10
 
 
 class ClassBank:
@@ -631,15 +631,13 @@ class ClassBank:
         # if there is a liquidity need)
         repo_ask = -(self.assets["Cash"] - self.alpha * self.liabilities["Deposits"])
 
-        # if there is no LCR mgt, we might have a biger shock to absorb than the available collateral, so only a part of the shock is absorded on the repo market
+        # if there is no LCR mgt (no ECB funding to mgt LCR), we might have a biger shock to absorb than the available collateral, so only a part of the shock is absorded on the repo market
         if not (self.LCR_mgt_opt):
-            temp = repo_ask
             repo_ask = min(
                 repo_ask,
                 self.assets["Securities Usable"] * self.collateral_value
                 + self.off_balance["Securities Collateral"] * self.collateral_value,
             )
-            repo_ask_cb = temp - repo_ask
 
         # Case disjunction: nothing to do if the repo_ask is negative
         if repo_ask <= 0.0:
@@ -724,24 +722,35 @@ class ClassBank:
             if rest <= 0.0 or len(bank_list) == 0:
                 break
 
-        # In case shocks a non conversative, banks may request cash to the central bank as a last resort when there is not enough cash available on the repo market
-        if not (self.LCR_mgt_opt):
-            self.liabilities["MROs"] += repo_ask_cb + repo_ask
-            self.assets["Cash"] += repo_ask_cb + repo_ask
-        elif self.LCR_mgt_opt:
-            if not (self.conservative_shock):
-                self.liabilities["MROs"] += repo_ask
-                self.assets["Cash"] += repo_ask
+        # check for errors, in case of conservative shocks and LCR mgt, all repo request should be satisfied
+        if self.LCR_mgt_opt and self.conservative_shock:
+            if repo_ask > float_limit:
+                for b in self.banks.keys():
+                    print(self.banks[str(b)])
+            assert (
+                repo_ask <= float_limit
+            ), "repo request unsatified for bank {}," " for the amount {}".format(
+                self.id, repo_ask
+            )
 
-        # check for errors
-        if repo_ask > float_limit:
-            for b in self.banks.keys():
-                print(self.banks[str(b)])
-        assert (
-            repo_ask <= float_limit
-        ), "repo request unsatified for bank {}," " for the amount {}".format(
-            self.id, repo_ask
-        )
+    def step_MRO(self):
+        """
+        In case shocks are non conversative banks may request cash to the central bank as a last resort when there is not enough cash available on the repo market.
+        In case of absence of CB funding for LCR management, banks may request cash to the central bank as a last resort when there is not enough collateral available for performing repos.
+        """
+
+        # Define the amount of repo to be requested (it is a positive amount
+        # if there is a liquidity need)
+        MRO_ask = -(self.assets["Cash"] - self.alpha * self.liabilities["Deposits"])
+
+        # Case disjunction: nothing to do if the repo_ask is negative
+        if MRO_ask <= 0.0:
+            return
+
+        else:
+            # perform a central bank funding
+            self.liabilities["MROs"] += MRO_ask
+            self.assets["Cash"] += MRO_ask
 
     def choose_bank_(self, bank_list):
         ucts = {}
@@ -991,13 +1000,25 @@ class ClassBank:
         :return: Breaks the code and returns a description of the bank and
         time step concerned.
         """
+
+        # in case the minimum reserve is not respected, print all the positions of the banks in the network
+        if (
+            self.assets["Cash"] - self.alpha * self.liabilities["Deposits"]
+            < -float_limit
+        ):
+            for bank in self.banks.values():
+                print(bank)
+                print(bank.reverse_repos)
+
         assert (
             self.assets["Cash"] - self.alpha * self.liabilities["Deposits"]
             >= -float_limit
         ), (
             self.__str__() + "\nMinimum reserves not respected for bank {} at"
             " "
-            "step {}".format(self.id, self.steps)
+            "step {} \n The reverse repos provided to the rest of the network are {}".format(
+                self.id, self.steps, self.reverse_repos
+            )
         )
 
     def assert_leverage(self):

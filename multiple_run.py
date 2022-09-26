@@ -21,7 +21,7 @@ if __name__ == "__main__":
         "collateral",
     ]
     # axes = [
-    #     "alpha_pareto",
+    #     "collateral",
     # ]
     output_keys = [
         "Av. in-degree",
@@ -29,12 +29,14 @@ if __name__ == "__main__":
         "Core-Peri. p_val.",
         "Gini",
         "Jaccard index",
-        "Network density",
+        "Jaccard index over ",
+        "Network density over ",
         "Repos av. maturity",
         "Repos tot. volume",
         "Repos av. volume",
     ]
     jaccard_periods = [20, 100, 250, 500]
+    agg_periods = [1, 50, 100, 250]
 
     for axe in axes:
         # build the arguments
@@ -49,16 +51,18 @@ if __name__ == "__main__":
             collateral_value=1.0,
             initialization_method="pareto",
             alpha_pareto=1.3,
-            shocks_method="bilateral",
-            shocks_law="normal",
+            shocks_method="non-conservative",
+            shocks_law="normal-mean-reverting",
             shocks_vol=0.05,
             result_location=result_location,
             min_repo_size=1e-10,
             time_steps=10000,
             save_every=2500,
             jaccard_periods=jaccard_periods,
+            agg_periods=agg_periods,
+            cp_option=True,
             output_opt=True,
-            LCR_mgt_opt=True,
+            LCR_mgt_opt=False,
             output_keys=output_keys,
         )
 
@@ -82,5 +86,6 @@ if __name__ == "__main__":
             axe,
             output,
             jaccard_periods,
+            agg_periods,
             result_location + axe + "/output_by_args/",
         )

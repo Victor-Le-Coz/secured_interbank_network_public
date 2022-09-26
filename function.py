@@ -25,23 +25,19 @@ def build_axe_args(axe):
         axe_args = [n_banks_test for n_banks_test in np.arange(10, 260, 10)]
     elif axe == "beta":
         axe_args = [beta for beta in np.arange(0.01, 1, 0.02)]
-    elif axe == "collateral":  # can not be higher than the targeted LCR
-        axe_args = [
-            beta_init_test for beta_init_test in np.arange(0.0, 0.5, 0.005)
-        ]
+    elif (
+        axe == "collateral"
+    ):  # can not be higher than the targeted LCR - except in the no LCR mngt version (lux's model)
+        axe_args = [beta_init_test for beta_init_test in np.arange(0.0, 1, 0.05)]
     elif axe == "shocks_vol":
-        axe_args = [
-            shocks_vol_test for shocks_vol_test in np.logspace(-4, 2, num=50)
-        ]
+        axe_args = [shocks_vol_test for shocks_vol_test in np.logspace(-4, 2, num=50)]
     elif axe == "min_repo_size":
         axe_args = [
-            min_repo_size_test
-            for min_repo_size_test in np.logspace(-16, 2, num=25)
+            min_repo_size_test for min_repo_size_test in np.logspace(-16, 2, num=25)
         ]
     elif axe == "alpha_pareto":
         axe_args = [
-            alpha_pareto_test
-            for alpha_pareto_test in np.logspace(0, 3, num=50)
+            alpha_pareto_test for alpha_pareto_test in np.logspace(0, 1, num=25)
         ]
     return axe_args
 
@@ -65,6 +61,8 @@ def build_args(
     time_steps=500,
     save_every=500,
     jaccard_periods=[20, 100, 250, 500],
+    agg_periods=[20, 100, 250],
+    cp_option=False,
     output_opt=False,
     LCR_mgt_opt=True,
     output_keys=None,
@@ -95,6 +93,8 @@ def build_args(
                     time_steps,
                     save_every,
                     jaccard_periods,
+                    agg_periods,
+                    cp_option,
                     output_opt,
                     LCR_mgt_opt,
                     output_keys,
@@ -122,6 +122,8 @@ def build_args(
                     time_steps,
                     save_every,
                     jaccard_periods,
+                    agg_periods,
+                    cp_option,
                     output_opt,
                     LCR_mgt_opt,
                     output_keys,
@@ -149,6 +151,8 @@ def build_args(
                     time_steps,
                     save_every,
                     jaccard_periods,
+                    agg_periods,
+                    cp_option,
                     output_opt,
                     LCR_mgt_opt,
                     output_keys,
@@ -176,6 +180,8 @@ def build_args(
                     time_steps,
                     save_every,
                     jaccard_periods,
+                    agg_periods,
+                    cp_option,
                     output_opt,
                     LCR_mgt_opt,
                     output_keys,
@@ -203,6 +209,8 @@ def build_args(
                     time_steps,
                     save_every,
                     jaccard_periods,
+                    agg_periods,
+                    cp_option,
                     output_opt,
                     LCR_mgt_opt,
                     output_keys,
@@ -230,6 +238,8 @@ def build_args(
                     time_steps,
                     save_every,
                     jaccard_periods,
+                    agg_periods,
+                    cp_option,
                     output_opt,
                     LCR_mgt_opt,
                     output_keys,
@@ -274,7 +284,7 @@ def cpnet_test(
         bank_network,
         alg,
         significance_level=0.05,
-        num_of_thread=4,
+        num_of_thread=1,
     )
 
     print(
