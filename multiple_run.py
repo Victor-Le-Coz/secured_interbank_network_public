@@ -13,12 +13,12 @@ if __name__ == "__main__":
     # define the parameters for the run
     result_location = "./results/"
     axes = [
-        "alpha_pareto",
-        "beta",
-        "shocks_vol",
+        # "alpha_pareto",
+        # "beta",
         "n_banks",
         "min_repo_size",
         "collateral",
+        # "shocks_vol",
     ]
     # axes = [
     #     "collateral",
