@@ -6,7 +6,7 @@ import numpy as np
 # The parameter sets the limit to the float precision when running the
 # algorithm, a value lower than this amount is
 # considered as negligible.
-float_limit = 1e-10
+float_limit = 1e-8  # issues sometimes
 
 
 class ClassBank:

@@ -55,7 +55,7 @@ if __name__ == "__main__":
             shocks_law="normal-mean-reverting",
             shocks_vol=0.05,
             result_location=result_location,
-            min_repo_size=1e-10,
+            min_repo_size=1e-8,
             time_steps=10000,
             save_every=2500,
             jaccard_periods=jaccard_periods,
