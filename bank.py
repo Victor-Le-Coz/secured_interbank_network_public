@@ -20,6 +20,7 @@ class ClassBank:
         self,
         id,
         initial_deposits,
+        alpha_init=0.01,
         alpha=0.01,
         beta_init=0.1,
         beta_reg=0.1,
@@ -53,6 +54,7 @@ class ClassBank:
         # Initialisation of the class parameters.
         self.id = str(id)
         self.alpha = alpha
+        self.alpha_init = alpha_init
         self.beta_init = beta_init
         self.beta_reg = beta_reg
         self.beta_star = beta_star
@@ -159,7 +161,7 @@ class ClassBank:
         """
 
         # The cash is set to its minimum reserve amount.
-        self.assets["Cash"] = self.liabilities["Deposits"] * self.alpha
+        self.assets["Cash"] = self.liabilities["Deposits"] * self.alpha_init
 
         # The collateral is set to the amount allowing to match the beta_init.
         self.assets["Securities Usable"] = (

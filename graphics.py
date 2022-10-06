@@ -1,12 +1,16 @@
+# import librairies
 import os
 
 os.environ["OMP_NUM_THREADS"] = "1"
+import numpy as np
 from cProfile import label
 import cpnet  # Librairy for the estimation of core-periphery structures
 import networkx as nx
-import numpy as np
 from matplotlib import pyplot as plt
-import function as fct
+
+# import modules
+import functions as fct
+import metrics as mtr
 
 # define the figure size for all banks
 small_figsize = (4, 3)  # default one, the previsous version was (8,6)
@@ -40,7 +44,7 @@ def bar_plot_deposits(deposits, path, step):
     plt.title("Deposits of Banks at step {}".format(int(step)))
     fig.tight_layout()
     plt.savefig(
-        os.path.join(path, "step_{}_deposits.pdf".format(step)),
+        path + "step_{}_deposits.pdf".format(step),
         bbox_inches="tight",
     )
     plt.close()
@@ -198,7 +202,7 @@ def bar_plot_balance_sheet(
     # plt.subplots_adjust(hspace=0.3)
     fig.tight_layout()
     plt.savefig(
-        os.path.join(path, "step_{}_balance_sheets.pdf".format(step)),
+        path + "step_{}_balance_sheets.pdf".format(step),
         bbox_inches="tight",
     )
     plt.close()
@@ -216,7 +220,7 @@ def plot_assets_loans_mros(time_series_metrics, path):
     plt.ylabel("Monetary units")
     plt.title("Total assets, loans, and MROs")
     fig.tight_layout()
-    plt.savefig(os.path.join(path, "Assets_loans_mros.pdf"), bbox_inches="tight")
+    plt.savefig(path + "Assets_loans_mros.pdf", bbox_inches="tight")
     plt.close()
 
 
@@ -244,7 +248,7 @@ def plot_network_density(time_series_metrics, agg_periods, path):
     )
     plt.grid()
     fig.tight_layout()
-    plt.savefig(os.path.join(path, "network_density.pdf"), bbox_inches="tight")
+    plt.savefig(path + "network_density.pdf", bbox_inches="tight")
     plt.close()
 
 
@@ -256,7 +260,7 @@ def plot_gini(time_series_metrics, path):
     plt.ylabel("Gini coefficient")
     plt.title("Gini of banks' assets")
     fig.tight_layout()
-    plt.savefig(os.path.join(path, "gini.pdf"), bbox_inches="tight")
+    plt.savefig(path + "gini.pdf", bbox_inches="tight")
     plt.close()
 
 
@@ -279,7 +283,7 @@ def plot_reverse_repo_size_stats(time_series_metrics, path):
 
     plt.title("Repo amount stats")
     fig.tight_layout()
-    plt.savefig(os.path.join(path, "reverse_repo_stats.pdf"), bbox_inches="tight")
+    plt.savefig(path + "reverse_repo_stats.pdf", bbox_inches="tight")
     plt.close()
 
 
@@ -291,7 +295,7 @@ def plot_collateral_reuse(time_series_metrics, path):
     plt.ylabel("Ratio")
     plt.title("Collateral reuse")
     fig.tight_layout()
-    plt.savefig(os.path.join(path, "collateral_reuse.pdf"), bbox_inches="tight")
+    plt.savefig(path + "collateral_reuse.pdf", bbox_inches="tight")
     plt.close()
 
 
@@ -303,7 +307,7 @@ def plot_repos(time_series_metrics, path):
     plt.ylabel("Monetary units")
     plt.title("Total repo amount")
     fig.tight_layout()
-    plt.savefig(os.path.join(path, "Repos_market_size.pdf"), bbox_inches="tight")
+    plt.savefig(path + "Repos_market_size.pdf", bbox_inches="tight")
     plt.close()
 
 
@@ -327,7 +331,7 @@ def plot_jaccard_not_aggregated(time_series_metrics, jaccard_periods, path):
     )
     plt.grid()
     fig.tight_layout()
-    plt.savefig(os.path.join(path, "jaccard_index.pdf"), bbox_inches="tight")
+    plt.savefig(path + "jaccard_index.pdf", bbox_inches="tight")
     plt.close()
 
 
@@ -353,7 +357,7 @@ def plot_jaccard_aggregated(time_series_metrics, agg_periods, path):
     )
     plt.grid()
     fig.tight_layout()
-    plt.savefig(os.path.join(path, "jaccard_index_agg.pdf"), bbox_inches="tight")
+    plt.savefig(path + "jaccard_index_agg.pdf", bbox_inches="tight")
     plt.close()
 
 
@@ -362,13 +366,13 @@ def plot_excess_liquidity_and_deposits(time_series_metrics, path):
     length = len(time_series_metrics["Excess Liquidity"])
     plt.plot(np.arange(length), time_series_metrics["Excess Liquidity"])
     plt.plot(np.arange(length), time_series_metrics["Deposits tot. volume"])
-    plt.legend(["Excess Liquidity", "Deposits"], loc="upper left")
+    plt.legend(["Excess Liquidity" + "Deposits"], loc="upper left")
     plt.xlabel("Steps")
     plt.ylabel("Monetary units")
     plt.title("Total excess liquidity & deposits")
     fig.tight_layout()
     plt.savefig(
-        os.path.join(path, "excess_liquidity_and_deposits.pdf"),
+        path + "excess_liquidity_and_deposits.pdf",
         bbox_inches="tight",
     )
     plt.close()
@@ -400,7 +404,7 @@ def plot_collateral(time_series_metrics, path):
     plt.ylabel("Monetary units")
     plt.title("Total collateral")
     fig.tight_layout()
-    plt.savefig(os.path.join(path, "collateral.pdf"), bbox_inches="tight")
+    plt.savefig(path + "collateral.pdf", bbox_inches="tight")
     plt.close()
 
 
@@ -412,7 +416,7 @@ def plot_degre_network(time_series_metrics, path):
     plt.ylabel("Av. in-degree")
     plt.title("Av. in-degree")
     fig.tight_layout()
-    plt.savefig(os.path.join(path, "average_in-degree.pdf"), bbox_inches="tight")
+    plt.savefig(path + "average_in-degree.pdf", bbox_inches="tight")
     plt.close()
 
 
@@ -428,7 +432,7 @@ def plot_average_nb_transactions(time_series_metrics, path):
     plt.title("Av. nb. of repo transactions ended")
     fig.tight_layout()
     plt.savefig(
-        os.path.join(path, "Average_nb_repo_transactions_ended.pdf"),
+        path + "Average_nb_repo_transactions_ended.pdf",
         bbox_inches="tight",
     )
     plt.close()
@@ -446,7 +450,7 @@ def plot_average_size_transactions(time_series_metrics, path):
     plt.title("Av. volume of repo transactions ended")
     fig.tight_layout()
     plt.savefig(
-        os.path.join(path, "Average_size_repo_transactions_ended.pdf"),
+        path + "Average_size_repo_transactions_ended.pdf",
         bbox_inches="tight",
     )
     plt.close()
@@ -463,11 +467,11 @@ def plot_average_maturity_repo(time_series_metrics, path):
     plt.ylabel("Maturity")
     plt.title("Repos av. maturity")
     fig.tight_layout()
-    plt.savefig(os.path.join(path, "Average_maturity_repo.pdf"), bbox_inches="tight")
+    plt.savefig(path + "Average_maturity_repo.pdf", bbox_inches="tight")
     plt.close()
 
 
-def plot_network(adj, network_total_assets, path, step, name):
+def plot_network(adj, network_total_assets, path, step, name_in_title):
     # build a network from an adjacency matrix
     bank_network = nx.from_numpy_matrix(
         adj, parallel_edges=False, create_using=nx.DiGraph
@@ -477,7 +481,7 @@ def plot_network(adj, network_total_assets, path, step, name):
         bank_network[node1][node2]["weight"] for node1, node2 in bank_network.edges()
     ]
     # log scale the big values in the repo network
-    log_weights = [0 if i <= 1 else np.log(i) + 1 for i in weights]
+    log_weights = [1 if i <= 1 else np.log(i) + 1 for i in weights]
 
     # define the size of the nodes a a function of the total deposits
     log_node_sizes = [0 if i <= 1 else np.log(i) + 1 for i in network_total_assets]
@@ -497,29 +501,28 @@ def plot_network(adj, network_total_assets, path, step, name):
     )
 
     # show the plot
-    plt.title("{} network at the step {}".format(name, int(step)))
+    plt.title("{} network at the step {}".format(name_in_title, int(step)))
     fig.tight_layout()
     plt.savefig(
-        os.path.join(path, "step_{}_network.pdf".format(step)),
+        path + "step_{}_network.pdf".format(step),
         bbox_inches="tight",
     )
     plt.close()
 
 
-def plot_core_periphery(bank_network, sig_c, sig_x, path, step, name):
+def plot_core_periphery(bank_network, sig_c, sig_x, path, step, name_in_title):
     # Visualization
     fig = plt.figure(figsize=halfslide_figsize)
     ax = plt.gca()
     ax, pos = cpnet.draw(bank_network, sig_c, sig_x, ax)
 
     # show the plot
-    plt.title("{} core-periphery structure at the step {}".format(name, int(step)))
+    plt.title(
+        "{} core-periphery structure at the step {}".format(name_in_title, int(step))
+    )
     fig.tight_layout()
     plt.savefig(
-        os.path.join(
-            path,
-            "step_{" "}_core-periphery_structure.pdf".format(step),
-        ),
+        path + "step_{" "}_core-periphery_structure.pdf".format(step),
         bbox_inches="tight",
     )
     plt.close()
@@ -534,7 +537,7 @@ def plot_asset_per_degree(total_assets, degree, path):
     plt.ylabel("Assets")
     plt.title("Assets size verus degree")
     fig.tight_layout()
-    plt.savefig(os.path.join(path, "Asset_per_degree.pdf"), bbox_inches="tight")
+    plt.savefig(path + "Asset_per_degree.pdf", bbox_inches="tight")
     plt.close()
 
 
@@ -612,71 +615,97 @@ def plot_single_trajectory(single_trajectory, path):
 
     fig.tight_layout()
     plt.savefig(
-        os.path.join(path, "Single_trajectory_indicators.pdf"),
+        path + "Single_trajectory_indicators.pdf",
         bbox_inches="tight",
     )
     plt.close()
 
 
-def plot_multiple_key(args, axe, output, agg_periods, path, start_key, nb_char):
-    # plot all jaccard on same chart
+def plot_multiple_key(
+    param_values, input_param, output, agg_periods, path, short_key, nb_char
+):
     fig = plt.figure(figsize=figsize)
     for key in output.keys():
-        if key[0:nb_char] == start_key:
-            plt.plot(args, output[key], "-o")
-    if axe == "min_repo_size" or axe == "alpha_pareto" or axe == "shocks_vol":
+        if key[0:nb_char] == short_key:
+            plt.plot(param_values, output[key], "-o")
+    if input_param in mtr.log_input_params:
         plt.gca().set_xscale("log")
-        plt.xlabel(axe + " (log-scale)")
+        plt.xlabel(input_param + " (log-scale)")
     else:
-        plt.xlabel(axe)
+        plt.xlabel(input_param)
+
+    if short_key in mtr.log_output_mlt_keys and input_param in mtr.log_input_params:
+        plt.ylabel(short_key + " (log-scale)")
+        plt.gca().set_yscale("log")
+    else:
+        plt.ylabel(short_key)
+
     plt.legend(
         [str(agg_period) + " time steps" for agg_period in agg_periods],
         loc="upper left",
     )
-    plt.title(start_key + "x periods as a fct. of " + axe)
+    plt.title(short_key + "x periods as a fct. of " + input_param)
     fig.tight_layout()
     plt.savefig(
-        os.path.join(path, start_key + "_agg_" + axe + ".pdf"),
+        path + short_key + "_agg_" + input_param + ".pdf",
         bbox_inches="tight",
     )
     plt.close()
 
 
-def plot_output_by_args(args, axe, output, jaccard_periods, agg_periods, path):
-    output = fct.reformat_output(output)
-
-    # plot all jaccard on same chart
-    plot_multiple_key(args, axe, output, jaccard_periods, path, "Jaccard index", 13)
-    plot_multiple_key(args, axe, output, agg_periods, path, "Jaccard index over ", 19)
-    plot_multiple_key(args, axe, output, agg_periods, path, "Network density over ", 21)
-
-    # plot all separated charts, linear scale
-    for key in output.keys():
-        fig = plt.figure(figsize=figsize)
-        plt.plot(args, output[key], "-o")
-        if axe == "min_repo_size" or axe == "alpha_pareto" or axe == "shocks_vol":
-            plt.gca().set_xscale("log")
-            plt.xlabel(axe + " (log-scale)")
-        else:
-            plt.xlabel(axe)
-        plt.ylabel(key)
-        plt.title(key + " as a fct. of " + axe)
-        fig.tight_layout()
-        plt.savefig(os.path.join(path, key + "_" + axe + ".pdf"), bbox_inches="tight")
-        plt.close()
-
-    # log chart - to have also the log-log file ready if needed
-    for key in output.keys():
-        fig = plt.figure(figsize=figsize)
-        plt.plot(args, output[key], "-o")
-        plt.xlabel(axe + " (log-scale)")
+def plot_single_key(key, param_values, input_param, output, path):
+    fig = plt.figure(figsize=figsize)
+    plt.plot(param_values, output[key], "-o")
+    if input_param in mtr.log_input_params:
         plt.gca().set_xscale("log")
+        plt.xlabel(input_param + " (log-scale)")
+    else:
+        plt.xlabel(input_param)
+    if key in mtr.log_output_single_keys and input_param in mtr.log_input_params:
         plt.ylabel(key + " (log-scale)")
         plt.gca().set_yscale("log")
-        plt.title(key + " as a fct. of " + axe)
-        fig.tight_layout()
-        plt.savefig(
-            os.path.join(path + "log_scale/", "log_" + key + "_" + axe + ".pdf"),
-            bbox_inches="tight",
+    else:
+        plt.ylabel(key)
+    plt.title(key + " as a fct. of " + input_param)
+    fig.tight_layout()
+    plt.savefig(path + key + "_" + input_param + ".pdf", bbox_inches="tight")
+    plt.close()
+
+
+def plot_output_by_param(
+    param_values, input_param, output, jaccard_periods, agg_periods, path
+):
+    output = fct.reformat_output(output)
+
+    # plot multiple keys on the same chart
+    for short_key in mtr.output_mlt_keys:
+        plot_multiple_key(
+            param_values=param_values,
+            input_param=input_param,
+            output=output,
+            agg_periods=agg_periods,
+            path=path,
+            short_key=short_key,
+            nb_char=len(short_key),
         )
-        plt.close()
+
+    # case of the jaccard old version (with jaccard perriods != agg periodes)
+    plot_multiple_key(
+        param_values=param_values,
+        input_param=input_param,
+        output=output,
+        agg_periods=jaccard_periods,
+        path=path,
+        short_key="Jaccard index",
+        nb_char=len(short_key),
+    )
+
+    # plot all other output metrics
+    for key in mtr.output_single_keys:
+        plot_single_key(
+            key=key,
+            param_values=param_values,
+            input_param=input_param,
+            output=output,
+            path=path,
+        )

@@ -9,7 +9,7 @@ from tqdm import tqdm
 import graphics as gx
 from bank import ClassBank
 import shocks as sh
-import function as fct
+import functions as fct
 
 
 class ClassNetwork:
@@ -20,6 +20,7 @@ class ClassNetwork:
     def __init__(
         self,
         n_banks,
+        alpha_init=0.01,
         alpha=0.01,
         beta_init=0.1,
         beta_reg=0.1,
@@ -79,6 +80,7 @@ class ClassNetwork:
 
         # initialization of the class parameters.
         self.n_banks = n_banks
+        self.alpha_init = alpha_init
         self.alpha = alpha
         self.beta_init = beta_init
         self.beta_reg = beta_reg
@@ -102,7 +104,7 @@ class ClassNetwork:
         self.cp_option = cp_option
 
         # Definition of the internal parameters of the ClassNetwork.
-        self.steps = 0  # Step number in the simulation process
+        self.step = 0  # Step number in the simulation process
         self.banks = []  # List of the instances of the ClassBank existing
         # in the ClassNetwork.
         self.network_deposits = np.zeros(n_banks)  # Numpy array of the deposits of
@@ -205,6 +207,7 @@ class ClassNetwork:
                 ClassBank(
                     id=b,
                     initial_deposits=deposits,
+                    alpha_init=self.alpha_init,
                     alpha=self.alpha,
                     beta_init=self.beta_init,
                     beta_reg=self.beta_reg,
@@ -224,6 +227,7 @@ class ClassNetwork:
         for bank in self.banks:
             bank.initialize_banks(self.banks)
 
+        # initialize other single trajectory metrics
         self.single_trajectory = {
             "Cash": [],
             "Securities Usable": [],
@@ -304,19 +308,14 @@ class ClassNetwork:
         }
 
         # Initialize the steps to 0
-        self.steps = 0.0
+        self.step = 0.0
 
         # Create the required path to store the results
-        fct.init_path(self.result_location)
-        os.makedirs(os.path.join(self.result_location, "Reverse_repo_networks"))
-        os.makedirs(os.path.join(self.result_location, "Trust_networks"))
-        os.makedirs(os.path.join(self.result_location, "Core-periphery_structure"))
-        os.makedirs(os.path.join(self.result_location, "Deposits"))
-        os.makedirs(os.path.join(self.result_location, "BalanceSheets"))
+        fct.init_results_path(self.result_location)
 
         # Update all the metrics at time step 0
-        self.compute_step_metrics()
-        self.compute_single_trajectory()
+        self.comp_step_metrics()
+        self.comp_single_trajectory()
 
     def step_network(self):
         """
@@ -413,12 +412,12 @@ class ClassNetwork:
         """
         self.save_param(time_steps, save_every)
         for _ in tqdm(range(time_steps)):
-            if self.steps % save_every == 0.0:
+            if self.step % save_every == 0.0:
                 self.save_step_figures()
             self.step_network()
-            self.compute_step_metrics()
-            self.compute_single_trajectory()
-            self.steps += 1
+            self.comp_step_metrics()
+            self.comp_single_trajectory()
+            self.step += 1
         # for bank in self.banks:
         #     print(bank)
         #     print(
@@ -427,7 +426,7 @@ class ClassNetwork:
         #         )
         #     )
         self.save_step_figures()
-        self.compute_final_metrics()
+        self.comp_final_metrics()
 
         # build output
         if output_opt:
@@ -435,7 +434,7 @@ class ClassNetwork:
             return output
 
     # <editor-fold desc="Metrics updates, saving, and printing">
-    def compute_step_metrics(self):
+    def comp_step_metrics(self):
         """
         Instance method allowing the computation of the time_series_metrics
         parameter as well as the network_assets, network_liabilities and
@@ -536,9 +535,9 @@ class ClassNetwork:
         binary_adj = np.where(self.adj_matrix > self.min_repo_size, True, False)
 
         # build the aggregated adjancency matrix of the reverse repos at different aggregation periods
-        if self.steps > 0:
+        if self.step > 0:
             for agg_period in self.agg_periods:
-                if self.steps % agg_period > 0:
+                if self.step % agg_period > 0:
                     self.agg_binary_adj_dic.update(
                         {
                             agg_period: np.logical_or(
@@ -546,10 +545,8 @@ class ClassNetwork:
                             )
                         }
                     )
-                if self.steps % agg_period == 0:
-                    self.agg_binary_adj_dic.update(
-                        {agg_period: np.zeros((self.n_banks, self.n_banks))}
-                    )
+                elif self.step % agg_period == 0:
+                    self.agg_binary_adj_dic.update({agg_period: binary_adj})
 
         # Build the time series of the Av. nb. of repo transactions ended (2/2).
         self.time_series_metrics["Av. nb. of repo transactions ended"][-1] = (
@@ -581,7 +578,7 @@ class ClassNetwork:
 
         # Build the jaccard index time series - version non aggregated.
         for jaccard_period in self.jaccard_periods:
-            if self.steps > 0 and self.steps % jaccard_period == 0:
+            if self.step > 0 and self.step % jaccard_period == 0:
 
                 self.time_series_metrics[
                     "Jaccard index " + str(jaccard_period) + " time steps"
@@ -594,7 +591,7 @@ class ClassNetwork:
                     ).sum()
                 )
                 self.prev_binary_adj_dic.update({jaccard_period: binary_adj.copy()})
-            elif self.steps > 0:
+            elif self.step > 0:
                 self.time_series_metrics[
                     "Jaccard index " + str(jaccard_period) + " time steps"
                 ][-1] = self.time_series_metrics[
@@ -605,7 +602,7 @@ class ClassNetwork:
 
         # Build the jaccard index time series - version aggregated.
         for agg_period in self.agg_periods:
-            if self.steps % agg_period == agg_period - 1:
+            if self.step % agg_period == agg_period - 1:
                 self.time_series_metrics[
                     "Jaccard index over " + str(agg_period) + " time steps"
                 ][-1] = (
@@ -621,7 +618,7 @@ class ClassNetwork:
                 self.prev_agg_binary_adj_dic.update(
                     {agg_period: self.agg_binary_adj_dic[agg_period].copy()}
                 )
-            elif self.steps > 0:
+            elif self.step > 0:
                 self.time_series_metrics[
                     "Jaccard index over " + str(agg_period) + " time steps"
                 ][-1] = self.time_series_metrics[
@@ -632,13 +629,13 @@ class ClassNetwork:
 
         # Build the network density indicator.
         for agg_period in self.agg_periods:
-            if self.steps % agg_period == agg_period - 1:
+            if self.step % agg_period == agg_period - 1:
                 self.time_series_metrics[
                     "Network density over " + str(agg_period) + " time steps"
                 ][-1] = self.agg_binary_adj_dic[agg_period].sum() / (
                     self.n_banks * (self.n_banks - 1.0)
                 )  # for a directed graph
-            elif self.steps > 0:
+            elif self.step > 0:
                 self.time_series_metrics[
                     "Network density over " + str(agg_period) + " time steps"
                 ][-1] = self.time_series_metrics[
@@ -678,7 +675,7 @@ class ClassNetwork:
         # Build the dictionary of the degree (total of in and out) of each node in the network at a given step
         self.network_degree = np.array(bank_network.degree())[:, 1]
 
-    def compute_single_trajectory(self):
+    def comp_single_trajectory(self):
 
         # defin the single bank that we want to plot
         bank = self.banks[self.single_bank_id]
@@ -738,7 +735,7 @@ class ClassNetwork:
             + sum(self.banks[self.single_bank_id].repos_off_amounts)
         )
 
-    def compute_final_metrics(self):
+    def comp_final_metrics(self):
 
         # Print the weighted average maturity of repos
         weighted_repo_maturity = []
@@ -775,20 +772,26 @@ class ClassNetwork:
         # Plot the reverse repo network
         binary_adj = np.where(self.adj_matrix > self.min_repo_size, 1.0, 0.0)
         gx.plot_network(
-            self.adj_matrix,
-            self.network_total_assets,
-            os.path.join(self.result_location, "Reverse_repo_networks"),
-            self.steps,
-            "Reverse_Repo",
+            adj=self.adj_matrix,
+            network_total_assets=self.network_total_assets,
+            path=self.result_location + "repo_networks/",
+            step=self.step,
+            name_in_title="reverse repo",
+        )
+        fct.save_np_array(
+            self.adj_matrix, self.result_location + "repo_networks/adj_matrix"
         )
 
         # Plot the trust network
         gx.plot_network(
-            self.trust_adj_matrix.T / (self.trust_adj_matrix.std() + 1e-8),
-            self.network_total_assets,
-            os.path.join(self.result_location, "Trust_networks"),
-            self.steps,
-            "Trust",
+            adj=self.trust_adj_matrix.T / (self.trust_adj_matrix.std() + 1e-8),
+            network_total_assets=self.network_total_assets,
+            path=self.result_location + "trust_networks/",
+            step=self.step,
+            name_in_title="trust",
+        )
+        fct.save_np_array(
+            self.trust_adj_matrix, self.result_location + "trust_networks/trust"
         )
 
         # Plot the break-down of the balance per bank
@@ -797,21 +800,21 @@ class ClassNetwork:
             self.network_assets,
             self.network_liabilities,
             self.network_off_balance,
-            os.path.join(self.result_location, "BalanceSheets"),
-            self.steps,
+            self.result_location + "balance_Sheets/",
+            self.step,
         )
 
         # Plot the break-down of the deposits per bank in relative shares
         gx.bar_plot_deposits(
             self.network_deposits,
-            os.path.join(self.result_location, "Deposits"),
-            self.steps,
+            self.result_location + "deposits/",
+            self.step,
         )
 
         # Plot the core-periphery detection and assessment
         # special case here, an intermediary computation to keep track of p-values
         if self.cp_option:
-            if self.steps > 0:
+            if self.step > 0:
                 bank_network = nx.from_numpy_matrix(
                     binary_adj, parallel_edges=False, create_using=nx.DiGraph
                 )  # build nx object
@@ -820,12 +823,12 @@ class ClassNetwork:
                 )  # run cpnet test
                 self.p_value = p_value  # record p_value
                 gx.plot_core_periphery(
-                    bank_network,
-                    sig_c,
-                    sig_x,
-                    os.path.join(self.result_location, "Core-periphery_structure"),
-                    self.steps,
-                    "Reverse repos",
+                    bank_network=bank_network,
+                    sig_c=sig_c,
+                    sig_x=sig_x,
+                    path=self.result_location + "core-periphery_structure/",
+                    step=self.step,
+                    name_in_title="reverse repos",
                 )  # plot charts
 
         # Plot the link between centrality and total asset size
@@ -1015,6 +1018,7 @@ class ClassNetwork:
 
 def single_run(
     n_banks=50,
+    alpha_init=0.01,
     alpha=0.01,
     beta_init=0.1,
     beta_reg=0.1,
@@ -1040,6 +1044,7 @@ def single_run(
 
     network = ClassNetwork(
         n_banks=n_banks,
+        alpha_init=alpha_init,
         beta_init=beta_init,
         beta_reg=beta_reg,
         beta_star=beta_star,

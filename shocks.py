@@ -146,7 +146,7 @@ def generate_non_conservative_shocks(
     elif law == "normal-mean-reverting":
         mean_reversion = 0.01
         epsilon = np.random.normal(loc=0, scale=vol, size=len(deposits))
-        shocks = mean_reversion * (initial_deposits - deposits) + epsilon * deposits
+        shocks = mean_reversion * (initial_deposits - deposits) + epsilon * total_assets
 
         # center the shocks
         shocks = shocks - np.mean(shocks)
