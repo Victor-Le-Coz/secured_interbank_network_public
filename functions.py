@@ -32,7 +32,7 @@ def get_param_values(input_param):
         param_values = [beta_init_test for beta_init_test in np.arange(0, 1, 0.05)]
     elif input_param == "shocks_vol":
         param_values = [
-            shocks_vol_test for shocks_vol_test in np.logspace(-4, 1, num=50)
+            shocks_vol_test for shocks_vol_test in np.arange(0, 0.30, 0.0025)
         ]
     elif input_param == "min_repo_size":
         param_values = [
@@ -43,7 +43,7 @@ def get_param_values(input_param):
             alpha_pareto_test for alpha_pareto_test in np.logspace(0, 1, num=25)
         ]
     elif input_param == "cash":
-        param_values = [alpha_init_test for alpha_init_test in np.arange(0, 1, 0.01)]
+        param_values = [alpha_init_test for alpha_init_test in np.arange(0, 0.3, 0.01)]
     return param_values
 
 
@@ -58,7 +58,7 @@ def get_param_values_testing(input_param):
         param_values = [beta_init_test for beta_init_test in np.arange(0, 1, 0.05)]
     elif input_param == "shocks_vol":
         param_values = [
-            shocks_vol_test for shocks_vol_test in np.arange(0.005, 0.5, 0.1)
+            shocks_vol_test for shocks_vol_test in np.arange(0, 0.30, 0.0025)
         ]
     elif input_param == "min_repo_size":
         param_values = [

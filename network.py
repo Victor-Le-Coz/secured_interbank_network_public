@@ -195,7 +195,7 @@ class ClassNetwork:
                         size=1,
                         random_state=None,
                     )[0]
-                    * 100.0
+                    * 40.0
                 )
             elif self.initialization_method == "constant":
                 deposits = 100.0

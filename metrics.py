@@ -24,6 +24,7 @@ log_output_mlt_keys = [
 
 # input parameters
 log_input_params = [
+    "cash",
     "alpha_pareto",
     "min_repo_size",
     "shocks_vol",
