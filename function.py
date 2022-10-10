@@ -6,7 +6,6 @@ import numpy as np
 import cpnet  # Librairy for the estimation of core-periphery structures
 import os
 import shutil
-import pandas as pd
 
 
 def gini(x):
@@ -21,70 +20,38 @@ def gini(x):
     return total / (len(x) ** 2 * np.mean(x))
 
 
-def get_param_values(input_param):
-    if input_param == "n_banks":
-        param_values = [n_banks_test for n_banks_test in np.arange(10, 260, 10)]
-    elif input_param == "beta":
-        param_values = [beta for beta in np.arange(0.01, 1, 0.02)]
+def build_axe_args(axe):
+    if axe == "n_banks":
+        axe_args = [n_banks_test for n_banks_test in np.arange(10, 260, 10)]
+    elif axe == "beta":
+        axe_args = [beta for beta in np.arange(0.01, 1, 0.02)]
     elif (
-        input_param == "collateral"
+        axe == "collateral"
     ):  # can not be higher than the targeted LCR - except in the no LCR mngt version (lux's model)
-        param_values = [beta_init_test for beta_init_test in np.arange(0, 1, 0.05)]
-    elif input_param == "shocks_vol":
-        param_values = [
-            shocks_vol_test for shocks_vol_test in np.logspace(-4, 1, num=50)
-        ]
-    elif input_param == "min_repo_size":
-        param_values = [
+        axe_args = [beta_init_test for beta_init_test in np.arange(0.0, 1, 0.05)]
+    elif axe == "shocks_vol":
+        axe_args = [shocks_vol_test for shocks_vol_test in np.logspace(-4, 2, num=50)]
+    elif axe == "min_repo_size":
+        axe_args = [
             min_repo_size_test for min_repo_size_test in np.logspace(-16, 2, num=25)
         ]
-    elif input_param == "alpha_pareto":
-        param_values = [
+    elif axe == "alpha_pareto":
+        axe_args = [
             alpha_pareto_test for alpha_pareto_test in np.logspace(0, 1, num=25)
         ]
-    elif input_param == "cash":
-        param_values = [alpha_init_test for alpha_init_test in np.arange(0, 1, 0.01)]
-    return param_values
-
-
-def get_param_values_testing(input_param):
-    if input_param == "n_banks":
-        param_values = [n_banks_test for n_banks_test in np.arange(1, 3)]
-    elif input_param == "beta":
-        param_values = [beta for beta in np.arange(0.01, 0.03, 0.01)]
-    elif (
-        input_param == "collateral"
-    ):  # can not be higher than the targeted LCR - except in the no LCR mngt version (lux's model)
-        param_values = [beta_init_test for beta_init_test in np.arange(0, 1, 0.05)]
-    elif input_param == "shocks_vol":
-        param_values = [
-            shocks_vol_test for shocks_vol_test in np.arange(0.005, 0.5, 0.1)
-        ]
-    elif input_param == "min_repo_size":
-        param_values = [
-            min_repo_size_test for min_repo_size_test in np.logspace(-16, 2, num=3)
-        ]
-    elif input_param == "alpha_pareto":
-        param_values = [
-            alpha_pareto_test for alpha_pareto_test in np.logspace(0, 1, num=3)
-        ]
-    elif input_param == "cash":
-        param_values = [alpha_init_test for alpha_init_test in np.arange(0, 1, 0.1)]
-
-    return param_values
+    return axe_args
 
 
 def build_args(
-    input_param,
+    axe,
     n_banks=50,
-    alpha_init=0.01,
     alpha=0.01,
     beta_init=0.1,
     beta_reg=0.1,
     beta_star=0.1,
     gamma=0.03,
     collateral_value=1.0,
-    initialization_method="pareto",
+    initialization_method="constant",
     alpha_pareto=1.3,
     shocks_method="bilateral",
     shocks_law="normal",
@@ -103,14 +70,13 @@ def build_args(
 
     args = []
 
-    param_values = get_param_values(input_param)
+    axe_args = build_axe_args(axe)
 
-    if input_param == "n_banks":
-        for input_param_value in param_values:
+    if axe == "n_banks":
+        for axe_arg in axe_args:
             args.append(
                 (
-                    input_param_value,
-                    alpha_init,
+                    axe_arg,
                     alpha,
                     beta_init,
                     beta_reg,
@@ -122,7 +88,7 @@ def build_args(
                     shocks_method,
                     shocks_law,
                     shocks_vol,
-                    result_location + input_param + "/" + str(input_param_value) + "/",
+                    result_location + axe + "/" + str(axe_arg) + "/",
                     min_repo_size,
                     time_steps,
                     save_every,
@@ -135,16 +101,15 @@ def build_args(
                 )
             )
 
-    elif input_param == "beta":
-        for input_param_value in param_values:
+    elif axe == "beta":
+        for axe_arg in axe_args:
             args.append(
                 (
                     n_banks,
-                    alpha_init,
                     alpha,
-                    input_param_value,
-                    input_param_value,
-                    input_param_value,
+                    axe_arg,
+                    axe_arg,
+                    axe_arg,
                     gamma,
                     collateral_value,
                     initialization_method,
@@ -152,7 +117,7 @@ def build_args(
                     shocks_method,
                     shocks_law,
                     shocks_vol,
-                    result_location + input_param + "/" + str(input_param_value) + "/",
+                    result_location + axe + "/" + str(axe_arg) + "/",
                     min_repo_size,
                     time_steps,
                     save_every,
@@ -165,14 +130,13 @@ def build_args(
                 )
             )
 
-    elif input_param == "collateral":
-        for input_param_value in param_values:
+    elif axe == "collateral":
+        for axe_arg in axe_args:
             args.append(
                 (
                     n_banks,
-                    alpha_init,
                     alpha,
-                    input_param_value,
+                    axe_arg,
                     beta_reg,
                     beta_star,
                     gamma,
@@ -182,7 +146,7 @@ def build_args(
                     shocks_method,
                     shocks_law,
                     shocks_vol,
-                    result_location + input_param + "/" + str(input_param_value) + "/",
+                    result_location + axe + "/" + str(axe_arg) + "/",
                     min_repo_size,
                     time_steps,
                     save_every,
@@ -195,12 +159,11 @@ def build_args(
                 )
             )
 
-    elif input_param == "shocks_vol":
-        for input_param_value in param_values:
+    elif axe == "shocks_vol":
+        for axe_arg in axe_args:
             args.append(
                 (
                     n_banks,
-                    alpha_init,
                     alpha,
                     beta_init,
                     beta_reg,
@@ -211,8 +174,8 @@ def build_args(
                     alpha_pareto,
                     shocks_method,
                     shocks_law,
-                    input_param_value,
-                    result_location + input_param + "/" + str(input_param_value) + "/",
+                    axe_arg,
+                    result_location + axe + "/" + str(axe_arg) + "/",
                     min_repo_size,
                     time_steps,
                     save_every,
@@ -225,12 +188,11 @@ def build_args(
                 )
             )
 
-    elif input_param == "min_repo_size":
-        for input_param_value in param_values:
+    elif axe == "min_repo_size":
+        for axe_arg in axe_args:
             args.append(
                 (
                     n_banks,
-                    alpha_init,
                     alpha,
                     beta_init,
                     beta_reg,
@@ -242,8 +204,8 @@ def build_args(
                     shocks_method,
                     shocks_law,
                     shocks_vol,
-                    result_location + input_param + "/" + str(input_param_value) + "/",
-                    input_param_value,
+                    result_location + axe + "/" + str(axe_arg) + "/",
+                    axe_arg,
                     time_steps,
                     save_every,
                     jaccard_periods,
@@ -255,12 +217,11 @@ def build_args(
                 )
             )
 
-    elif input_param == "alpha_pareto":
-        for input_param_value in param_values:
+    elif axe == "alpha_pareto":
+        for axe_arg in axe_args:
             args.append(
                 (
                     n_banks,
-                    alpha_init,
                     alpha,
                     beta_init,
                     beta_reg,
@@ -268,41 +229,11 @@ def build_args(
                     gamma,
                     collateral_value,
                     "pareto",
-                    input_param_value,
+                    axe_arg,
                     shocks_method,
                     shocks_law,
                     shocks_vol,
-                    result_location + input_param + "/" + str(input_param_value) + "/",
-                    min_repo_size,
-                    time_steps,
-                    save_every,
-                    jaccard_periods,
-                    agg_periods,
-                    cp_option,
-                    output_opt,
-                    LCR_mgt_opt,
-                    output_keys,
-                )
-            )
-
-    elif input_param == "cash":
-        for input_param_value in param_values:
-            args.append(
-                (
-                    n_banks,
-                    input_param_value,
-                    alpha,
-                    beta_init,
-                    beta_reg,
-                    beta_star,
-                    gamma,
-                    collateral_value,
-                    initialization_method,
-                    alpha_pareto,
-                    shocks_method,
-                    shocks_law,
-                    shocks_vol,
-                    result_location + input_param + "/" + str(input_param_value) + "/",
+                    result_location + axe + "/" + str(axe_arg) + "/",
                     min_repo_size,
                     time_steps,
                     save_every,
@@ -365,20 +296,10 @@ def cpnet_test(
     return sig_c, sig_x, significant, p_value
 
 
-def init_results_path(path):
-    if os.path.exists(path):  # Delete all previous figures
-        shutil.rmtree(path)
-    os.makedirs(os.path.join(path, "repo_networks"))
-    os.makedirs(os.path.join(path, "trust_networks"))
-    os.makedirs(os.path.join(path, "core-periphery_structure"))
-    os.makedirs(os.path.join(path, "deposits"))
-    os.makedirs(os.path.join(path, "balance_Sheets"))
-
-
 def init_path(path):
     if os.path.exists(path):  # Delete all previous figures
         shutil.rmtree(path)
-    os.makedirs(path)
+    os.makedirs(path)  # create the path
 
 
 def save_np_array(array, name):

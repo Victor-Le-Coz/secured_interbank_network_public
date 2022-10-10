@@ -9,7 +9,6 @@ output_single_keys = [
     "Repos av. volume",
 ]
 
-
 output_mlt_keys = [
     "Jaccard index over ",
     "Network density over ",
@@ -29,4 +28,14 @@ log_input_params = [
     "min_repo_size",
     "shocks_vol",
     "n_banks",
+]
+
+input_params = [
+    "cash",
+    "shocks_vol",
+    "alpha_pareto",
+    "beta",
+    "n_banks",
+    "min_repo_size",
+    "collateral",
 ]
