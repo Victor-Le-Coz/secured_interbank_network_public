@@ -419,9 +419,7 @@ class ClassBank:
                 assert self.off_balance["Securities Reused"] >= -float_limit, (
                     "securities reused negative {} at step {}, due to "
                     "retrieving of end {}".format(
-                        self.off_balance["Securities Reused"],
-                        self.steps,
-                        end,
+                        self.off_balance["Securities Reused"], self.steps, end,
                     )
                 )
 
@@ -560,11 +558,7 @@ class ClassBank:
         assert missing_collateral <= float_limit, (
             self.__str__() + "\nBank {} has not enough collateral to end "
             "its reverse repo with bank {}, missing "
-            "amount is {}".format(
-                self.id,
-                bank_id,
-                missing_collateral,
-            )
+            "amount is {}".format(self.id, bank_id, missing_collateral,)
         )
 
         # Update all the required balance sheet items by the closing of the
@@ -580,8 +574,7 @@ class ClassBank:
             "are positive, "
             "while normally supposed to use all usable before using "
             "collateral".format(
-                self.off_balance["Securities Reused"],
-                self.assets["Securities Usable"],
+                self.off_balance["Securities Reused"], self.assets["Securities Usable"],
             )
         )
 
@@ -729,10 +722,9 @@ class ClassBank:
             if repo_ask > float_limit:
                 for b in self.banks.keys():
                     print(self.banks[str(b)])
-            assert (
-                repo_ask <= float_limit
-            ), "repo request unsatified for bank {}," " for the amount {}".format(
-                self.id, repo_ask
+            assert repo_ask <= float_limit, (
+                "repo request unsatified for bank {},"
+                " for the amount {}".format(self.id, repo_ask)
             )
 
     def step_MRO(self):
@@ -814,8 +806,7 @@ class ClassBank:
             return amount
 
         reverse_accept = max(
-            self.assets["Cash"] - self.alpha * self.liabilities["Deposits"],
-            0.0,
+            self.assets["Cash"] - self.alpha * self.liabilities["Deposits"], 0.0,
         )
 
         # Test if a bank is lending to itself due to a float error.
@@ -892,14 +883,8 @@ class ClassBank:
             self.id,
             round(self.total_assets(), 2),
             round(self.assets["Cash"], 2),
-            round(
-                self.assets["Securities Usable"] * self.collateral_value,
-                2,
-            ),
-            round(
-                self.assets["Securities Encumbered"] * self.collateral_value,
-                2,
-            ),
+            round(self.assets["Securities Usable"] * self.collateral_value, 2,),
+            round(self.assets["Securities Encumbered"] * self.collateral_value, 2,),
             round(self.assets["Reverse Repos"], 2),
             round(self.assets["Loans"], 2),
             round(self.total_liabilities(), 2),
@@ -908,13 +893,9 @@ class ClassBank:
             round(self.liabilities["Repos"], 2),
             round(self.liabilities["MROs"], 2),
             round(
-                self.off_balance["Securities Collateral"] * self.collateral_value,
-                2,
+                self.off_balance["Securities Collateral"] * self.collateral_value, 2,
             ),
-            round(
-                self.off_balance["Securities Reused"] * self.collateral_value,
-                2,
-            ),
+            round(self.off_balance["Securities Reused"] * self.collateral_value, 2,),
             round(self.liquidity_coverage_ratio() * 100, 2),
             round(self.cash_to_deposits() * 100, 2),
             round(self.leverage_ratio() * 100, 2),
