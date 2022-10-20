@@ -143,15 +143,20 @@ class ClassHistory:
             else:
                 incorect_line_nb += 1
 
-            # fill in the matrices of the loan size y, the rate level r, and the links l
-            self.observed_path[t].y[i, j] = (
-                self.observed_path[t].y[i, j]  # add the nominal if several transactions
-                + mmsr_data.trns_nominal_amt[mmsr_index]
-            )
-            self.observed_path[t].r[i, j] = mmsr_data.spread[
-                mmsr_index
-            ]  # take the rate of one of the transactions
-            self.observed_path[t].l[i, j] = 1
+            # fill in the matrices of the loan size y, the rate level r, and the links l for the number of days the transaction will remain in the books
+            for delta_t in range(
+                min(mmsr_data.loc[mmsr_index, "maturity_in_days"], self.T - t - 1)
+            ):
+                self.observed_path[t + delta_t].y[i, j] = (
+                    self.observed_path[t].y[
+                        i, j
+                    ]  # add the nominal if several transactions
+                    + mmsr_data.trns_nominal_amt[mmsr_index]
+                )
+                self.observed_path[t + delta_t].r[i, j] = mmsr_data.spread[
+                    mmsr_index
+                ]  # take the rate of one of the transactions
+                self.observed_path[t + delta_t].l[i, j] = 1
 
             # fill-in the information about the end of maintenance periods
             if mmsr_data.end_maintenance_period[mmsr_index] is True:
