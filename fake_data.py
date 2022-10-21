@@ -57,10 +57,10 @@ deposit_rate_data = pd.merge(calendar, deposit_rate_list, on="trade_date", how="
 
 # fill-in the missing information on the dates where the deposit rate remained the same
 for index in deposit_rate_data.index:
-    if np.isnan(deposit_rate_data.new_deposit_rate.loc[index]):
-        deposit_rate_data.new_deposit_rate.loc[
-            index
-        ] = deposit_rate_data.new_deposit_rate.loc[index - 1]
+    if np.isnan(deposit_rate_data.loc[index, "new_deposit_rate"]):
+        deposit_rate_data.loc[index, "new_deposit_rate"] = deposit_rate_data.loc[
+            index - 1, "new_deposit_rate"
+        ]
 
 
 # Set the path of the maintenance period source file
