@@ -7,7 +7,7 @@ __pycache__/
 results/
 saved_results/
 forceatlas2/
-notebooks/
+support/
 
 # C extensions
 *.so

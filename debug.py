@@ -1,10 +1,12 @@
-from statistics import ClassHistory
+# imports
+import data_preprocessing as dp
 import fake_data as fd
 
-mmsr_data = fd.mmsr_data
-maintenance_periods_list = fd.maintenance_periods_list
-deposit_rate_data = fd.deposit_rate_data
+# param definition
+nb_tran = 100
+
+# load fake data
+df_mmsr = fd.get_df_mmsr(nb_tran=100)
 
 
-history = ClassHistory()
-history.build_from_data(mmsr_data, deposit_rate_data, maintenance_periods_list)
+dp.build_from_data(df_mmsr=df_mmsr)

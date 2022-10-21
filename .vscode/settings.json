@@ -1,5 +1,11 @@
 {
     "editor.formatOnSave": true,
     "python.formatting.provider": "black",
-    "notebook.output.textLineLimit": 60
+    "notebook.output.textLineLimit": 60,
+    "files.exclude": {
+        "__pycache__": true,
+        ".idea": true,
+        ".ipynb_checkpoints": true,
+        ".vscode": true
+    }
 }
