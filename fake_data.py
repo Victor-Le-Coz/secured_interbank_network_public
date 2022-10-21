@@ -9,13 +9,13 @@ def get_df_mmsr(nb_tran):
             start="2020-01-01", freq="1h", periods=nb_tran
         ).to_timestamp(),
         data={
+            "report_agent_lei": choices(
+                ["bank_" + str(i) for i in range(5)], k=nb_tran
+            ),
             "cntp_lei": choices(
                 ["bank_" + str(i) for i in range(5)]
                 + ["fund_" + str(i) for i in range(5)],
                 k=nb_tran,
-            ),
-            "report_agent_lei": choices(
-                ["bank_" + str(i) for i in range(5)], k=nb_tran
             ),
             "trns_nominal_amt": np.random.rand(nb_tran) * 100,
             "maturity_time_stamp": pd.to_timedelta(
@@ -24,6 +24,10 @@ def get_df_mmsr(nb_tran):
             + pd.period_range(
                 start="2020-01-01", freq="1h", periods=nb_tran
             ).to_timestamp(),
+            "first_occurence": choices(
+                [True, False],
+                k=nb_tran,  # first occurence of the reporting of an evergreen transaction repo
+            ),
         },
     )
     return df_mmsr

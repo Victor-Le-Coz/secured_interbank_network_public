@@ -26,27 +26,45 @@ def build_from_data(df_mmsr):
 
     # building of the matrices and storage in the dictionary observed_path
     for ts_trade in tqdm(df_mmsr.index):
-
-        dic_obs_adj_tr[ts_trade.strftime("%Y-%m-%d")].loc[
-            df_mmsr.loc[ts_trade, "report_agent_lei"],
-            df_mmsr.loc[ts_trade, "cntp_lei"],
-        ] = (
-            dic_obs_adj_cr[ts_trade.strftime("%Y-%m-%d")].loc[
+        if df_mmsr.loc[ts_trade, "first_occurence"]:
+            dic_obs_adj_tr[ts_trade.strftime("%Y-%m-%d")].loc[
                 df_mmsr.loc[ts_trade, "report_agent_lei"],
                 df_mmsr.loc[ts_trade, "cntp_lei"],
-            ]
-            + df_mmsr.loc[ts_trade, "trns_nominal_amt"]
-        )
+            ] = (
+                dic_obs_adj_cr[ts_trade.strftime("%Y-%m-%d")].loc[
+                    df_mmsr.loc[ts_trade, "report_agent_lei"],
+                    df_mmsr.loc[ts_trade, "cntp_lei"],
+                ]
+                + df_mmsr.loc[ts_trade, "trns_nominal_amt"]
+            )
 
-        # loop over the dates up to the maturity of the trade
-        for date in pd.period_range(
-            start=ts_trade,
-            end=min(
+            # loop over the dates up to the maturity of the trade
+            for date in pd.period_range(
+                start=ts_trade,
+                end=min(
+                    df_mmsr.loc[ts_trade, "maturity_time_stamp"],
+                    pd.to_datetime(mmsr_trade_dates[-1]),
+                ),
+                freq="1d",
+            ).strftime("%Y-%m-%d"):
+                dic_obs_adj_cr[date].loc[
+                    df_mmsr.loc[ts_trade, "report_agent_lei"],
+                    df_mmsr.loc[ts_trade, "cntp_lei"],
+                ] = (
+                    dic_obs_adj_cr[date].loc[
+                        df_mmsr.loc[ts_trade, "report_agent_lei"],
+                        df_mmsr.loc[ts_trade, "cntp_lei"],
+                    ]
+                    + df_mmsr.loc[ts_trade, "trns_nominal_amt"]
+                )
+
+        else:  # if it not the first occurence, it means it is an evergreen and only the additional maturity date needs to be filled in
+            # define the additional date
+            date = min(
                 df_mmsr.loc[ts_trade, "maturity_time_stamp"],
                 pd.to_datetime(mmsr_trade_dates[-1]),
-            ),
-            freq="1d",
-        ).strftime("%Y-%m-%d"):
+            ).strftime("%Y-%m-%d")
+            # add the exposure for this additional date
             dic_obs_adj_cr[date].loc[
                 df_mmsr.loc[ts_trade, "report_agent_lei"],
                 df_mmsr.loc[ts_trade, "cntp_lei"],
@@ -60,7 +78,7 @@ def build_from_data(df_mmsr):
 
     pickle.dump(
         dic_obs_adj_cr,
-        open("./support/dic_obs_adj.pickle", "wb"),
+        open("./support/dic_obs_adj_cr.pickle", "wb"),
         protocol=pickle.HIGHEST_PROTOCOL,
     )
 
@@ -71,3 +89,11 @@ def build_from_data(df_mmsr):
     )
 
     return dic_obs_adj_cr, dic_obs_adj_tr
+
+
+def get_dic_obs_adj_tr():
+    return pickle.load(open("./support/dic_obs_adj_tr.pickle", "rb"))
+
+
+def get_dic_obs_adj_cr():
+    return pickle.load(open("./support/dic_obs_adj_cr.pickle", "rb"))
