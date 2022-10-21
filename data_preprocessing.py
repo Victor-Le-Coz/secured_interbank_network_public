@@ -1,5 +1,6 @@
 import pandas as pd
 import pickle
+from tqdm import tqdm
 
 
 def build_from_data(df_mmsr):
@@ -15,10 +16,12 @@ def build_from_data(df_mmsr):
     # initialisation of a dictionary of the observed paths
     dic_obs_adj = {}
     for mmsr_trade_date in mmsr_trade_dates:
-        dic_obs_adj.update({mmsr_trade_date: pd.DataFrame(columns=leis, index=leis)})
+        dic_obs_adj.update(
+            {mmsr_trade_date: pd.DataFrame(columns=leis, index=leis, data=0)}
+        )
 
     # building of the matrices and storage in the dictionary observed_path
-    for ts_trade in df_mmsr.index:
+    for ts_trade in tqdm(df_mmsr.index):
         # loop over the dates up to the maturity of the trade
         for date in pd.period_range(
             start=ts_trade,
