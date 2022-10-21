@@ -1,9 +1,10 @@
 import sys, os
 from multiprocessing import Pool
 from network import single_run
-import function as fct
+import functions as fct
 import graphics as gx
 from socket import gethostname
+import metrics as mtr
 
 if __name__ == "__main__":
 
@@ -11,47 +12,43 @@ if __name__ == "__main__":
     sys.setrecursionlimit(5000)
 
     # define the parameters for the run
-    result_location = "./results/"
-    axes = [
-        "beta",
-        "shocks_vol",
-        "n_banks",
-        "min_repo_size",
-        "alpha_pareto",
-        "collateral",
-    ]
-    # axes = [
-    #     "n_banks",
-    # ]
+    result_location = "./results/general-testing/"
+    input_params = mtr.input_params
+    output_keys = mtr.output_single_keys + mtr.output_mlt_keys
+    jaccard_periods = [20, 100, 250, 500]
+    agg_periods = [1, 50, 100, 250]
 
-    for axe in axes:
+    for input_param in input_params:
         # build the arguments
         args = fct.build_args(
-            axe=axe,
+            input_param=input_param,
             n_banks=50,
+            alpha_init=0.1,  # initial cash (< 1/(1-gamma) - beta)
             alpha=0.01,
-            beta_init=0.5,  # for the initial collateral available
+            beta_init=1,  # initial collateral  (< 1/(1-gamma) - alpha)
             beta_reg=0.5,
             beta_star=0.5,
-            gamma=0.03,
+            gamma=0.5,
             collateral_value=1.0,
-            initialization_method="constant",
+            initialization_method="pareto",
             alpha_pareto=1.3,
-            shocks_method="bilateral",
-            shocks_law="normal",
-            shocks_vol=0.05,
+            shocks_method="non-conservative",
+            shocks_law="normal-mean-reverting",
+            shocks_vol=0.01,
             result_location=result_location,
-            min_repo_size=1e-10,
-            time_steps=5000,
+            min_repo_size=1e-8,
+            time_steps=int(1e4),
             save_every=2500,
-            jaccard_period=20,
+            jaccard_periods=jaccard_periods,
+            agg_periods=agg_periods,
+            cp_option=True,
             output_opt=True,
+            LCR_mgt_opt=False,
+            output_keys=output_keys,
         )
 
         # initialize the paths
-        fct.init_path(result_location + axe + "/")
-        fct.init_path(result_location + axe + "/output_by_args/")
-        fct.init_path(result_location + axe + "/output_by_args/log_scale/")
+        fct.init_path(result_location + input_param + "/output_by_args/")
 
         # run the simulation in multiprocessing across arguments
         if gethostname() == "gibi":
@@ -62,7 +59,12 @@ if __name__ == "__main__":
             output = p.starmap(single_run, args)
 
         # plot the results
-        axe_args = fct.build_axe_args(axe)
-        gx.plot_output_by_args(
-            axe_args, axe, output, result_location + axe + "/output_by_args/"
+        param_values = fct.get_param_values(input_param)
+        gx.plot_output_by_param(
+            param_values=param_values,
+            input_param=input_param,
+            output=output,
+            jaccard_periods=jaccard_periods,
+            agg_periods=agg_periods,
+            path=result_location + input_param + "/output_by_args/",
         )

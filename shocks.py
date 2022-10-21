@@ -23,16 +23,6 @@ def generate_bilateral_shocks(deposits, law, vol):
     elif law == "beta":
         rho_1 = -np.random.beta(1, 1, size=N_half)
 
-    elif law == "log-normal":  # wrong !
-        std_control = np.sqrt(np.log(1.0 + vol**2.0))
-        rho_1 = -get_trunc_lognorm(
-            mu=-0.5 * std_control**2,
-            sigma=std_control,
-            lower_bound=0,
-            upper_bound=1,
-            size=N_half,
-        )
-
     elif law == "normal":
         norm_lower = -1
         norm_upper = 0
@@ -154,9 +144,9 @@ def generate_non_conservative_shocks(
         new_deposits = np.maximum(deposits + np.random.randn(len(deposits)) * vol, 0.0)
 
     elif law == "normal-mean-reverting":
-        mean_reversion = 0.01
+        mean_reversion = vol
         epsilon = np.random.normal(loc=0, scale=vol, size=len(deposits))
-        shocks = mean_reversion * (initial_deposits - deposits) + epsilon * deposits
+        shocks = mean_reversion * (initial_deposits - deposits) + epsilon * total_assets
 
         # center the shocks
         shocks = shocks - np.mean(shocks)
