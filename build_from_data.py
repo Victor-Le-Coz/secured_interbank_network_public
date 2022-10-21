@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.ma as ma
 import pandas as pd
+import pickle5 as pickle
 
 
 def build_from_data(mmsr_data, maintenance_periods_list):
@@ -42,3 +43,11 @@ def build_from_data(mmsr_data, maintenance_periods_list):
             observed_path[t].end_maintenance = True
         else:
             observed_path[t].end_maintenance = False
+
+
+    pickle.dump(
+        observed_path,
+        open("./observed_path.pickle", "wb"),
+        protocol=pickle.HIGHEST_PROTOCOL,)
+
+    return observed_path
