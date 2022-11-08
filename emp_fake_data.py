@@ -12,11 +12,11 @@ def get_df_mmsr(nb_tran):
         ).to_timestamp(),
         data={
             "report_agent_lei": choices(
-                ["bank_" + str(i) for i in range(4)], k=nb_tran
+                ["bank_" + str(i) for i in range(50)], k=nb_tran
             ),
             "cntp_lei": choices(
-                ["bank_" + str(i) for i in range(5)]
-                + ["fund_" + str(i) for i in range(5)],
+                ["bank_" + str(i) for i in range(100)]
+                + ["fund_" + str(i) for i in range(50)],
                 k=nb_tran,
             ),
             "trns_nominal_amt": np.random.rand(nb_tran) * 100,
@@ -28,6 +28,10 @@ def get_df_mmsr(nb_tran):
             ).to_timestamp(),
             "first_occurence": choices(
                 [True, False],
+                k=nb_tran,  # first occurence of the reporting of an evergreen transaction repo
+            ),
+            "trns_type": choices(
+                ["BORR", "LEND", "BUYI", "SELL"],
                 k=nb_tran,  # first occurence of the reporting of an evergreen transaction repo
             ),
         },

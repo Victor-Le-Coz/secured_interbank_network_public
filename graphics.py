@@ -12,7 +12,7 @@ from matplotlib import pyplot as plt
 import functions as fct
 import metrics as mtr
 
-# define the figure size for all banks
+# define the figure size
 small_figsize = (4, 3)  # default one, the previsous version was (8,6)
 slide_figsize = (12, 6)  # for the single trajectories
 halfslide_figsize = (6, 6)  # for the network plots notably
@@ -517,9 +517,7 @@ def plot_core_periphery(bank_network, sig_c, sig_x, path, step, name_in_title):
     ax, pos = cpnet.draw(bank_network, sig_c, sig_x, ax)
 
     # show the plot
-    plt.title(
-        "{} core-periphery structure at the step {}".format(name_in_title, int(step))
-    )
+    plt.title("{} core-periphery structure at the step {}".format(name_in_title, step))
     fig.tight_layout()
     plt.savefig(
         path + "step_{" "}_core-periphery_structure.pdf".format(step),

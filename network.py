@@ -280,7 +280,7 @@ class ClassNetwork:
                 {"Jaccard index " + str(jaccard_period) + " time steps": []}
             )
 
-        # Specific case for the network density
+        # Specific case for the network density and jaccard aggregated
         for agg_period in self.agg_periods:
             self.time_series_metrics.update(
                 {"Network density over " + str(agg_period) + " time steps": []}
