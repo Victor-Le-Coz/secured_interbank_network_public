@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from random import choices
 
-freq = "5h"
+freq = "1h"
 
 
 def get_df_mmsr(nb_tran):
@@ -12,11 +12,11 @@ def get_df_mmsr(nb_tran):
         ).to_timestamp(),
         data={
             "report_agent_lei": choices(
-                ["bank_" + str(i) for i in range(50)], k=nb_tran
+                ["bank_" + str(i) for i in range(10)], k=nb_tran
             ),
             "cntp_lei": choices(
-                ["bank_" + str(i) for i in range(100)]
-                + ["fund_" + str(i) for i in range(50)],
+                ["bank_" + str(i) for i in range(15)]
+                + ["fund_" + str(i) for i in range(5)],
                 k=nb_tran,
             ),
             "trns_nominal_amt": np.random.rand(nb_tran) * 100,
@@ -37,6 +37,24 @@ def get_df_mmsr(nb_tran):
         },
     )
     return df_mmsr
+
+
+def get_df_finrep():
+    df_finrep = pd.DataFrame(
+        data={
+            "lei": ["bank_" + str(i) for i in range(50)] * 25,
+            "date": sorted(
+                list(
+                    pd.period_range(
+                        start="2020-01-01", freq="1y", periods=25
+                    ).to_timestamp()
+                )
+                * 50
+            ),
+            "total_assets": np.random.rand(50 * 25) * 100,
+        },
+    )
+    return df_finrep
 
 
 # Set the path of the maintenance period source file

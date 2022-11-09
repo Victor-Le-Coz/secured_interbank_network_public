@@ -375,10 +375,15 @@ def init_results_path(path):
     os.makedirs(os.path.join(path, "balance_Sheets"))
 
 
-def init_path(path):
+def delete_n_init_path(path):
     if os.path.exists(path):  # Delete all previous figures
         shutil.rmtree(path)
     os.makedirs(path)
+
+
+def init_path(path):
+    if not (os.path.exists(path)):
+        os.makedirs(path)
 
 
 def save_np_array(array, name):

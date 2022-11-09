@@ -48,7 +48,7 @@ if __name__ == "__main__":
         )
 
         # initialize the paths
-        fct.init_path(result_location + input_param + "/output_by_args/")
+        fct.delete_n_init_path(result_location + input_param + "/output_by_args/")
 
         # run the simulation in multiprocessing across arguments
         if gethostname() == "gibi":
