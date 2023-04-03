@@ -32,12 +32,8 @@ class ClassNetwork:
         shocks_method="bilateral",
         shocks_law="normal",
         shocks_vol=0.01,
-        result_location="./results/",
         min_repo_size=1e-10,
         LCR_mgt_opt=True,
-        jaccard_periods=[20, 100, 250],
-        agg_periods=[20, 100, 250],
-        cp_option=False,
     ):
         """
         Instance methode initializing the ClassNetwork.
@@ -96,81 +92,25 @@ class ClassNetwork:
             self.conservative_shock = True
         self.shocks_law = shocks_law
         self.shocks_vol = shocks_vol
-        self.result_location = result_location
         self.min_repo_size = min_repo_size
         self.LCR_mgt_opt = LCR_mgt_opt
-        self.jaccard_periods = jaccard_periods
-        self.agg_periods = agg_periods
-        self.cp_option = cp_option
 
         # Definition of the internal parameters of the ClassNetwork.
         self.step = 0  # Step number in the simulation process
         self.Banks = []  # List of the instances of the ClassBank existing
         # in the ClassNetwork.
-        self.network_deposits = np.zeros(
+        self.banks_deposits = np.zeros(
             n_banks
         )  # Numpy array of the deposits of
         # the banks in the network.
-        self.network_initial_deposits = np.zeros(n_banks)  # Numpy array of the
+        self.banks_initial_deposits = np.zeros(n_banks)  # Numpy array of the
         # initial deposits of the banks in the network.
-        self.network_total_assets = np.zeros(n_banks)  # Numpy array of the
+        self.banks_total_assets = np.zeros(n_banks)  # Numpy array of the
         # total assets of the banks in the network.
-        self.network_degree = np.zeros(
-            n_banks
-        )  # Numpy array of the degree of the banks in the network.
-
-        # Definition of the dictionaries associating to each of the accounting
-        # items, its corresponding numpy array of its value per bank,
-        # at a given time step.
-        self.network_assets = {}
-        self.network_liabilities = {}
-        self.network_off_balance = {}
 
         # Definition of the value of the collateral, here a constant across
         # time
         self.collateral_value = 1.0
-
-        # Definition of the adjacency matrices
-        self.adj_matrix = np.zeros((n_banks, n_banks))  # reverse repos
-        # adjacency matrix
-        self.trust_adj_matrix = np.zeros((n_banks, n_banks))  # trust
-        # coeficients adjacency matrix
-        self.prev_binary_adj_dic = (
-            {}
-        )  # dictionary of the previous adjacency matrix, used for the computation of the jaccard index (stable trading relationships) of different time length
-        for jaccard_period in jaccard_periods:
-            self.prev_binary_adj_dic.update(
-                {jaccard_period: np.zeros((n_banks, n_banks))}
-            )
-
-        self.agg_binary_adj_dic = (
-            {}
-        )  # dictionary of the aggregated ajency matrix over a given period
-        for agg_period in agg_periods:
-            self.agg_binary_adj_dic.update(
-                {agg_period: np.zeros((n_banks, n_banks))}
-            )
-
-        self.prev_agg_binary_adj_dic = (
-            {}
-        )  # dictionary of the previous aggregated binary adjency matrices for different aggregation periods
-        for agg_period in agg_periods:
-            self.prev_agg_binary_adj_dic.update(
-                {agg_period: np.zeros((n_banks, n_banks))}
-            )
-
-        # Definition of the dictionary associating to each accounting item the list of its values across time for a single bank. It also includes other time serries metrics, like the excess liquidity the in-degree, the out-degree, the nb of repo transactions ended within a step and the average across time of the maturity of repos.
-        self.single_trajectory = {}
-        self.single_bank_id = 0  # the selected single bank id
-
-        # Definition of the dictionary associating to each accounting item,
-        # the list of its total value across time. It also includes other
-        # time series metrics, like the network density, the jaccard index,
-        # or the excess liquidity.
-        self.time_series_metrics = {}
-
-        # definition of the p-value parameter of the core-perihpery structure dected by the cpnet algo
-        self.p_value = 1  # initialization at 1 (non significant test)
 
         # Reset the network when creating an instance of the ClassNetwork
         self.reset_network()
@@ -205,8 +145,8 @@ class ClassNetwork:
                 deposits = 100.0
             else:
                 assert False, ""
-            self.network_deposits[b] = deposits
-            self.network_initial_deposits[b] = deposits
+            self.banks_deposits[b] = deposits
+            self.banks_initial_deposits[b] = deposits
             self.Banks.append(
                 ClassBank(
                     id=b,
@@ -231,91 +171,8 @@ class ClassNetwork:
         for Bank in self.Banks:
             Bank.initialize_banks(self.Banks)
 
-        # initialize other single trajectory metrics
-        self.single_trajectory = {
-            "Cash": [],
-            "Securities Usable": [],
-            "Securities Encumbered": [],
-            "Loans": [],
-            "Reverse Repos": [],
-            "Own Funds": [],
-            "Deposits": [],
-            "Repos": [],
-            "MROs": [],
-            "Securities Collateral": [],
-            "Securities Reused": [],
-            "Excess Liquidity": [],
-            "Av. in-degree": [],
-            "Av. out-degree": [],
-            "Nb. of repo transactions ended": [],
-            "Av. volume of repo transactions ended": [],
-            "Repos av. maturity": [],
-        }
-
-        # Initialize the other network level and aggregated level parameters
-        self.time_series_metrics = {
-            "Cash tot. volume": [],
-            "Securities Usable tot. volume": [],
-            "Securities Encumbered tot. volume": [],
-            "Loans tot. volume": [],
-            "Reverse Repos tot. volume": [],
-            "Own Funds tot. volume": [],
-            "Deposits tot. volume": [],
-            "Repos tot. volume": [],
-            "MROs tot. volume": [],
-            "Securities Collateral tot. volume": [],
-            "Securities Reused tot. volume": [],
-            "Av. in-degree": [],
-            "Excess Liquidity": [],
-            "Av. nb. of repo transactions ended": [],
-            "Av. volume of repo transactions ended": [],
-            "Repos av. maturity": [],
-            "Gini": [],
-            "Repos min volume": [],
-            "Repos max volume": [],
-            "Repos av. volume": [],
-            "Assets tot. volume": [],
-            "Collateral reuse": [],
-        }
-
-        # Specific case of the Jaccard periods
-        for jaccard_period in self.jaccard_periods:
-            self.time_series_metrics.update(
-                {"Jaccard index " + str(jaccard_period) + " time steps": []}
-            )
-
-        # Specific case for the network density and jaccard aggregated
-        for agg_period in self.agg_periods:
-            self.time_series_metrics.update(
-                {"Network density over " + str(agg_period) + " time steps": []}
-            )
-            self.time_series_metrics.update(
-                {"Jaccard index over " + str(agg_period) + " time steps": []}
-            )
-
-        self.network_liabilities = {
-            "Own Funds": np.zeros(self.n_banks),
-            "Deposits": np.zeros(self.n_banks),
-            "Repos": np.zeros(self.n_banks),
-            "MROs": np.zeros(self.n_banks),
-        }
-        self.network_assets = {
-            "Cash": np.zeros(self.n_banks),
-            "Securities Usable": np.zeros(self.n_banks),
-            "Securities Encumbered": np.zeros(self.n_banks),
-            "Loans": np.zeros(self.n_banks),
-            "Reverse Repos": np.zeros(self.n_banks),
-        }
-        self.network_off_balance = {
-            "Securities Collateral": np.zeros(self.n_banks),
-            "Securities Reused": np.zeros(self.n_banks),
-        }
-
         # Initialize the steps to 0
         self.step = 0.0
-
-        # Create the required path to store the results
-        fct.init_results_path(self.result_location)
 
     def step_network(self):
         """
@@ -327,25 +184,25 @@ class ClassNetwork:
         # Generation of the shocks
         if self.shocks_method == "bilateral":
             shocks = sh.generate_bilateral_shocks(
-                self.network_deposits, law=self.shocks_law, vol=self.shocks_vol
+                self.banks_deposits, law=self.shocks_law, vol=self.shocks_vol
             )
         elif self.shocks_method == "multilateral":  # Damien's proposal,
             # doesn't work yet, could be enhanced
             shocks = sh.generate_multilateral_shocks(
-                self.network_deposits, law=self.shocks_law, vol=self.shocks_vol
+                self.banks_deposits, law=self.shocks_law, vol=self.shocks_vol
             )
         elif self.shocks_method == "dirichlet":
             shocks = sh.generate_dirichlet_shocks(
-                self.network_deposits,
-                self.network_initial_deposits,
+                self.banks_deposits,
+                self.banks_initial_deposits,
                 option="mean-reverting",
                 vol=self.shocks_vol,
             )
         elif self.shocks_method == "non-conservative":
             shocks = sh.generate_non_conservative_shocks(
-                self.network_deposits,
-                self.network_initial_deposits,
-                self.network_total_assets,
+                self.banks_deposits,
+                self.banks_initial_deposits,
+                self.banks_total_assets,
                 law=self.shocks_law,
                 vol=self.shocks_vol,
             )
@@ -354,7 +211,7 @@ class ClassNetwork:
 
         # Tests to ensure the shock created matches the required properties
         assert (
-            np.min(self.network_deposits + shocks) >= 0
+            np.min(self.banks_deposits + shocks) >= 0
         ), "negative shocks larger than deposits"  # To ensure shocks are not
         # higher than the deposits amount of each bank
         if self.conservative_shock:

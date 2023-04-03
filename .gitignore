@@ -8,6 +8,12 @@ results/
 saved_results/
 forceatlas2/
 support/
+/.history/
+/.vscode/
+/__pycache__/
+.ipynb_checkpoints/
+/dask-worker-space/
+/matplotlib-lebxwh_c/
 
 # C extensions
 *.so
