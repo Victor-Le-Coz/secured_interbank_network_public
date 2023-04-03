@@ -4,7 +4,7 @@ from network import single_run
 import functions as fct
 import graphics as gx
 from socket import gethostname
-import parameters as par
+import parameters as mtr
 
 if __name__ == "__main__":
 
@@ -13,8 +13,8 @@ if __name__ == "__main__":
 
     # define the parameters for the run
     result_location = "./results/general-testing/"
-    input_params = par.input_params
-    output_keys = par.output_single_keys + par.output_mlt_keys
+    input_params = mtr.input_params
+    output_keys = mtr.output_single_keys + mtr.output_mlt_keys
     jaccard_periods = [20, 100, 250, 500]
     agg_periods = [1, 50, 100, 250]
 
@@ -42,6 +42,7 @@ if __name__ == "__main__":
             jaccard_periods=jaccard_periods,
             agg_periods=agg_periods,
             cp_option=True,
+            output_opt=True,
             LCR_mgt_opt=False,
             output_keys=output_keys,
         )

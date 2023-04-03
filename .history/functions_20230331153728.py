@@ -23,35 +23,27 @@ def gini(x):
 
 def get_param_values(input_param):
     if input_param == "n_banks":
-        param_values = [
-            n_banks_test for n_banks_test in np.arange(10, 260, 10)
-        ]
+        param_values = [n_banks_test for n_banks_test in np.arange(10, 260, 10)]
     elif input_param == "beta":
         param_values = [beta for beta in np.arange(0.01, 1, 0.02)]
     elif (
         input_param == "collateral"
     ):  # can not be higher than the targeted LCR - except in the no LCR mngt version (lux's model)
-        param_values = [
-            beta_init_test for beta_init_test in np.arange(0, 1, 0.05)
-        ]
+        param_values = [beta_init_test for beta_init_test in np.arange(0, 1, 0.05)]
     elif input_param == "shocks_vol":
         param_values = [
             shocks_vol_test for shocks_vol_test in np.arange(0, 0.30, 0.0025)
         ]
     elif input_param == "min_repo_size":
         param_values = [
-            min_repo_size_test
-            for min_repo_size_test in np.logspace(-16, 2, num=25)
+            min_repo_size_test for min_repo_size_test in np.logspace(-16, 2, num=25)
         ]
     elif input_param == "alpha_pareto":
         param_values = [
-            alpha_pareto_test
-            for alpha_pareto_test in np.logspace(0, 1, num=25)
+            alpha_pareto_test for alpha_pareto_test in np.logspace(0, 1, num=25)
         ]
     elif input_param == "cash":
-        param_values = [
-            alpha_init_test for alpha_init_test in np.arange(0, 0.3, 0.01)
-        ]
+        param_values = [alpha_init_test for alpha_init_test in np.arange(0, 0.3, 0.01)]
     return param_values
 
 
@@ -63,26 +55,21 @@ def get_param_values_testing(input_param):
     elif (
         input_param == "collateral"
     ):  # can not be higher than the targeted LCR - except in the no LCR mngt version (lux's model)
-        param_values = [
-            beta_init_test for beta_init_test in np.arange(0, 1, 0.05)
-        ]
+        param_values = [beta_init_test for beta_init_test in np.arange(0, 1, 0.05)]
     elif input_param == "shocks_vol":
         param_values = [
             shocks_vol_test for shocks_vol_test in np.arange(0, 0.30, 0.0025)
         ]
     elif input_param == "min_repo_size":
         param_values = [
-            min_repo_size_test
-            for min_repo_size_test in np.logspace(-16, 2, num=3)
+            min_repo_size_test for min_repo_size_test in np.logspace(-16, 2, num=3)
         ]
     elif input_param == "alpha_pareto":
         param_values = [
             alpha_pareto_test for alpha_pareto_test in np.logspace(0, 1, num=3)
         ]
     elif input_param == "cash":
-        param_values = [
-            alpha_init_test for alpha_init_test in np.arange(0, 1, 0.1)
-        ]
+        param_values = [alpha_init_test for alpha_init_test in np.arange(0, 1, 0.1)]
 
     return param_values
 
@@ -109,6 +96,7 @@ def build_args(
     jaccard_periods=[20, 100, 250, 500],
     agg_periods=[20, 100, 250],
     cp_option=False,
+    output_opt=False,
     LCR_mgt_opt=True,
     output_keys=None,
 ):
@@ -134,17 +122,14 @@ def build_args(
                     shocks_method,
                     shocks_law,
                     shocks_vol,
-                    result_location
-                    + input_param
-                    + "/"
-                    + str(input_param_value)
-                    + "/",
+                    result_location + input_param + "/" + str(input_param_value) + "/",
                     min_repo_size,
                     time_steps,
                     save_every,
                     jaccard_periods,
                     agg_periods,
                     cp_option,
+                    output_opt,
                     LCR_mgt_opt,
                     output_keys,
                 )
@@ -167,17 +152,14 @@ def build_args(
                     shocks_method,
                     shocks_law,
                     shocks_vol,
-                    result_location
-                    + input_param
-                    + "/"
-                    + str(input_param_value)
-                    + "/",
+                    result_location + input_param + "/" + str(input_param_value) + "/",
                     min_repo_size,
                     time_steps,
                     save_every,
                     jaccard_periods,
                     agg_periods,
                     cp_option,
+                    output_opt,
                     LCR_mgt_opt,
                     output_keys,
                 )
@@ -200,17 +182,14 @@ def build_args(
                     shocks_method,
                     shocks_law,
                     shocks_vol,
-                    result_location
-                    + input_param
-                    + "/"
-                    + str(input_param_value)
-                    + "/",
+                    result_location + input_param + "/" + str(input_param_value) + "/",
                     min_repo_size,
                     time_steps,
                     save_every,
                     jaccard_periods,
                     agg_periods,
                     cp_option,
+                    output_opt,
                     LCR_mgt_opt,
                     output_keys,
                 )
@@ -233,17 +212,14 @@ def build_args(
                     shocks_method,
                     shocks_law,
                     input_param_value,
-                    result_location
-                    + input_param
-                    + "/"
-                    + str(input_param_value)
-                    + "/",
+                    result_location + input_param + "/" + str(input_param_value) + "/",
                     min_repo_size,
                     time_steps,
                     save_every,
                     jaccard_periods,
                     agg_periods,
                     cp_option,
+                    output_opt,
                     LCR_mgt_opt,
                     output_keys,
                 )
@@ -266,17 +242,14 @@ def build_args(
                     shocks_method,
                     shocks_law,
                     shocks_vol,
-                    result_location
-                    + input_param
-                    + "/"
-                    + str(input_param_value)
-                    + "/",
+                    result_location + input_param + "/" + str(input_param_value) + "/",
                     input_param_value,
                     time_steps,
                     save_every,
                     jaccard_periods,
                     agg_periods,
                     cp_option,
+                    output_opt,
                     LCR_mgt_opt,
                     output_keys,
                 )
@@ -299,17 +272,14 @@ def build_args(
                     shocks_method,
                     shocks_law,
                     shocks_vol,
-                    result_location
-                    + input_param
-                    + "/"
-                    + str(input_param_value)
-                    + "/",
+                    result_location + input_param + "/" + str(input_param_value) + "/",
                     min_repo_size,
                     time_steps,
                     save_every,
                     jaccard_periods,
                     agg_periods,
                     cp_option,
+                    output_opt,
                     LCR_mgt_opt,
                     output_keys,
                 )
@@ -332,17 +302,14 @@ def build_args(
                     shocks_method,
                     shocks_law,
                     shocks_vol,
-                    result_location
-                    + input_param
-                    + "/"
-                    + str(input_param_value)
-                    + "/",
+                    result_location + input_param + "/" + str(input_param_value) + "/",
                     min_repo_size,
                     time_steps,
                     save_every,
                     jaccard_periods,
                     agg_periods,
                     cp_option,
+                    output_opt,
                     LCR_mgt_opt,
                     output_keys,
                 )

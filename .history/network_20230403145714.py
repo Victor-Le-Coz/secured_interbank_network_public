@@ -317,6 +317,10 @@ class ClassNetwork:
         # Create the required path to store the results
         fct.init_results_path(self.result_location)
 
+        # Update all the metrics at time step 0
+        self.comp_step_metrics()
+        self.comp_single_trajectory()
+
     def step_network(self):
         """
         Instance method allowing the computation of the next step status of

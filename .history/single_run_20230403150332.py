@@ -1,4 +1,4 @@
-from dynamics import single_run
+from network import single_run
 import sys
 
 # set the recursion limit to an higher value
@@ -27,5 +27,5 @@ if __name__ == "__main__":
         agg_periods=[1, 50, 100, 250],
         cp_option=True,
         LCR_mgt_opt=False,
-        output_keys=False,
+        output_keys=None,
     )

@@ -105,7 +105,7 @@ class ClassNetwork:
 
         # Definition of the internal parameters of the ClassNetwork.
         self.step = 0  # Step number in the simulation process
-        self.Banks = []  # List of the instances of the ClassBank existing
+        self.banks = []  # List of the instances of the ClassBank existing
         # in the ClassNetwork.
         self.network_deposits = np.zeros(
             n_banks
@@ -184,7 +184,7 @@ class ClassNetwork:
         """
 
         # firt: reset the banks parameter of the instance of ClassNetwork
-        self.Banks = []
+        self.banks = []
 
         # For loop over the number of banks in the network to build the
         # deposits and initial deposits numpy arrays according to the chosen
@@ -207,7 +207,7 @@ class ClassNetwork:
                 assert False, ""
             self.network_deposits[b] = deposits
             self.network_initial_deposits[b] = deposits
-            self.Banks.append(
+            self.banks.append(
                 ClassBank(
                     id=b,
                     initial_deposits=deposits,
@@ -228,8 +228,8 @@ class ClassNetwork:
         # parameter in the ClassBank is a dictionary of the instances of the
         # ClassBank class existing in the ClassNetwork class, while the
         # banks parameter in the ClassNetwork is a list.
-        for Bank in self.Banks:
-            Bank.initialize_banks(self.Banks)
+        for bank in self.banks:
+            bank.initialize_banks(self.banks)
 
         # initialize other single trajectory metrics
         self.single_trajectory = {
@@ -317,6 +317,10 @@ class ClassNetwork:
         # Create the required path to store the results
         fct.init_results_path(self.result_location)
 
+        # Update all the metrics at time step 0
+        self.comp_step_metrics()
+        self.comp_single_trajectory()
+
     def step_network(self):
         """
         Instance method allowing the computation of the next step status of
@@ -368,16 +372,16 @@ class ClassNetwork:
         # For loops over the instances of ClassBank in the ClassNetwork.
         ix = np.arange(self.n_banks)  # Defines an index of the banks
         for i in ix:
-            self.Banks[i].set_shock(shocks[i])
-            self.Banks[i].set_collateral(self.collateral_value)
+            self.banks[i].set_shock(shocks[i])
+            self.banks[i].set_collateral(self.collateral_value)
             if self.LCR_mgt_opt:
-                self.Banks[i].step_lcr_mgt()
-            self.Banks[
+                self.banks[i].step_lcr_mgt()
+            self.banks[
                 i
             ].repo_transactions_counter = (
                 0  # Reset the repo transaction ended counter to 0
             )
-            self.Banks[
+            self.banks[
                 i
             ].repo_transactions_size = (
                 0  # Reset the repo transaction ended counter to 0
@@ -385,20 +389,85 @@ class ClassNetwork:
         ix = np.random.permutation(ix)  # Permutation of the
         # banks' indexes to decide in which order banks can close their repos.
         for i in ix:
-            self.Banks[
+            self.banks[
                 i
             ].step_end_repos()  # Run the step end repos for the bank self
 
         ix = np.random.permutation(ix)  # New permutation of the
         # banks' indexes to decide in which order banks can enter into repos
         for i in ix:
-            self.Banks[i].step_enter_repos()
+            self.banks[i].step_enter_repos()
             if not (self.conservative_shock) or not (self.LCR_mgt_opt):
-                self.Banks[i].step_MRO()
+                self.banks[i].step_MRO()
         for i in ix:
-            self.Banks[i].assert_minimum_reserves()
-            self.Banks[i].assert_alm()
+            self.banks[i].assert_minimum_reserves()
+            self.banks[i].assert_alm()
             if self.LCR_mgt_opt:
-                self.Banks[i].assert_lcr()
+                self.banks[i].assert_lcr()
             # self.banks[i].assert_leverage()
-            self.Banks[i].steps += 1
+            self.banks[i].steps += 1
+
+
+def single_run(
+    n_banks=50,
+    alpha_init=0.01,
+    alpha=0.01,
+    beta_init=0.1,
+    beta_reg=0.1,
+    beta_star=0.1,
+    gamma=0.03,
+    collateral_value=1.0,
+    initialization_method="constant",
+    alpha_pareto=1.3,
+    shocks_method="bilateral",
+    shocks_law="normal",
+    shocks_vol=0.01,
+    result_location="./results/",
+    min_repo_size=1e-10,
+    time_steps=500,
+    save_every=500,
+    jaccard_periods=[20, 100, 250, 500],
+    agg_periods=[20, 100, 250],
+    cp_option=False,
+    output_opt=False,
+    LCR_mgt_opt=True,
+    output_keys=None,
+):
+
+    network = ClassNetwork(
+        n_banks=n_banks,
+        alpha_init=alpha_init,
+        beta_init=beta_init,
+        beta_reg=beta_reg,
+        beta_star=beta_star,
+        alpha=alpha,
+        gamma=gamma,
+        collateral_value=collateral_value,
+        initialization_method=initialization_method,
+        alpha_pareto=alpha_pareto,
+        shocks_method=shocks_method,
+        shocks_law=shocks_law,
+        shocks_vol=shocks_vol,
+        result_location=result_location,
+        min_repo_size=min_repo_size,
+        LCR_mgt_opt=LCR_mgt_opt,
+        jaccard_periods=jaccard_periods,
+        agg_periods=agg_periods,
+        cp_option=cp_option,
+    )
+
+    if output_opt:
+        return network.simulate(
+            time_steps=time_steps,
+            save_every=save_every,
+            output_opt=output_opt,
+            output_keys=output_keys,
+        )
+
+    else:
+        network.simulate(
+            time_steps=time_steps,
+            save_every=save_every,
+            output_opt=output_opt,
+            output_keys=output_keys,
+        )

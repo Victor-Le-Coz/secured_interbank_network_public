@@ -1,4 +1,4 @@
-from dynamics import single_run
+from network import single_run
 import sys
 
 # set the recursion limit to an higher value
@@ -21,11 +21,11 @@ if __name__ == "__main__":
         shocks_vol=0.01,
         result_location="./results/single_run/general-testing/",
         min_repo_size=1e-8,
-        time_steps=int(1e2),
+        time_steps=int(1e4),
         save_every=2500,
         jaccard_periods=[20, 100, 250, 500],
         agg_periods=[1, 50, 100, 250],
         cp_option=True,
         LCR_mgt_opt=False,
-        output_keys=False,
+        output_keys=None,
     )
