@@ -19,7 +19,7 @@ class ClassNetwork:
 
     def __init__(
         self,
-        n_banks,
+        nb_banks,
         alpha_init=0.01,
         alpha=0.01,
         beta_init=0.1,
@@ -75,7 +75,7 @@ class ClassNetwork:
         ], "Not valid initialisation method"
 
         # initialization of the class parameters.
-        self.n_banks = n_banks
+        self.nb_banks = nb_banks
         self.alpha_init = alpha_init
         self.alpha = alpha
         self.beta_init = beta_init
@@ -95,41 +95,33 @@ class ClassNetwork:
         self.min_repo_size = min_repo_size
         self.LCR_mgt_opt = LCR_mgt_opt
 
-        # Definition of the internal parameters of the ClassNetwork.
+        # Reset the network when creating an instance of the ClassNetwork
+        self.reset_network()
+
+    def reset_network(self):
+
         self.step = 0  # Step number in the simulation process
         self.Banks = []  # List of the instances of the ClassBank existing
         # in the ClassNetwork.
         self.banks_deposits = np.zeros(
-            n_banks
+            self.nb_banks
         )  # Numpy array of the deposits of
         # the banks in the network.
-        self.banks_initial_deposits = np.zeros(n_banks)  # Numpy array of the
+        self.banks_initial_deposits = np.zeros(
+            self.nb_banks
+        )  # Numpy array of the
         # initial deposits of the banks in the network.
-        self.banks_total_assets = np.zeros(n_banks)  # Numpy array of the
+        self.banks_total_assets = np.zeros(self.nb_banks)  # Numpy array of the
         # total assets of the banks in the network.
 
         # Definition of the value of the collateral, here a constant across
         # time
         self.collateral_value = 1.0
 
-        # Reset the network when creating an instance of the ClassNetwork
-        self.reset_network()
-
-    def reset_network(self):
-        """
-        Instance method allowing the initialization an instance of the
-        ClassNetwork. It notably sets the starting deposits according to the
-        chosen approach.
-        :return:
-        """
-
-        # firt: reset the banks parameter of the instance of ClassNetwork
-        self.Banks = []
-
         # For loop over the number of banks in the network to build the
         # deposits and initial deposits numpy arrays according to the chosen
         # method, then create each of the instances of ClassBank
-        for b in range(self.n_banks):
+        for b in range(self.nb_banks):
             if self.initialization_method == "pareto":
                 deposits = (
                     pareto.rvs(
@@ -170,9 +162,6 @@ class ClassNetwork:
         # banks parameter in the ClassNetwork is a list.
         for Bank in self.Banks:
             Bank.initialize_banks(self.Banks)
-
-        # Initialize the steps to 0
-        self.step = 0.0
 
     def step_network(self):
         """
@@ -223,7 +212,7 @@ class ClassNetwork:
             )  # To ensure that the conservative shocks are dully conservative
 
         # For loops over the instances of ClassBank in the ClassNetwork.
-        ix = np.arange(self.n_banks)  # Defines an index of the banks
+        ix = np.arange(self.nb_banks)  # Defines an index of the banks
         for i in ix:
             self.Banks[i].set_shock(shocks[i])
             self.Banks[i].set_collateral(self.collateral_value)
@@ -259,3 +248,6 @@ class ClassNetwork:
                 self.Banks[i].assert_lcr()
             # self.banks[i].assert_leverage()
             self.Banks[i].steps += 1
+
+        # now we are at a new step of the network !
+        self.step += 1

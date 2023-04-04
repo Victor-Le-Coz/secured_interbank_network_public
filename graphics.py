@@ -210,13 +210,19 @@ def bar_plot_balance_sheet(
     plt.close()
 
 
-def plot_assets_loans_mros(time_series_metrics, path):
+def plot_assets_loans_mros(df_network_trajectory, path):
     fig = plt.figure(figsize=figsize)
-    length = len(time_series_metrics["Securities Usable tot. volume"])
-    plt.plot(np.arange(length), time_series_metrics["Loans tot. volume"])
-    plt.plot(np.arange(length), time_series_metrics["MROs tot. volume"])
-    plt.plot(np.arange(length), time_series_metrics["Assets tot. volume"])
-    # plt.plot(np.arange(length), time_series_metrics["Deposits"])
+    plt.plot(
+        df_network_trajectory.index, df_network_trajectory["Loans tot. volume"]
+    )
+    plt.plot(
+        df_network_trajectory.index, df_network_trajectory["MROs tot. volume"]
+    )
+    plt.plot(
+        df_network_trajectory.index,
+        df_network_trajectory["Assets tot. volume"],
+    )
+    # plt.plot(df_network_trajectory.index, df_network_trajectory["Deposits"])
     plt.legend(["Loans", "MROs", "Assets"])
     plt.xlabel("Steps")
     plt.ylabel("Monetary units")
@@ -226,26 +232,22 @@ def plot_assets_loans_mros(time_series_metrics, path):
     plt.close()
 
 
-def plot_network_density(time_series_metrics, agg_periods, path):
+def plot_network_density(df_network_trajectory, path):
     fig = plt.figure(figsize=figsize)
-    length = len(
-        time_series_metrics[
-            "Network density over " + str(agg_periods[0]) + " time steps"
-        ]
-    )
-    for agg_period in agg_periods:
+
+    for column in [
+        f"Network density-{agg_period}" for agg_period in par.agg_periods
+    ]:
         plt.plot(
-            np.arange(length),
-            time_series_metrics[
-                "Network density over " + str(agg_period) + " time steps"
-            ],
+            df_network_trajectory.index,
+            df_network_trajectory[column],
         )
 
     plt.xlabel("Steps")
     plt.ylabel("Network density")
     plt.title("Network density")
     plt.legend(
-        [str(agg_period) + " time steps" for agg_period in agg_periods],
+        [str(agg_period) + " time steps" for agg_period in par.agg_periods],
         loc="upper left",
     )
     plt.grid()
@@ -254,10 +256,9 @@ def plot_network_density(time_series_metrics, agg_periods, path):
     plt.close()
 
 
-def plot_gini(time_series_metrics, path):
+def plot_gini(df_network_trajectory, path):
     fig = plt.figure(figsize=figsize)
-    length = len(time_series_metrics["Gini"])
-    plt.plot(np.arange(length), time_series_metrics["Gini"])
+    plt.plot(df_network_trajectory.index, df_network_trajectory["Gini"])
     plt.xlabel("Steps")
     plt.ylabel("Gini coefficient")
     plt.title("Gini of banks' assets")
@@ -266,12 +267,17 @@ def plot_gini(time_series_metrics, path):
     plt.close()
 
 
-def plot_reverse_repo_size_stats(time_series_metrics, path):
+def plot_reverse_repo_size_stats(df_network_trajectory, path):
     fig = plt.figure(figsize=figsize)
-    length = len(time_series_metrics["Repos min volume"])
-    plt.plot(np.arange(length), time_series_metrics["Repos min volume"])
-    plt.plot(np.arange(length), time_series_metrics["Repos max volume"])
-    plt.plot(np.arange(length), time_series_metrics["Repos av. volume"])
+    plt.plot(
+        df_network_trajectory.index, df_network_trajectory["Repos min volume"]
+    )
+    plt.plot(
+        df_network_trajectory.index, df_network_trajectory["Repos max volume"]
+    )
+    plt.plot(
+        df_network_trajectory.index, df_network_trajectory["Repos av. volume"]
+    )
     plt.xlabel("Steps")
     plt.ylabel("Monetary units")
     plt.legend(
@@ -289,10 +295,11 @@ def plot_reverse_repo_size_stats(time_series_metrics, path):
     plt.close()
 
 
-def plot_collateral_reuse(time_series_metrics, path):
+def plot_collateral_reuse(df_network_trajectory, path):
     fig = plt.figure(figsize=figsize)
-    length = len(time_series_metrics["Collateral reuse"])
-    plt.plot(np.arange(length), time_series_metrics["Collateral reuse"])
+    plt.plot(
+        df_network_trajectory.index, df_network_trajectory["Collateral reuse"]
+    )
     plt.xlabel("Steps")
     plt.ylabel("Ratio")
     plt.title("Collateral reuse")
@@ -301,10 +308,11 @@ def plot_collateral_reuse(time_series_metrics, path):
     plt.close()
 
 
-def plot_repos(time_series_metrics, path):
+def plot_repos(df_network_trajectory, path):
     fig = plt.figure(figsize=figsize)
-    length = len(time_series_metrics["Repos tot. volume"])
-    plt.plot(np.arange(length), time_series_metrics["Repos tot. volume"])
+    plt.plot(
+        df_network_trajectory.index, df_network_trajectory["Repos tot. volume"]
+    )
     plt.xlabel("Steps")
     plt.ylabel("Monetary units")
     plt.title("Total repo amount")
@@ -313,57 +321,44 @@ def plot_repos(time_series_metrics, path):
     plt.close()
 
 
-def plot_jaccard_not_aggregated(time_series_metrics, jaccard_periods, path):
+def plot_jaccard_not_aggregated(df_network_trajectory, path):
     fig = plt.figure(figsize=figsize)
-    length = len(
-        time_series_metrics[
-            "Jaccard index " + str(jaccard_periods[0]) + " time steps"
-        ]
-    )
-    for jaccard_period in jaccard_periods:
+
+    for column in [
+        f"Raw jaccard index-{agg_period}" for agg_period in par.agg_periods
+    ]:
         plt.plot(
-            np.arange(length),
-            time_series_metrics[
-                "Jaccard index " + str(jaccard_period) + " time steps"
-            ],
+            df_network_trajectory.index,
+            df_network_trajectory[column],
         )
 
     plt.xlabel("Steps")
-    plt.ylabel("Jaccard index")
-    plt.title("Jaccard index")
+    plt.ylabel("Raw jaccard index")
+    plt.title("Raw jaccard index")
     plt.legend(
-        [
-            str(jaccard_period) + " time steps"
-            for jaccard_period in jaccard_periods
-        ],
+        [str(agg_period) + " time steps" for agg_period in par.agg_periods],
         loc="upper left",
     )
     plt.grid()
     fig.tight_layout()
-    plt.savefig(path + "jaccard_index.pdf", bbox_inches="tight")
+    plt.savefig(path + "raw_jaccard_index.pdf", bbox_inches="tight")
     plt.close()
 
 
-def plot_jaccard_aggregated(time_series_metrics, agg_periods, path):
+def plot_jaccard_aggregated(df_network_trajectory, path):
     fig = plt.figure(figsize=figsize)
-    length = len(
-        time_series_metrics[
-            "Jaccard index over " + str(agg_periods[0]) + " time steps"
-        ]
-    )
-    for agg_period in agg_periods:
+    for column in [
+        f"Jaccard index-{agg_period}" for agg_period in par.agg_periods
+    ]:
         plt.plot(
-            np.arange(length),
-            time_series_metrics[
-                "Jaccard index over " + str(agg_period) + " time steps"
-            ],
+            df_network_trajectory.index,
+            df_network_trajectory[column],
         )
-
     plt.xlabel("Steps")
     plt.ylabel("Jaccard index")
     plt.title("Jaccard index aggregated")
     plt.legend(
-        [str(agg_period) + " time steps" for agg_period in agg_periods],
+        [str(agg_period) + " time steps" for agg_period in par.agg_periods],
         loc="upper left",
     )
     plt.grid()
@@ -372,11 +367,15 @@ def plot_jaccard_aggregated(time_series_metrics, agg_periods, path):
     plt.close()
 
 
-def plot_excess_liquidity_and_deposits(time_series_metrics, path):
+def plot_excess_liquidity_and_deposits(df_network_trajectory, path):
     fig = plt.figure(figsize=figsize)
-    length = len(time_series_metrics["Excess Liquidity"])
-    plt.plot(np.arange(length), time_series_metrics["Excess Liquidity"])
-    plt.plot(np.arange(length), time_series_metrics["Deposits tot. volume"])
+    plt.plot(
+        df_network_trajectory.index, df_network_trajectory["Excess Liquidity"]
+    )
+    plt.plot(
+        df_network_trajectory.index,
+        df_network_trajectory["Deposits tot. volume"],
+    )
     plt.legend(["Excess Liquidity" + "Deposits"], loc="upper left")
     plt.xlabel("Steps")
     plt.ylabel("Monetary units")
@@ -389,22 +388,23 @@ def plot_excess_liquidity_and_deposits(time_series_metrics, path):
     plt.close()
 
 
-def plot_collateral(time_series_metrics, path):
+def plot_collateral(df_network_trajectory, path):
     fig = plt.figure(figsize=figsize)
-    length = len(time_series_metrics["Securities Usable tot. volume"])
     plt.plot(
-        np.arange(length), time_series_metrics["Securities Usable tot. volume"]
+        df_network_trajectory.index,
+        df_network_trajectory["Securities Usable tot. volume"],
     )
     plt.plot(
-        np.arange(length),
-        time_series_metrics["Securities Encumbered tot. volume"],
+        df_network_trajectory.index,
+        df_network_trajectory["Securities Encumbered tot. volume"],
     )
     plt.plot(
-        np.arange(length),
-        time_series_metrics["Securities Collateral tot. volume"],
+        df_network_trajectory.index,
+        df_network_trajectory["Securities Collateral tot. volume"],
     )
     plt.plot(
-        np.arange(length), time_series_metrics["Securities Reused tot. volume"]
+        df_network_trajectory.index,
+        df_network_trajectory["Securities Reused tot. volume"],
     )
     plt.legend(
         [
@@ -423,10 +423,11 @@ def plot_collateral(time_series_metrics, path):
     plt.close()
 
 
-def plot_degre_network(time_series_metrics, path):
+def plot_degre_network(df_network_trajectory, path):
     fig = plt.figure(figsize=figsize)
-    length = len(time_series_metrics["Av. in-degree"])
-    plt.plot(np.arange(length), time_series_metrics["Av. in-degree"])
+    plt.plot(
+        df_network_trajectory.index, df_network_trajectory["Av. in-degree"]
+    )
     plt.xlabel("Steps")
     plt.ylabel("Av. in-degree")
     plt.title("Av. in-degree")
@@ -435,12 +436,11 @@ def plot_degre_network(time_series_metrics, path):
     plt.close()
 
 
-def plot_average_nb_transactions(time_series_metrics, path):
+def plot_average_nb_transactions(df_network_trajectory, path):
     fig = plt.figure(figsize=figsize)
-    length = len(time_series_metrics["Av. nb. of repo transactions ended"])
     plt.plot(
-        np.arange(length),
-        time_series_metrics["Av. nb. of repo transactions ended"],
+        df_network_trajectory.index,
+        df_network_trajectory["Av. nb. of repo transactions ended"],
     )
     plt.xlabel("Steps")
     plt.ylabel("Number of transactions")
@@ -453,12 +453,11 @@ def plot_average_nb_transactions(time_series_metrics, path):
     plt.close()
 
 
-def plot_average_size_transactions(time_series_metrics, path):
+def plot_average_size_transactions(df_network_trajectory, path):
     fig = plt.figure(figsize=figsize)
-    length = len(time_series_metrics["Av. volume of repo transactions ended"])
     plt.plot(
-        np.arange(length),
-        time_series_metrics["Av. volume of repo transactions ended"],
+        df_network_trajectory.index,
+        df_network_trajectory["Av. volume of repo transactions ended"],
     )
     plt.xlabel("Steps")
     plt.ylabel("Monetary units")
@@ -471,12 +470,11 @@ def plot_average_size_transactions(time_series_metrics, path):
     plt.close()
 
 
-def plot_average_maturity_repo(time_series_metrics, path):
+def plot_average_maturity_repo(df_network_trajectory, path):
     fig = plt.figure(figsize=figsize)
-    length = len(time_series_metrics["Repos av. maturity"])
     plt.plot(
-        np.arange(length),
-        time_series_metrics["Repos av. maturity"],
+        df_network_trajectory.index,
+        df_network_trajectory["Repos av. maturity"],
     )
     plt.xlabel("Steps")
     plt.ylabel("Maturity")
@@ -561,7 +559,7 @@ def plot_asset_per_degree(total_assets, degree, path):
     plt.close()
 
 
-def plot_single_trajectory(single_trajectory, path):
+def plot_df_bank_trajectory(df_bank_trajectory, path):
 
     plt.figure(figsize=figsize)
     fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=slide_figsize)
@@ -573,9 +571,10 @@ def plot_single_trajectory(single_trajectory, path):
         "MROs",
     ]
 
-    length = len(single_trajectory["Loans"])
     for key in keys_s:
-        ax1.plot(np.arange(length), single_trajectory[key], label=str(key))
+        ax1.plot(
+            df_bank_trajectory.index, df_bank_trajectory[key], label=str(key)
+        )
 
     ax1.tick_params(
         axis="x",
@@ -602,7 +601,9 @@ def plot_single_trajectory(single_trajectory, path):
     ]
 
     for key in keys_s:
-        ax2.plot(np.arange(length), single_trajectory[key], label=str(key))
+        ax2.plot(
+            df_bank_trajectory.index, df_bank_trajectory[key], label=str(key)
+        )
 
     ax2.tick_params(
         axis="x",
@@ -625,7 +626,9 @@ def plot_single_trajectory(single_trajectory, path):
         "Repos av. maturity",
     ]
     for key in keys_s:
-        ax3.plot(np.arange(length), single_trajectory[key], label=str(key))
+        ax3.plot(
+            df_bank_trajectory.index, df_bank_trajectory[key], label=str(key)
+        )
 
     ax3.set_xlabel("Steps")
     ax3.set_ylabel("Indicators")
