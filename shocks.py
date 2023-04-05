@@ -160,7 +160,7 @@ def generate_non_conservative_shocks(
         shocks = shocks - np.mean(shocks)
 
         # clip the negative shocks to the deposits size
-        new_deposits = (deposits + shocks).clip(min=0)
+        new_deposits = (deposits + shocks).clip(lower=0)
 
     else:
         assert False, ""

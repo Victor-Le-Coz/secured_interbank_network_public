@@ -1,5 +1,47 @@
 agg_periods = [1, 50, 100, 250]
 
+# accounting items
+assets = [
+    "Cash",
+    "Securities Usable",
+    "Securities Encumbered",
+    "Loans",
+    "Reverse Repos",
+]
+
+liabilities = [
+    "Own Funds",
+    "Deposits",
+    "Repos",
+    "MROs",
+]
+
+off_bs_items = [
+    "Securities Collateral",
+    "Securities Reused",
+]
+
+accounting_items = assets + liabilities + off_bs_items
+
+# other items
+other_items = ["Initial deposits", "Total assets"]
+
+# bank items
+bank_items = accounting_items + other_items
+
+# shocks modeling approaches
+shocks_methods = [
+    "bilateral",
+    "multilateral",
+    "dirichlet",
+    "non-conservative",
+]
+
+# initialization approaches
+initialization_methods = ["constant", "pareto"]
+
+# matrices
+matrices = ["adjency", "trust", "binary_adjency", "non-zero_adjency"]
 
 # output metrics
 output_single_keys = [

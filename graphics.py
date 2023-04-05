@@ -51,29 +51,26 @@ def bar_plot_deposits(deposits, path, step):
 
 
 def bar_plot_balance_sheet(
-    total_assets,
-    network_assets,
-    network_liabilities,
-    network_off_balance,
+    df_banks,
     path,
     step,
 ):
     plt.figure()
     fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=halfslide_figsize)
 
-    ix_sorted = np.argsort(total_assets)
+    ix_sorted = np.argsort(np.asarray(df_banks["Total assets"]))
     banks_sorted = ["Bank {}".format(str(b)) for b in ix_sorted]
 
-    a1 = network_assets["Cash"][ix_sorted]
-    a2 = a1 + network_assets["Securities Usable"][ix_sorted]
-    a3 = a2 + network_assets["Securities Encumbered"][ix_sorted]
-    a4 = a3 + network_assets["Loans"][ix_sorted]
-    a5 = a4 + network_assets["Reverse Repos"][ix_sorted]
+    a1 = df_banks.loc[ix_sorted, "Cash"]
+    a2 = a1 + df_banks.loc[ix_sorted, "Securities Usable"]
+    a3 = a2 + df_banks.loc[ix_sorted, "Securities Encumbered"]
+    a4 = a3 + df_banks.loc[ix_sorted, "Loans"]
+    a5 = a4 + df_banks.loc[ix_sorted, "Reverse Repos"]
 
-    b1 = network_liabilities["Own Funds"][ix_sorted]
-    b2 = b1 + network_liabilities["Deposits"][ix_sorted]
-    b3 = b2 + network_liabilities["Repos"][ix_sorted]
-    b4 = b3 + network_liabilities["MROs"][ix_sorted]
+    b1 = df_banks.loc[ix_sorted, "Own Funds"]
+    b2 = b1 + df_banks.loc[ix_sorted, "Deposits"]
+    b3 = b2 + df_banks.loc[ix_sorted, "Repos"]
+    b4 = b3 + df_banks.loc[ix_sorted, "MROs"]
 
     barWidth = 0.75
 
@@ -86,7 +83,7 @@ def bar_plot_balance_sheet(
     )
     ax1.bar(
         banks_sorted,
-        height=network_assets["Securities Usable"][ix_sorted],
+        height=df_banks.loc[ix_sorted, "Securities Usable"],
         bottom=a1,
         color="green",
         width=barWidth,
@@ -94,7 +91,7 @@ def bar_plot_balance_sheet(
     )
     ax1.bar(
         banks_sorted,
-        height=network_assets["Securities Encumbered"][ix_sorted],
+        height=df_banks.loc[ix_sorted, "Securities Encumbered"],
         bottom=a2,
         color="red",
         width=barWidth,
@@ -102,7 +99,7 @@ def bar_plot_balance_sheet(
     )
     ax1.bar(
         banks_sorted,
-        height=network_assets["Loans"][ix_sorted],
+        height=df_banks.loc[ix_sorted, "Loans"],
         bottom=a3,
         color="blue",
         width=barWidth,
@@ -110,7 +107,7 @@ def bar_plot_balance_sheet(
     )
     ax1.bar(
         banks_sorted,
-        height=network_assets["Reverse Repos"][ix_sorted],
+        height=df_banks.loc[ix_sorted, "Reverse Repos"],
         bottom=a4,
         color="yellow",
         width=barWidth,
@@ -146,7 +143,7 @@ def bar_plot_balance_sheet(
     )
     ax2.bar(
         banks_sorted,
-        height=network_liabilities["Deposits"][ix_sorted],
+        height=df_banks.loc[ix_sorted, "Deposits"],
         bottom=b1,
         color="green",
         width=barWidth,
@@ -154,7 +151,7 @@ def bar_plot_balance_sheet(
     )
     ax2.bar(
         banks_sorted,
-        height=network_liabilities["Repos"][ix_sorted],
+        height=df_banks.loc[ix_sorted, "Repos"],
         bottom=b2,
         color="red",
         width=barWidth,
@@ -162,7 +159,7 @@ def bar_plot_balance_sheet(
     )
     ax2.bar(
         banks_sorted,
-        height=network_liabilities["MROs"][ix_sorted],
+        height=df_banks.loc[ix_sorted, "MROs"],
         bottom=b3,
         color="blue",
         width=barWidth,
@@ -182,15 +179,15 @@ def bar_plot_balance_sheet(
 
     ax3.bar(
         banks_sorted,
-        height=network_off_balance["Securities Collateral"][ix_sorted],
+        height=df_banks.loc[ix_sorted, "Securities Collateral"],
         color="green",
         width=barWidth,
         label="Own Funds",
     )
     ax3.bar(
         banks_sorted,
-        height=network_off_balance["Securities Reused"][ix_sorted],
-        bottom=network_off_balance["Securities Collateral"][ix_sorted],
+        height=df_banks.loc[ix_sorted, "Securities Reused"],
+        bottom=df_banks.loc[ix_sorted, "Securities Collateral"],
         color="red",
         width=barWidth,
         label="Own Funds",
