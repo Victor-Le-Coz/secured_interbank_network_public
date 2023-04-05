@@ -5,11 +5,6 @@ import numpy as np
 import pandas as pd
 import parameters as par
 
-# The parameter sets the limit to the float precision when running the
-# algorithm, a value lower than this amount is
-# considered as negligible.
-float_limit = 1e-8  # issues sometimes
-
 
 class ClassBank:
     """
@@ -22,18 +17,20 @@ class ClassBank:
         self,
         id,
         initial_deposits,
-        alpha_init=0.01,
-        alpha=0.01,
-        beta_init=0.1,
-        beta_reg=0.1,
-        beta_star=0.1,
-        gamma=0.03,
+        alpha_init,
+        alpha,
+        beta_init,
+        beta_reg,
+        beta_star,
+        gamma,
+        nb_banks,
+        Global,
         collateral_value=1.0,
         conservative_shock=True,
         LCR_mgt_opt=True,
     ):
         # Initialisation of the class parameters.
-        self.id = str(id)
+        self.id = id
         self.alpha = alpha
         self.alpha_init = alpha_init
         self.beta_init = beta_init
@@ -43,6 +40,17 @@ class ClassBank:
         self.collateral_value = collateral_value
         self.conservative_shock = conservative_shock
         self.LCR_mgt_opt = LCR_mgt_opt
+        self.nb_banks = nb_banks
+        self.Global = Global
+
+        # definition of the df for storing all reverse repo transactions
+        self.df_reverse_repos = pd.DataFrame(
+            index=pd.MultiIndex.from_tuples(
+                [],
+                names=["bank_id", "trans_id"],
+            ),
+            columns=par.reverse_repos,
+        )
 
         # Other parameters initialization
         self.excess_liquidity = (
@@ -100,19 +108,16 @@ class ClassBank:
         self.repos_off_filo = (
             {}
         )  # Dictionary over the other banks of a list of list couples with
-        # the amount of
-        # securities collateral, and time steps at which repo are entered in.
+        # the amount of securities collateral, and time steps at which repo are entered in.
         self.repos_on_maturities = (
             []
         )  # List of the maturities of the repos performed by the instance
-        # of ClassBank,
-        # using its securities usable.
+        # of ClassBank using its securities usable.
         self.repos_on_amounts = []
         self.repos_off_maturities = (
             []
         )  # List of the maturities of the repos performed by the instance
-        # of ClassBank,
-        # using its securities collateral.
+        # of ClassBank using its securities collateral.
         self.repos_off_amounts = []
 
         # Dictionaries of the balance sheet items of an instance of the
@@ -284,13 +289,13 @@ class ClassBank:
             # with a given bank b
             end = min(self.off_balance_repos[b], target_repo_amount_to_close)
 
-            if self.off_balance_repos[b] - end < -float_limit:
+            if self.off_balance_repos[b] - end < -par.float_limit:
                 print(self.off_balance_repos[b])
 
             if (
                 self.off_balance_repos[b]
                 - self.off_bs_items["Securities " "Reused"]
-                > float_limit
+                > par.float_limit
             ):
                 print(
                     "The end repo amount of bank {} with bank {} is {}, "
@@ -317,7 +322,7 @@ class ClassBank:
                     sum(self.off_balance_repos.values())
                     - self.off_bs_items["Securities Reused"]
                 )
-                < float_limit
+                < par.float_limit
             ), (
                 "the sum of the "
                 "off-balance repos {}, "
@@ -388,7 +393,7 @@ class ClassBank:
 
                 self.off_balance_repos[b] -= end
 
-                if self.off_balance_repos[b] < -float_limit:
+                if self.off_balance_repos[b] < -par.float_limit:
                     print(self.off_balance_repos)
 
                 # update the remaining repo amount
@@ -416,7 +421,7 @@ class ClassBank:
                 # )
 
                 assert (
-                    self.off_bs_items["Securities Reused"] >= -float_limit
+                    self.off_bs_items["Securities Reused"] >= -par.float_limit
                 ), (
                     "securities reused negative {} at step {}, due to "
                     "retrieving of end {}".format(
@@ -450,7 +455,7 @@ class ClassBank:
                     sum(self.on_balance_repos.values())
                     - self.assets["Securities Encumbered"]
                 )
-                < float_limit
+                < par.float_limit
             ), (
                 "the sum of the on-balance repos {} are not equal to "
                 "the Securities Encumbered {}".format(
@@ -570,7 +575,7 @@ class ClassBank:
 
         # Assert if the recursive algorithm worked adequately, otherwise
         # print an error
-        assert missing_collateral <= float_limit, (
+        assert missing_collateral <= par.float_limit, (
             self.__str__() + "\nBank {} has not enough collateral to end "
             "its reverse repo with bank {}, missing "
             "amount is {}".format(
@@ -585,8 +590,8 @@ class ClassBank:
         # end its reverse repo.
 
         assert not (
-            self.off_bs_items["Securities Reused"] > float_limit
-            and self.assets["Securities Usable"] > float_limit
+            self.off_bs_items["Securities Reused"] > par.float_limit
+            and self.assets["Securities Usable"] > par.float_limit
         ), (
             "both reused {} and "
             "usable {} "
@@ -604,7 +609,7 @@ class ClassBank:
                 + self.off_bs_items["Securities Reused"]
                 - self.assets["Reverse Repos"]
             )
-            < float_limit
+            < par.float_limit
         ), (
             "incorrect balance sheet \n securities collateral {},"
             "\n "
@@ -625,6 +630,13 @@ class ClassBank:
             )
         )
 
+        # assert (
+        #     self.reverse_repos[bank_id]
+        #     == self.df_reverse_repos.loc[bank_id][
+        #         self.df_reverse_repos.loc[bank_id]["status"]
+        #     ]["amount"].sum()
+        # ), "incorrect values in df_reverse_repo"
+
         # Update of the balance sheet items
         self.assets["Cash"] += amount
         self.assets["Reverse Repos"] -= amount
@@ -632,6 +644,62 @@ class ClassBank:
         self.off_bs_items["Securities Collateral"] -= (
             amount / self.collateral_value
         )
+
+        # update df_reverse_repos
+        trans_id = self.df_reverse_repos.loc[bank_id][
+            self.df_reverse_repos.loc[bank_id]["status"]
+        ].index[0]
+        last_trans_id = self.df_reverse_repos.loc[bank_id][
+            self.df_reverse_repos.loc[bank_id]["status"]
+        ].index[-1]
+        remaining_amount = amount
+        while (
+            remaining_amount
+            >= self.df_reverse_repos.loc[(bank_id, trans_id), "amount"]
+        ):
+            # close the transaction
+            self.df_reverse_repos.loc[(bank_id, trans_id), "status"] = False
+
+            # record the maturity of the closed transaction
+            self.df_reverse_repos.loc[(bank_id, trans_id), "maturity"] = (
+                self.Global.step
+                - self.df_reverse_repos.loc[(bank_id, trans_id), "start_step"]
+            )
+
+            # decrease the remaining amount
+            remaining_amount -= self.df_reverse_repos.loc[
+                (bank_id, trans_id), "amount"
+            ]
+
+            # next transaction
+            if trans_id < last_trans_id:
+                trans_id += 1
+
+            print("while loop !")
+
+        print("out of while")
+        # specific case if the remaining amount is smaller than the transaction size: need to create and close a special transaction
+        if (
+            remaining_amount
+            < self.df_reverse_repos.loc[(bank_id, trans_id), "amount"]
+        ):
+
+            # create a new transaction with the status closed
+            start_step = self.df_reverse_repos.loc[
+                (bank_id, trans_id), "start_step"
+            ]
+            self.df_reverse_repos.loc[(bank_id, last_trans_id + 1), :] = [
+                remaining_amount,
+                start_step,
+                self.Global.step - start_step,
+                False,
+            ]
+            print("creation of closed transactions")
+
+            # update the amount of the transaction
+            self.df_reverse_repos.loc[
+                (bank_id, trans_id), "amount"
+            ] -= remaining_amount
 
         # Once a reverse repo is ended, there is an excess liquidity which
         # required closing the own repos of the bank self
@@ -681,7 +749,7 @@ class ClassBank:
                 + self.off_bs_items["Securities Collateral"]
                 * self.collateral_value
                 - (repo_ask - rest)
-                > -float_limit
+                > -par.float_limit
             ), self.__str__() + "\nNot Enough Collateral for bank {}".format(
                 self.id
             )
@@ -728,8 +796,8 @@ class ClassBank:
             self.liabilities["Repos"] += repo_ask - rest
 
             assert not (
-                self.off_bs_items["Securities Reused"] > float_limit
-                and self.assets["Securities Usable"] > float_limit
+                self.off_bs_items["Securities Reused"] > par.float_limit
+                and self.assets["Securities Usable"] > par.float_limit
             ), (
                 "both reused {} and "
                 "usable {} "
@@ -749,10 +817,10 @@ class ClassBank:
 
         # check for errors, in case of conservative shocks and LCR mgt, all repo request should be satisfied
         if self.LCR_mgt_opt and self.conservative_shock:
-            if repo_ask > float_limit:
+            if repo_ask > par.float_limit:
                 for b in self.banks.keys():
                     print(self.banks[str(b)])
-            assert repo_ask <= float_limit, (
+            assert repo_ask <= par.float_limit, (
                 "repo request unsatified for bank {},"
                 " for the amount {}".format(self.id, repo_ask)
             )
@@ -864,6 +932,18 @@ class ClassBank:
         self.assets["Cash"] -= reverse_repo
         self.assets["Reverse Repos"] += reverse_repo
         self.reverse_repos[bank_id] += reverse_repo
+
+        # fill df_reverse_repos
+        if bank_id in self.df_reverse_repos.index.get_level_values("bank_id"):
+            trans_id = self.df_reverse_repos.loc[bank_id].index[-1] + 1
+        else:
+            trans_id = 0
+        self.df_reverse_repos.loc[(bank_id, trans_id), :] = [
+            reverse_repo,
+            self.Global.step,
+            np.NaN,
+            True,
+        ]
 
         # Return the remaining amount of repo to the requested by the bank
         # bank_id
@@ -1025,7 +1105,7 @@ class ClassBank:
             * self.collateral_value
             + self.assets["Securities Usable"] * self.collateral_value
             - self.liabilities["Deposits"] * self.beta_reg
-            >= -float_limit
+            >= -par.float_limit
         ), self.__str__() + "\nLCR not at its target value for bank {} at " "step {}".format(
             self.id, self.steps
         )
@@ -1041,7 +1121,7 @@ class ClassBank:
         # in case the minimum reserve is not respected, print all the positions of the banks in the network
         if (
             self.assets["Cash"] - self.alpha * self.liabilities["Deposits"]
-            < -float_limit
+            < -par.float_limit
         ):
             for bank in self.banks.values():
                 print(bank)
@@ -1049,7 +1129,7 @@ class ClassBank:
 
         assert (
             self.assets["Cash"] - self.alpha * self.liabilities["Deposits"]
-            >= -float_limit
+            >= -par.float_limit
         ), (
             self.__str__() + "\nMinimum reserves not respected for bank {} at"
             " "
@@ -1068,7 +1148,7 @@ class ClassBank:
         assert (
             self.liabilities["Own Funds"]
             - self.gamma * self.leverage_exposure()
-            > -float_limit
+            > -par.float_limit
         ), (
             self.__str__() + "\nLeverage ratio below its regulatory "
             "requirement for bank {} at step {}"
@@ -1084,7 +1164,7 @@ class ClassBank:
         """
         assert (
             np.abs(self.total_assets() - self.total_liabilities())
-            < float_limit
+            < par.float_limit
         ), self.__str__() + "\nAssets don't match Liabilities for bank {} at " "step {}, for the amount {}".format(
             self.id,
             self.steps,

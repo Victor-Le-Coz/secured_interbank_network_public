@@ -14,6 +14,14 @@ import pandas as pd
 import parameters as par
 
 
+class ClassGlobal:
+    def __init__(self):
+        self.step = 0
+
+    def update_step(self):
+        self.step += 1
+
+
 class ClassNetwork:
     def __init__(
         self,
@@ -62,8 +70,10 @@ class ClassNetwork:
 
     def reset_network(self):
 
+        self.Global = ClassGlobal()
+
         # Step number in the simulation process
-        self.step = 0
+        self.step = self.Global.step
 
         # instances of ClassBank in the Network
         self.banks = []
@@ -115,6 +125,8 @@ class ClassNetwork:
                     beta_reg=self.beta_reg,
                     beta_star=self.beta_star,
                     gamma=self.gamma,
+                    nb_banks=self.nb_banks,
+                    Global=self.Global,
                     collateral_value=self.collateral_value,
                     conservative_shock=self.conservative_shock,
                     LCR_mgt_opt=self.LCR_mgt_opt,
@@ -219,7 +231,8 @@ class ClassNetwork:
             self.banks[i].steps += 1
 
         # now we are at a new step of the network !
-        self.step += 1
+        self.Global.update_step()
+        self.step = self.Global.step
 
         # add we can update the df_banks withthe new data
         self.fill()

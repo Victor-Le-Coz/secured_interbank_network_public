@@ -1,5 +1,8 @@
 agg_periods = [1, 50, 100, 250]
 
+# The parameter sets the limit to the float precision when running the algorithm, a value lower than this amount is considered as negligible.
+float_limit = 1e-8  # issues sometimes
+
 # accounting items
 assets = [
     "Cash",
@@ -42,6 +45,10 @@ initialization_methods = ["constant", "pareto"]
 
 # matrices
 matrices = ["adjency", "trust", "binary_adjency", "non-zero_adjency"]
+
+
+# reverse repos
+reverse_repos = ["amount", "start_step", "maturity", "status"]
 
 # output metrics
 output_single_keys = [
