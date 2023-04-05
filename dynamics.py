@@ -111,21 +111,12 @@ class ClassDynamics:
         weighted_repo_maturity = []
 
         # Build the time series of the accounting items
-        for item in par.accounting_items:
+        for item in par.bank_items:
             self.df_network_trajectory.loc[
                 self.Network.step, f"{item} tot. volume"
             ] = self.Network.df_banks[item].sum()
 
         for i, Bank in enumerate(self.Network.banks):
-
-            # Build the total network excess liquidity time series
-            self.df_network_trajectory.loc[
-                self.Network.step, "Excess Liquidity"
-            ] += (
-                self.Network.banks[i].assets["Cash"]
-                - self.Network.banks[i].alpha
-                * self.Network.banks[i].liabilities["Deposits"]
-            )
 
             # Build the weighted average maturity of repos (1/2).
             weighted_repo_maturity += list(
@@ -393,21 +384,13 @@ class ClassDynamics:
         # Number of transactions of end repos per step
         self.df_bank_trajectory.loc[
             self.Network.step, "Nb. of repo transactions ended"
-        ] = self.Network.banks[self.single_bank_id].repo_transactions_counter
+        ] = Bank.repo_transactions_counter
 
         # size of transactions of end repos per step
-        if (
-            self.Network.banks[self.single_bank_id].repo_transactions_counter
-            != 0
-        ):
+        if Bank.repo_transactions_counter != 0:
             self.df_bank_trajectory.loc[
                 self.Network.step, "Av. volume of repo transactions ended"
-            ] = (
-                self.Network.banks[self.single_bank_id].repo_transactions_size
-                / self.Network.banks[
-                    self.single_bank_id
-                ].repo_transactions_counter
-            )
+            ] = (Bank.repo_transactions_size / Bank.repo_transactions_counter)
         else:
             self.df_bank_trajectory.loc[
                 self.Network.step, "Av. volume of repo transactions ended"
@@ -418,29 +401,18 @@ class ClassDynamics:
             self.Network.step, "Repos av. maturity"
         ] = np.sum(
             list(
-                np.array(
-                    self.Network.banks[self.single_bank_id].repos_on_maturities
-                )
-                * np.array(
-                    self.Network.banks[self.single_bank_id].repos_on_amounts
-                )
+                np.array(Bank.repos_on_maturities)
+                * np.array(Bank.repos_on_amounts)
             )
             + list(
-                np.array(
-                    self.Network.banks[
-                        self.single_bank_id
-                    ].repos_off_maturities
-                )
-                * np.array(
-                    self.Network.banks[self.single_bank_id].repos_off_amounts
-                )
+                np.array(Bank.repos_off_maturities)
+                * np.array(Bank.repos_off_amounts)
             )
         ) / (
-            sum(self.Network.banks[self.single_bank_id].repos_on_amounts)
-            + sum(self.Network.banks[self.single_bank_id].repos_off_amounts)
+            sum(Bank.repos_on_amounts) + sum(Bank.repos_off_amounts)
         )
 
-    def final_print(self):
+    def print_summary(self):
 
         # Print the weighted average maturity of repos
         weighted_repo_maturity = []
@@ -656,7 +628,7 @@ class ClassDynamics:
             self.store_trajectories()
 
         # final print
-        self.final_print()
+        self.print_summary()
 
         if output_keys:
             output = self.build_output(output_keys)

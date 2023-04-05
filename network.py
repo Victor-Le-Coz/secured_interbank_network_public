@@ -225,8 +225,9 @@ class ClassNetwork:
         self.fill()
 
     def fill(self):
-        for i, Bank in enumerate(self.banks):
 
+        # 1 - loop across banks
+        for i, Bank in enumerate(self.banks):
             # fill df_banks
             for item in par.accounting_items:
                 if item in par.assets:
@@ -236,10 +237,6 @@ class ClassNetwork:
                 elif item in par.off_bs_items:
                     self.df_banks.loc[i, item] = Bank.off_bs_items[item]
 
-            self.df_banks.loc[i, "Total assets"] = self.df_banks.loc[
-                i, par.assets
-            ].sum()
-
             # fill dic_matrices
             self.dic_matrices["adjency"][i, :] = np.array(
                 list(self.banks[i].reverse_repos.values())
@@ -248,15 +245,18 @@ class ClassNetwork:
             self.dic_matrices["trust"][i, :i] = trusts[:i]
             self.dic_matrices["trust"][i, i + 1 :] = trusts[i:]
 
-        # take out -e-14 negative values
-        self.dic_matrices["adjency"][self.dic_matrices["adjency"] < 0] = 0
+        # 2 - direct computation
+        # fill df_banks
+        self.df_banks["Total assets"] = self.df_banks[par.assets].sum(axis=1)
+        self.df_banks["Excess Liquidity"] = (
+            self.df_banks["Cash"] - self.alpha * self.df_banks["Deposits"]
+        )
 
-        # non zero
+        # fill dic_matrices
+        self.dic_matrices["adjency"][self.dic_matrices["adjency"] < 0] = 0
         self.dic_matrices["non-zero_adjency"] = self.dic_matrices["adjency"][
             np.nonzero(self.dic_matrices["adjency"])
         ]
-
-        # binary
         self.dic_matrices["binary_adjency"] = np.where(
             self.dic_matrices["adjency"] > self.min_repo_size, True, False
         )

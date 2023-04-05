@@ -367,7 +367,8 @@ def plot_jaccard_aggregated(df_network_trajectory, path):
 def plot_excess_liquidity_and_deposits(df_network_trajectory, path):
     fig = plt.figure(figsize=figsize)
     plt.plot(
-        df_network_trajectory.index, df_network_trajectory["Excess Liquidity"]
+        df_network_trajectory.index,
+        df_network_trajectory["Excess Liquidity tot. volume"],
     )
     plt.plot(
         df_network_trajectory.index,
