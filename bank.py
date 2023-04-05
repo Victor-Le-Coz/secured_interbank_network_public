@@ -630,13 +630,6 @@ class ClassBank:
             )
         )
 
-        # assert (
-        #     self.reverse_repos[bank_id]
-        #     == self.df_reverse_repos.loc[bank_id][
-        #         self.df_reverse_repos.loc[bank_id]["status"]
-        #     ]["amount"].sum()
-        # ), "incorrect values in df_reverse_repo"
-
         # Update of the balance sheet items
         self.assets["Cash"] += amount
         self.assets["Reverse Repos"] -= amount
@@ -645,7 +638,7 @@ class ClassBank:
             amount / self.collateral_value
         )
 
-        # update df_reverse_repos
+        # update df_reverse_repos => need to create a version without while loop to save time
         trans_id = self.df_reverse_repos.loc[bank_id][
             self.df_reverse_repos.loc[bank_id]["status"]
         ].index[0]
@@ -675,9 +668,6 @@ class ClassBank:
             if trans_id < last_trans_id:
                 trans_id += 1
 
-            print("while loop !")
-
-        print("out of while")
         # specific case if the remaining amount is smaller than the transaction size: need to create and close a special transaction
         if (
             remaining_amount
@@ -694,7 +684,6 @@ class ClassBank:
                 self.Global.step - start_step,
                 False,
             ]
-            print("creation of closed transactions")
 
             # update the amount of the transaction
             self.df_reverse_repos.loc[

@@ -72,9 +72,6 @@ class ClassNetwork:
 
         self.Global = ClassGlobal()
 
-        # Step number in the simulation process
-        self.step = self.Global.step
-
         # instances of ClassBank in the Network
         self.banks = []
 
@@ -232,7 +229,6 @@ class ClassNetwork:
 
         # now we are at a new step of the network !
         self.Global.update_step()
-        self.step = self.Global.step
 
         # add we can update the df_banks withthe new data
         self.fill()
@@ -249,6 +245,23 @@ class ClassNetwork:
                     self.df_banks.loc[i, item] = Bank.liabilities[item]
                 elif item in par.off_bs_items:
                     self.df_banks.loc[i, item] = Bank.off_bs_items[item]
+
+            df = Bank.df_reverse_repos
+            df_ending = df[
+                df["maturity"] + df["start_step"] == self.Global.step - 1
+            ]
+            self.df_banks.loc[i, "maturity@ending_amount"] = (
+                df_ending["amount"] @ df_ending["maturity"]
+            )
+            self.df_banks.loc[i, "ending_amount"] = df_ending["amount"].sum()
+
+            df_starting = df[df["start_step"] == self.Global.step - 1]
+            self.df_banks.loc[i, "nb_ending_starting"] = len(df_ending) + len(
+                df_starting
+            )
+            self.df_banks.loc[i, "amount_ending_starting"] = (
+                df_ending["amount"].sum() + df_starting["amount"].sum()
+            )
 
             # fill dic_matrices
             self.dic_matrices["adjency"][i, :] = np.array(

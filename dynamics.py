@@ -94,66 +94,6 @@ class ClassDynamics:
                 }
             )
 
-    def fill_df_network_trajectory(self):
-
-        # initialization of the list used to compute the weighted average repo maturity
-        weighted_repo_maturity = []
-        total_repo_amount = 0
-
-        # initialization of the counter of the repo transactions ended within a step across all banks
-        total_repo_transactions_counter = 0
-
-        # initialization of the total amount of the repo transactions ended ended within a step across all banks
-        total_repo_transactions_size = 0
-
-        # Loop over the banks and over the accounting items time series
-        weighted_repo_maturity = []
-
-        # Build the time series of the accounting items
-        for item in par.bank_items:
-            self.df_network_trajectory.loc[
-                self.Network.step, f"{item} tot. volume"
-            ] = self.Network.df_banks[item].sum()
-
-        for i, Bank in enumerate(self.Network.banks):
-
-            # Build the weighted average maturity of repos (1/2).
-            weighted_repo_maturity += list(
-                np.array(self.Network.banks[i].repos_on_maturities)
-                * np.array(self.Network.banks[i].repos_on_amounts)
-            )  # add the on balance repos
-            weighted_repo_maturity += list(
-                np.array(self.Network.banks[i].repos_off_maturities)
-                * np.array(self.Network.banks[i].repos_off_amounts)
-            )
-            total_repo_amount += sum(
-                self.Network.banks[i].repos_on_amounts
-            ) + sum(
-                self.Network.banks[i].repos_off_amounts
-            )  # add the off balance repos
-
-            # Build the time series of the Average number of repo transaction ended within a step (1/2).
-            total_repo_transactions_counter += self.Network.banks[
-                i
-            ].repo_transactions_counter  # compute the sum
-
-            # Build the time series of the Average size of repo transaction ended within a step (1/2).
-            total_repo_transactions_size += self.Network.banks[
-                i
-            ].repo_transactions_size  # compute the sum
-
-            # Build the time serie of the total assets across all banks
-            self.df_network_trajectory.loc[
-                self.Network.step, "Assets tot. volume"
-            ] += Bank.total_assets()
-
-        return (
-            weighted_repo_maturity,
-            total_repo_amount,
-            total_repo_transactions_counter,
-            total_repo_transactions_size,
-        )
-
     def record_trajectories(self):
         """
         Instance method allowing the computation of the time_series_metrics
@@ -162,23 +102,16 @@ class ClassDynamics:
         :return:
         """
 
-        # fill the df_network_metrics data frame for the current step
-        (
-            weighted_repo_maturity,
-            total_repo_amount,
-            total_repo_transactions_counter,
-            total_repo_transactions_size,
-        ) = self.fill_df_network_trajectory()
-
-        # clean the adj matrix from the negative values (otherwise the algo generate -1e-14 values for the reverse repos)
-        self.Network.dic_matrices["adjency"][
-            self.Network.dic_matrices["adjency"] < 0
-        ] = 0
+        # Build the time series of the accounting items
+        for item in par.bank_items:
+            self.df_network_trajectory.loc[
+                self.Network.Global.step, f"{item} tot. volume"
+            ] = self.Network.df_banks[item].sum()
 
         # build the aggregated adjancency matrix of the reverse repos at different aggregation periods
-        if self.Network.step > 0:
+        if self.Network.Global.step > 0:
             for agg_period in self.agg_periods:
-                if self.Network.step % agg_period > 0:
+                if self.Network.Global.step % agg_period > 0:
                     self.agg_binary_adj_dic.update(
                         {
                             agg_period: np.logical_or(
@@ -187,7 +120,7 @@ class ClassDynamics:
                             )
                         }
                     )
-                elif self.Network.step % agg_period == 0:
+                elif self.Network.Global.step % agg_period == 0:
                     self.agg_binary_adj_dic.update(
                         {
                             agg_period: self.Network.dic_matrices[
@@ -198,25 +131,38 @@ class ClassDynamics:
 
         # Build the time series of the Av. nb. of repo transactions ended (2/2).
         self.df_network_trajectory.loc[
-            self.Network.step, "Av. nb. of repo transactions ended"
-        ] = (total_repo_transactions_counter / self.Network.nb_banks)
+            self.Network.Global.step, "Av. nb. of repo transactions ended"
+        ] = self.Network.df_banks["nb_ending_starting"].mean()
 
         # Build the time series of the Average volume of repo transaction ended within a step (2/2).
-        if total_repo_transactions_counter != 0:
+        nb_trans = self.Network.df_banks["nb_ending_starting"].sum()
+        if nb_trans > 0:
             self.df_network_trajectory.loc[
-                self.Network.step, "Av. volume of repo transactions ended"
+                self.Network.Global.step,
+                "Av. volume of repo transactions ended",
             ] = (
-                total_repo_transactions_size / total_repo_transactions_counter
+                self.Network.df_banks["amount_ending_starting"].sum()
+                / nb_trans
             )
         else:
             self.df_network_trajectory.loc[
-                self.Network.step, "Av. volume of repo transactions ended"
+                self.Network.Global.step,
+                "Av. volume of repo transactions ended",
             ] = 0
 
         # Build the time series of the weighted average maturity of the repo transactions (2/2)
-        self.df_network_trajectory.loc[
-            self.Network.step, "Repos av. maturity"
-        ] = (np.sum(weighted_repo_maturity) / total_repo_amount)
+        ending_amount = self.Network.df_banks["ending_amount"].sum()
+        if ending_amount > 0:
+            self.df_network_trajectory.loc[
+                self.Network.Global.step, "Repos av. maturity"
+            ] = (
+                self.Network.df_banks["maturity@ending_amount"].sum()
+                / ending_amount
+            )
+        else:
+            self.df_network_trajectory.loc[
+                self.Network.Global.step, "Repos av. maturity"
+            ] = 0
 
         # Build the average in-degree in the network.
         bank_network = nx.from_numpy_matrix(
@@ -225,15 +171,18 @@ class ClassDynamics:
             create_using=nx.DiGraph,
         )  # first define a networkx object.
         self.df_network_trajectory.loc[
-            self.Network.step, "Av. in-degree"
+            self.Network.Global.step, "Av. in-degree"
         ] = np.array(bank_network.in_degree())[:, 1].mean()
 
         # Build the jaccard index time series - version non aggregated.
         for agg_period in self.agg_periods:
-            if self.Network.step > 0 and self.Network.step % agg_period == 0:
+            if (
+                self.Network.Global.step > 0
+                and self.Network.Global.step % agg_period == 0
+            ):
 
                 self.df_network_trajectory.loc[
-                    self.Network.step, f"Jaccard index-{agg_period}"
+                    self.Network.Global.step, f"Jaccard index-{agg_period}"
                 ] = (
                     np.logical_and(
                         self.Network.dic_matrices["binary_adjency"],
@@ -251,18 +200,18 @@ class ClassDynamics:
                         ].copy()
                     }
                 )
-            elif self.Network.step > 0:
+            elif self.Network.Global.step > 0:
                 self.df_network_trajectory.loc[
-                    self.Network.step, f"Jaccard index-{agg_period}"
+                    self.Network.Global.step, f"Jaccard index-{agg_period}"
                 ] = self.df_network_trajectory.loc[
-                    self.Network.step - 1, f"Jaccard index-{agg_period}"
+                    self.Network.Global.step - 1, f"Jaccard index-{agg_period}"
                 ]
 
         # Build the jaccard index time series - version aggregated.
         for agg_period in self.agg_periods:
-            if self.Network.step % agg_period == agg_period - 1:
+            if self.Network.Global.step % agg_period == agg_period - 1:
                 self.df_network_trajectory.loc[
-                    self.Network.step,
+                    self.Network.Global.step,
                     f"Jaccard index-{agg_period}",
                 ] = (
                     np.logical_and(
@@ -277,70 +226,70 @@ class ClassDynamics:
                 self.prev_agg_binary_adj_dic.update(
                     {agg_period: self.agg_binary_adj_dic[agg_period].copy()}
                 )
-            elif self.Network.step > 0:
+            elif self.Network.Global.step > 0:
                 self.df_network_trajectory.loc[
-                    self.Network.step,
+                    self.Network.Global.step,
                     f"Jaccard index-{agg_period}",
                 ] = self.df_network_trajectory.loc[
-                    self.Network.step - 1,
+                    self.Network.Global.step - 1,
                     f"Jaccard index-{agg_period}",
                 ]
 
         # Build the network density indicator.
         for agg_period in self.agg_periods:
-            if self.Network.step % agg_period == agg_period - 1:
+            if self.Network.Global.step % agg_period == agg_period - 1:
                 self.df_network_trajectory.loc[
-                    self.Network.step,
+                    self.Network.Global.step,
                     f"Network density-{agg_period}",
                 ] = self.agg_binary_adj_dic[agg_period].sum() / (
                     self.Network.nb_banks * (self.Network.nb_banks - 1.0)
                 )  # for a directed graph
-            elif self.Network.step > 0:
+            elif self.Network.Global.step > 0:
                 self.df_network_trajectory.loc[
-                    self.Network.step,
+                    self.Network.Global.step,
                     f"Network density-{agg_period}",
                 ] = self.df_network_trajectory.loc[
-                    self.Network.step - 1,
+                    self.Network.Global.step - 1,
                     f"Network density-{agg_period}",
                 ]
 
         # Build the gini coeficient of the network
-        self.df_network_trajectory.loc[self.Network.step, "Gini"] = fct.gini(
-            self.Network.df_banks["Total assets"]
-        )
+        self.df_network_trajectory.loc[
+            self.Network.Global.step, "Gini"
+        ] = fct.gini(self.Network.df_banks["Total assets"])
 
         # Build the statistics regarding the size of the reverse repos across the network at a given time step
         if len(self.Network.dic_matrices["non-zero_adjency"]) == 0:
             self.df_network_trajectory.loc[
-                self.Network.step, "Repos min volume"
+                self.Network.Global.step, "Repos min volume"
             ] = 0
             self.df_network_trajectory.loc[
-                self.Network.step, "Repos max volume"
+                self.Network.Global.step, "Repos max volume"
             ] = 0
             self.df_network_trajectory.loc[
-                self.Network.step, "Repos av. volume"
+                self.Network.Global.step, "Repos av. volume"
             ] = 0
         else:
             self.df_network_trajectory.loc[
-                self.Network.step, "Repos min volume"
+                self.Network.Global.step, "Repos min volume"
             ] = np.min(self.Network.dic_matrices["non-zero_adjency"])
             self.df_network_trajectory.loc[
-                self.Network.step, "Repos max volume"
+                self.Network.Global.step, "Repos max volume"
             ] = np.max(self.Network.dic_matrices["non-zero_adjency"])
             self.df_network_trajectory.loc[
-                self.Network.step, "Repos av. volume"
+                self.Network.Global.step, "Repos av. volume"
             ] = np.mean(self.Network.dic_matrices["non-zero_adjency"])
 
         # build the time serrie of Collateral reuse
         self.df_network_trajectory.loc[
-            self.Network.step, "Collateral reuse"
+            self.Network.Global.step, "Collateral reuse"
         ] = (
             self.df_network_trajectory.loc[
-                self.Network.step, "Securities Reused tot. volume"
+                self.Network.Global.step, "Securities Reused tot. volume"
             ]
         ) / (
             self.df_network_trajectory.loc[
-                self.Network.step, "Securities Collateral tot. volume"
+                self.Network.Global.step, "Securities Collateral tot. volume"
             ]
             + 1e-10
         )
@@ -353,19 +302,11 @@ class ClassDynamics:
         # defin the single bank that we want to plot
         Bank = self.Network.banks[self.single_bank_id]
 
-        # Build the time series of the accounting item of the bank bank_id
-        for key in Bank.assets.keys():
-            self.df_bank_trajectory.loc[self.Network.step, key] = Bank.assets[
-                key
-            ]
-        for key in Bank.liabilities.keys():
+        # Build the time series of the accounting items
+        for item in par.bank_items:
             self.df_bank_trajectory.loc[
-                self.Network.step, key
-            ] = Bank.liabilities[key]
-        for key in Bank.off_bs_items.keys():
-            self.df_bank_trajectory.loc[
-                self.Network.step, key
-            ] = Bank.off_bs_items[key]
+                self.Network.Global.step, item
+            ] = self.Network.df_banks.loc[Bank.id, item]
 
         # In and Out-degree
         bank_network = nx.from_numpy_matrix(
@@ -374,30 +315,29 @@ class ClassDynamics:
             create_using=nx.DiGraph,
         )
         self.df_bank_trajectory.loc[
-            self.Network.step, "Av. in-degree"
+            self.Network.Global.step, "Av. in-degree"
         ] = bank_network.in_degree(self.single_bank_id)
         self.df_bank_trajectory.loc[
-            self.Network.step, "Av. out-degree"
+            self.Network.Global.step, "Av. out-degree"
         ] = bank_network.out_degree(self.single_bank_id)
-
-        # Number of transactions of end repos per step
-        self.df_bank_trajectory.loc[
-            self.Network.step, "Nb. of repo transactions ended"
-        ] = Bank.repo_transactions_counter
 
         # size of transactions of end repos per step
         if Bank.repo_transactions_counter != 0:
             self.df_bank_trajectory.loc[
-                self.Network.step, "Av. volume of repo transactions ended"
-            ] = (Bank.repo_transactions_size / Bank.repo_transactions_counter)
+                self.Network.Global.step,
+                "Av. volume of repo transactions ended",
+            ] = (
+                Bank.repo_transactions_size / Bank.repo_transactions_counter
+            )
         else:
             self.df_bank_trajectory.loc[
-                self.Network.step, "Av. volume of repo transactions ended"
+                self.Network.Global.step,
+                "Av. volume of repo transactions ended",
             ] = 0
 
         # weighted average maturity of repos at a given step for a given bank
         self.df_bank_trajectory.loc[
-            self.Network.step, "Repos av. maturity"
+            self.Network.Global.step, "Repos av. maturity"
         ] = np.sum(
             list(
                 np.array(Bank.repos_on_maturities)
@@ -459,7 +399,7 @@ class ClassDynamics:
             adj=self.Network.dic_matrices["adjency"],
             network_total_assets=self.Network.df_banks["Total assets"],
             path=self.path_results + "repo_networks/",
-            step=self.Network.step,
+            step=self.Network.Global.step,
             name_in_title="reverse repo",
         )
         fct.save_np_array(
@@ -473,7 +413,7 @@ class ClassDynamics:
             / (self.Network.dic_matrices["trust"].std() + 1e-8),
             network_total_assets=self.Network.df_banks["Total assets"],
             path=self.path_results + "trust_networks/",
-            step=self.Network.step,
+            step=self.Network.Global.step,
             name_in_title="trust",
         )
         fct.save_np_array(
@@ -485,20 +425,20 @@ class ClassDynamics:
         gx.bar_plot_balance_sheet(
             self.Network.df_banks,
             self.path_results + "balance_Sheets/",
-            self.Network.step,
+            self.Network.Global.step,
         )
 
         # Plot the break-down of the deposits per bank in relative shares
         gx.bar_plot_deposits(
             self.Network.df_banks["Deposits"],
             self.path_results + "deposits/",
-            self.Network.step,
+            self.Network.Global.step,
         )
 
         # Plot the core-periphery detection and assessment
         # special case here, an intermediary computation to keep track of p-values
         if self.cp_option:
-            if self.Network.step > 0:
+            if self.Network.Global.step > 0:
                 bank_network = nx.from_numpy_matrix(
                     self.Network.dic_matrices["binary_adjency"],
                     parallel_edges=False,
@@ -513,7 +453,7 @@ class ClassDynamics:
                     sig_c=sig_c,
                     sig_x=sig_x,
                     path=self.path_results + "core-periphery_structure/",
-                    step=self.Network.step,
+                    step=self.Network.Global.step,
                     name_in_title="reverse repos",
                 )  # plot charts
 
@@ -619,7 +559,7 @@ class ClassDynamics:
             self.fill_df_bank_trajectory()
 
             # store only every given steps
-            if self.Network.step % save_every == 0:
+            if self.Network.Global.step % save_every == 0:
                 self.store_trajectories()
 
         # store the final step (if not already done)

@@ -217,7 +217,7 @@ def plot_assets_loans_mros(df_network_trajectory, path):
     )
     plt.plot(
         df_network_trajectory.index,
-        df_network_trajectory["Assets tot. volume"],
+        df_network_trajectory["Total assets tot. volume"],
     )
     # plt.plot(df_network_trajectory.index, df_network_trajectory["Deposits"])
     plt.legend(["Loans", "MROs", "Assets"])
@@ -619,7 +619,7 @@ def plot_df_bank_trajectory(df_bank_trajectory, path):
     keys_s = [
         "Av. in-degree",
         "Av. out-degree",
-        "Nb. of repo transactions ended",
+        "nb_ending_starting",
         # "Av. volume of repo transactions ended",
         "Repos av. maturity",
     ]
