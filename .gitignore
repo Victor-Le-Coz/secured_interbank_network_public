@@ -8,6 +8,7 @@ results/
 saved_results/
 forceatlas2/
 support/
+/.history/
 
 # C extensions
 *.so
