@@ -267,13 +267,16 @@ def plot_gini(df_network_trajectory, path):
 def plot_reverse_repo_size_stats(df_network_trajectory, path):
     fig = plt.figure(figsize=figsize)
     plt.plot(
-        df_network_trajectory.index, df_network_trajectory["Repos min volume"]
+        df_network_trajectory.index,
+        df_network_trajectory["Repos exposure min volume"],
     )
     plt.plot(
-        df_network_trajectory.index, df_network_trajectory["Repos max volume"]
+        df_network_trajectory.index,
+        df_network_trajectory["Repos exposure max volume"],
     )
     plt.plot(
-        df_network_trajectory.index, df_network_trajectory["Repos av. volume"]
+        df_network_trajectory.index,
+        df_network_trajectory["Repos exposure av. volume"],
     )
     plt.xlabel("Steps")
     plt.ylabel("Monetary units")

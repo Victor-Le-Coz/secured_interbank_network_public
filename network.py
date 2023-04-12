@@ -14,14 +14,6 @@ import pandas as pd
 import parameters as par
 
 
-class ClassGlobal:
-    def __init__(self):
-        self.step = 0
-
-    def update_step(self):
-        self.step += 1
-
-
 class ClassNetwork:
     def __init__(
         self,
@@ -70,7 +62,8 @@ class ClassNetwork:
 
     def reset_network(self):
 
-        self.Global = ClassGlobal()
+        # time
+        self.step = 0
 
         # instances of ClassBank in the Network
         self.banks = []
@@ -114,6 +107,7 @@ class ClassNetwork:
             ]
             self.banks.append(
                 ClassBank(
+                    Network=self,
                     id=b,
                     initial_deposits=self.df_banks.loc[b, "Deposits"],
                     alpha_init=self.alpha_init,
@@ -123,7 +117,6 @@ class ClassNetwork:
                     beta_star=self.beta_star,
                     gamma=self.gamma,
                     nb_banks=self.nb_banks,
-                    Global=self.Global,
                     collateral_value=self.collateral_value,
                     conservative_shock=self.conservative_shock,
                     LCR_mgt_opt=self.LCR_mgt_opt,
@@ -225,10 +218,9 @@ class ClassNetwork:
             if self.LCR_mgt_opt:
                 self.banks[i].assert_lcr()
             # self.banks[i].assert_leverage()
-            self.banks[i].steps += 1
 
         # now we are at a new step of the network !
-        self.Global.update_step()
+        self.step += 1
 
         # add we can update the df_banks withthe new data
         self.fill()
@@ -247,15 +239,13 @@ class ClassNetwork:
                     self.df_banks.loc[i, item] = Bank.off_bs_items[item]
 
             df = Bank.df_reverse_repos
-            df_ending = df[
-                df["maturity"] + df["start_step"] == self.Global.step - 1
-            ]
+            df_ending = df[df["maturity"] + df["start_step"] == self.step - 1]
             self.df_banks.loc[i, "maturity@ending_amount"] = (
                 df_ending["amount"] @ df_ending["maturity"]
             )
             self.df_banks.loc[i, "ending_amount"] = df_ending["amount"].sum()
 
-            df_starting = df[df["start_step"] == self.Global.step - 1]
+            df_starting = df[df["start_step"] == self.step - 1]
             self.df_banks.loc[i, "nb_ending_starting"] = len(df_ending) + len(
                 df_starting
             )
@@ -286,3 +276,7 @@ class ClassNetwork:
         self.dic_matrices["binary_adjency"] = np.where(
             self.dic_matrices["adjency"] > self.min_repo_size, True, False
         )
+
+    def store(self, path):
+        self.df_banks(f"{path}df_banks.csv")
+        self.df_reverse_repos.to_csv(f"{path}df_reverse_repos.csv")
