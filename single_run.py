@@ -88,7 +88,7 @@ if __name__ == "__main__":
         save_every=2500,
         jaccard_periods=par.agg_periods,
         agg_periods=par.agg_periods,
-        cp_option=True,
+        cp_option=False,
         LCR_mgt_opt=False,
         output_keys=False,
     )

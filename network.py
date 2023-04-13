@@ -74,12 +74,12 @@ class ClassNetwork:
         else:
             self.conservative_shock = True
 
-        # initialize banks dataframe
+        # initialize banks dataframe (exposures)
         self.df_banks = pd.DataFrame(
             index=range(self.nb_banks), columns=par.bank_items
         )
 
-        # initialize the matrices dictionary
+        # initialize the matrices dictionary (exposures)
         self.dic_matrices = dict.fromkeys(
             par.matrices, np.zeros((self.nb_banks, self.nb_banks))
         )
@@ -88,9 +88,9 @@ class ClassNetwork:
         self.collateral_value = 1.0
 
         # build deposits and create
-        for b in range(self.nb_banks):
+        for bank_id in range(self.nb_banks):
             if self.initialization_method == "pareto":
-                self.df_banks.loc[b, "Deposits"] = (
+                self.df_banks.loc[bank_id, "deposits"] = (
                     pareto.rvs(
                         self.alpha_pareto,
                         loc=0,
@@ -101,15 +101,15 @@ class ClassNetwork:
                     * 40.0
                 )
             elif self.initialization_method == "constant":
-                self.df_banks.loc[b, "Deposits"] = 100.0
-            self.df_banks.loc[b, "Initial deposits"] = self.df_banks.loc[
-                b, "Deposits"
+                self.df_banks.loc[bank_id, "deposits"] = 100.0
+            self.df_banks.loc[bank_id, "initial deposits"] = self.df_banks.loc[
+                bank_id, "deposits"
             ]
             self.banks.append(
                 ClassBank(
                     Network=self,
-                    id=b,
-                    initial_deposits=self.df_banks.loc[b, "Deposits"],
+                    id=bank_id,
+                    initial_deposits=self.df_banks.loc[bank_id, "deposits"],
                     alpha_init=self.alpha_init,
                     alpha=self.alpha,
                     beta_init=self.beta_init,
@@ -128,7 +128,7 @@ class ClassNetwork:
             Bank.initialize_banks(self.banks)
 
         # fill the recording data objects at step 0
-        self.fill()
+        self.step_fill()
 
     def step_network(self):
         """
@@ -140,29 +140,29 @@ class ClassNetwork:
         # Generation of the shocks
         if self.shocks_method == "bilateral":
             shocks = sh.generate_bilateral_shocks(
-                self.df_banks["Deposits"],
+                self.df_banks["deposits"],
                 law=self.shocks_law,
                 vol=self.shocks_vol,
             )
         elif self.shocks_method == "multilateral":  # Damien's proposal,
             # doesn't work yet, could be enhanced
             shocks = sh.generate_multilateral_shocks(
-                self.df_banks["Deposits"],
+                self.df_banks["deposits"],
                 law=self.shocks_law,
                 vol=self.shocks_vol,
             )
         elif self.shocks_method == "dirichlet":
             shocks = sh.generate_dirichlet_shocks(
-                self.df_banks["Deposits"],
-                self.df_banks["Initial deposits"],
+                self.df_banks["deposits"],
+                self.df_banks["initial deposits"],
                 option="mean-reverting",
                 vol=self.shocks_vol,
             )
         elif self.shocks_method == "non-conservative":
             shocks = sh.generate_non_conservative_shocks(
-                self.df_banks["Deposits"],
-                self.df_banks["Initial deposits"],
-                self.df_banks["Total assets"],
+                self.df_banks["deposits"],
+                self.df_banks["initial deposits"],
+                self.df_banks["total assets"],
                 law=self.shocks_law,
                 vol=self.shocks_vol,
             )
@@ -171,7 +171,7 @@ class ClassNetwork:
 
         # Tests to ensure the shock created matches the required properties
         assert (
-            np.min(self.df_banks["Deposits"] + shocks) >= 0
+            np.min(self.df_banks["deposits"] + shocks) >= 0
         ), "negative shocks larger than deposits"  # To ensure shocks are not
         # higher than the deposits amount of each bank
         if self.conservative_shock:
@@ -183,89 +183,78 @@ class ClassNetwork:
             )  # To ensure that the conservative shocks are dully conservative
 
         # For loops over the instances of ClassBank in the ClassNetwork.
-        ix = np.arange(self.nb_banks)  # Defines an index of the banks
-        for i in ix:
-            self.banks[i].set_shock(shocks[i])
-            self.banks[i].set_collateral(self.collateral_value)
+        index = np.arange(self.nb_banks)  # Defines an index of the banks
+        for bank_id in index:
+            self.banks[bank_id].set_shock(shocks[bank_id])
+            self.banks[bank_id].set_collateral(self.collateral_value)
             if self.LCR_mgt_opt:
-                self.banks[i].step_lcr_mgt()
-            self.banks[
-                i
-            ].repo_transactions_counter = (
-                0  # Reset the repo transaction ended counter to 0
-            )
-            self.banks[
-                i
-            ].repo_transactions_size = (
-                0  # Reset the repo transaction ended counter to 0
-            )
-        ix = np.random.permutation(ix)  # Permutation of the
-        # banks' indexes to decide in which order banks can close their repos.
-        for i in ix:
-            self.banks[
-                i
-            ].step_end_repos()  # Run the step end repos for the bank self
+                self.banks[bank_id].step_lcr_mgt()
 
-        ix = np.random.permutation(ix)  # New permutation of the
-        # banks' indexes to decide in which order banks can enter into repos
-        for i in ix:
-            self.banks[i].step_enter_repos()
+        # Permutation of the banks' indexes to decide in which order banks can close their repos.
+        index = np.random.permutation(index)
+        for bank_id in index:
+            self.banks[bank_id].step_end_repos()
+
+        # New permutation of the banks' indexes to decide in which order banks can enter into repos
+        index = np.random.permutation(index)
+        for bank_id in index:
+            self.banks[bank_id].step_enter_repos()
             if not (self.conservative_shock) or not (self.LCR_mgt_opt):
-                self.banks[i].step_MRO()
-        for i in ix:
-            self.banks[i].assert_minimum_reserves()
-            self.banks[i].assert_alm()
-            if self.LCR_mgt_opt:
-                self.banks[i].assert_lcr()
-            # self.banks[i].assert_leverage()
+                self.banks[bank_id].step_central_bank_funding()
 
-        # now we are at a new step of the network !
+        # loop 4: assert constraints and fill data
+        for bank_id in index:
+            self.banks[bank_id].assert_minimum_reserves()
+            self.banks[bank_id].assert_alm()
+            if self.LCR_mgt_opt:
+                self.banks[bank_id].assert_lcr()
+            self.step_fill_single_bank(bank_id)
+        self.step_fill()
+
+        # new step of the network
         self.step += 1
 
-        # add we can update the df_banks withthe new data
-        self.fill()
+    def step_fill_single_bank(self, bank_id):
 
-    def fill(self):
+        Bank = self.banks[bank_id]
+        df = Bank.df_reverse_repos
 
-        # 1 - loop across banks
-        for i, Bank in enumerate(self.banks):
-            # fill df_banks
-            for item in par.accounting_items:
-                if item in par.assets:
-                    self.df_banks.loc[i, item] = Bank.assets[item]
-                elif item in par.liabilities:
-                    self.df_banks.loc[i, item] = Bank.liabilities[item]
-                elif item in par.off_bs_items:
-                    self.df_banks.loc[i, item] = Bank.off_bs_items[item]
-
-            df = Bank.df_reverse_repos
-            df_ending = df[df["maturity"] + df["start_step"] == self.step - 1]
-            self.df_banks.loc[i, "maturity@ending_amount"] = (
-                df_ending["amount"] @ df_ending["maturity"]
-            )
-            self.df_banks.loc[i, "ending_amount"] = df_ending["amount"].sum()
-
-            df_starting = df[df["start_step"] == self.step - 1]
-            self.df_banks.loc[i, "nb_ending_starting"] = len(df_ending) + len(
-                df_starting
-            )
-            self.df_banks.loc[i, "amount_ending_starting"] = (
-                df_ending["amount"].sum() + df_starting["amount"].sum()
-            )
-
-            # fill dic_matrices
-            self.dic_matrices["adjency"][i, :] = np.array(
-                list(self.banks[i].reverse_repos.values())
-            )
-            trusts = list(self.banks[i].trust.values())  # nb_banks-1 items
-            self.dic_matrices["trust"][i, :i] = trusts[:i]
-            self.dic_matrices["trust"][i, i + 1 :] = trusts[i:]
-
-        # 2 - direct computation
         # fill df_banks
-        self.df_banks["Total assets"] = self.df_banks[par.assets].sum(axis=1)
-        self.df_banks["Excess Liquidity"] = (
-            self.df_banks["Cash"] - self.alpha * self.df_banks["Deposits"]
+        for item in par.accounting_items:
+            if item in par.assets:
+                self.df_banks.loc[bank_id, item] = Bank.assets[item]
+            elif item in par.liabilities:
+                self.df_banks.loc[bank_id, item] = Bank.liabilities[item]
+            elif item in par.off_bs_items:
+                self.df_banks.loc[bank_id, item] = Bank.off_bs_items[item]
+
+        # df_ending = df[df["maturity"] + df["start_step"] == self.step - 1]
+        # self.df_banks.loc[bank_id, "maturity@ending_amount"] = (
+        #     df_ending["amount"] @ df_ending["maturity"]
+        # )
+        # self.df_banks.loc[bank_id, "ending_amount"] = df_ending["amount"].sum()
+
+        # df_starting = df[df["start_step"] == self.step - 1]
+        # self.df_banks.loc[bank_id, "nb_ending_starting"] = len(
+        #     df_ending
+        # ) + len(df_starting)
+        # self.df_banks.loc[bank_id, "amount_ending_starting"] = (
+        #     df_ending["amount"].sum() + df_starting["amount"].sum()
+        # )
+
+        # fill dic_matrices
+        self.dic_matrices["adjency"][bank_id, :] = np.array(
+            list(self.banks[bank_id].reverse_repos.values())
+        )
+        trusts = list(self.banks[bank_id].trust.values())  # nb_banks-1 items
+        self.dic_matrices["trust"][bank_id, :bank_id] = trusts[:bank_id]
+        self.dic_matrices["trust"][bank_id, bank_id + 1 :] = trusts[bank_id:]
+
+    def step_fill(self):
+        # fill df_banks
+        self.df_banks["total assets"] = self.df_banks[par.assets].sum(axis=1)
+        self.df_banks["excess liquidity"] = (
+            self.df_banks["cash"] - self.alpha * self.df_banks["deposits"]
         )
 
         # fill dic_matrices
@@ -277,6 +266,17 @@ class ClassNetwork:
             self.dic_matrices["adjency"] > self.min_repo_size, True, False
         )
 
-    def store(self, path):
-        self.df_banks(f"{path}df_banks.csv")
+    def store_network(self, path):
+        self.df_banks.to_csv(f"{path}df_banks.csv")
         self.df_reverse_repos.to_csv(f"{path}df_reverse_repos.csv")
+
+    def build_df_reverse_repos(self):
+        dfs = []
+        for Bank in self.banks:
+            dfs.append(Bank.df_reverse_repos)
+        self.df_reverse_repos = pd.concat(
+            dfs,
+            keys=range(self.nb_banks),
+            names=["owner_bank_id", "bank_id", "trans_id"],
+            axis=0,
+        )

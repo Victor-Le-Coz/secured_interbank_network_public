@@ -5,32 +5,32 @@ float_limit = 1e-8  # issues sometimes
 
 # accounting items
 assets = [
-    "Cash",
-    "Securities Usable",
-    "Securities Encumbered",
-    "Loans",
-    "Reverse Repos",
+    "cash",
+    "securities usable",
+    "securities encumbered",
+    "loans",
+    "reverse repo exposures",
 ]
 
 liabilities = [
-    "Own Funds",
-    "Deposits",
-    "Repos",
-    "MROs",
+    "own funds",
+    "deposits",
+    "repo exposures",
+    "central bank funding",
 ]
 
 off_bs_items = [
-    "Securities Collateral",
-    "Securities Reused",
+    "securities collateral",
+    "securities reused",
 ]
 
 accounting_items = assets + liabilities + off_bs_items
 
 # other items
 other_items = [
-    "Initial deposits",
-    "Total assets",
-    "Excess Liquidity",
+    "initial deposits",
+    "total assets",
+    "excess liquidity",
     "maturity@ending_amount",
     "ending_amount",
     "nb_ending_starting",
@@ -60,26 +60,26 @@ reverse_repos = ["amount", "start_step", "maturity", "status"]
 
 # output metrics
 output_single_keys = [
-    "Av. in-degree",
-    "Collateral reuse",
-    "Core-Peri. p_val.",
-    "Gini",
-    "Repos av. maturity",
-    "Repos tot. volume",
-    "Repos av. volume",
+    "av. in-degree",
+    "collateral reuse",
+    "core-peri. p-val.",
+    "gini",
+    "repos av. maturity",
+    "repos tot. network",
+    "repos av. volume",
 ]
 
 output_mlt_keys = [
-    "Jaccard index over ",
-    "Network density over ",
+    "jaccard index over ",
+    "network density over ",
 ]
 
 log_output_single_keys = [
-    "Repos av. volume",
+    "repos av. volume",
 ]
 
 log_output_mlt_keys = [
-    "Network density over ",
+    "network density over ",
 ]
 
 # input parameters
@@ -103,53 +103,7 @@ input_params = [
 
 
 link_network_metrics = [
-    "Network density",
-    "Jaccard index",
-    "Raw jaccard index",
-]
-
-network_metrics = [
-    "Cash tot. volume",
-    "Securities Usable tot. volume",
-    "Securities Encumbered tot. volume",
-    "Loans tot. volume",
-    "Reverse Repos tot. volume",
-    "Own Funds tot. volume",
-    "Deposits tot. volume",
-    "Repos tot. volume",
-    "MROs tot. volume",
-    "Securities Collateral tot. volume",
-    "Securities Reused tot. volume",
-    "Av. in-degree",
-    "Excess Liquidity",
-    "Av. nb. of repo transactions ended",
-    "Av. volume of repo transactions ended",
-    "Repos av. maturity",
-    "Gini",
-    "Repos min volume",
-    "Repos max volume",
-    "Repos av. volume",
-    "Assets tot. volume",
-    "Collateral reuse",
-]
-
-
-bank_metrics = [
-    "Cash",
-    "Securities Usable",
-    "Securities Encumbered",
-    "Loans",
-    "Reverse Repos",
-    "Own Funds",
-    "Deposits",
-    "Repos",
-    "MROs",
-    "Securities Collateral",
-    "Securities Reused",
-    "Excess Liquidity",
-    "Av. in-degree",
-    "Av. out-degree",
-    "Nb. of repo transactions ended",
-    "Av. volume of repo transactions ended",
-    "Repos av. maturity",
+    "network density",
+    "jaccard index",
+    "raw jaccard index",
 ]
