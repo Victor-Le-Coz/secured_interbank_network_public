@@ -422,3 +422,17 @@ def init_path(path):
 def save_np_array(array, name):
     df = pd.DataFrame(array)
     df.to_csv(name + ".csv")
+
+
+def get_trunc_lognorm(mu, sigma, lower_bound, upper_bound=np.inf, size=10000):
+    norm_lower = np.log(lower_bound)
+    norm_upper = np.log(upper_bound)
+    X = stats.truncnorm(
+        (norm_lower - mu) / sigma,
+        (norm_upper - mu) / sigma,
+        loc=mu,
+        scale=sigma,
+    )
+    norm_data = X.rvs(size)
+    log_norm_data = np.exp(norm_data)
+    return log_norm_data

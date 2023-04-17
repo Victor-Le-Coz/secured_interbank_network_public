@@ -332,7 +332,7 @@ class ClassDynamics:
                 "amount_ending_starting av. bank",
             ] = 0
 
-    def store_trajectories(self):
+    def plot_n_store_trajectories(self):
         """
         Instance method saving all the figures representing the network
         status at a given time-step as well as all the time series plots of the chosen metrics
@@ -493,7 +493,7 @@ class ClassDynamics:
         self.save_param(save_every)
         self.step_record_trajectories()
         self.expost_record_trajectories()
-        self.store_trajectories()
+        self.plot_n_store_trajectories()
 
         # simulate the network
         for _ in tqdm(range(self.nb_steps - 1)):
@@ -507,12 +507,12 @@ class ClassDynamics:
             # store only every given steps
             if self.Network.step % save_every == 0:
                 self.expost_record_trajectories()
-                self.store_trajectories()
+                self.plot_n_store_trajectories()
 
         # store the final step (if not already done)
         if self.nb_steps % save_every != 0:
             self.expost_record_trajectories()
-            self.store_trajectories()
+            self.plot_n_store_trajectories()
 
         # final print
         self.print_summary()
@@ -520,6 +520,15 @@ class ClassDynamics:
         if output_keys:
             output = self.build_output(output_keys)
             return output
+
+    def print_summary(self):
+        for metric in [
+            "repos maturity av. network",
+            "repo exposures av. network",
+        ]:
+            print(
+                f"{metric}:{self.df_network_trajectory.loc[self.Network.step, metric]}"
+            )
 
     def save_param(self, save_every):
         with open(self.path_results + "param.txt", "w") as f:
@@ -582,12 +591,3 @@ class ClassDynamics:
         output.update({"core-peri. p-val.": self.p_value})
 
         return output
-
-    def print_summary(self):
-        for metric in [
-            "repos maturity av. network",
-            "repo exposures av. network",
-        ]:
-            print(
-                f"{metric}:{self.df_network_trajectory.loc[self.Network.step, metric]}"
-            )

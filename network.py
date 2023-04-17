@@ -12,6 +12,7 @@ import shocks as sh
 import functions as fct
 import pandas as pd
 import parameters as par
+from scipy import stats
 
 
 class ClassNetwork:
@@ -131,78 +132,41 @@ class ClassNetwork:
         self.step_fill()
 
     def step_network(self):
-        """
-        Instance method allowing the computation of the next step status of
-        the network.
-        :return:
-        """
 
-        # Generation of the shocks
-        if self.shocks_method == "bilateral":
-            shocks = sh.generate_bilateral_shocks(
-                self.df_banks["deposits"],
-                law=self.shocks_law,
-                vol=self.shocks_vol,
-            )
-        elif self.shocks_method == "multilateral":  # Damien's proposal,
-            # doesn't work yet, could be enhanced
-            shocks = sh.generate_multilateral_shocks(
-                self.df_banks["deposits"],
-                law=self.shocks_law,
-                vol=self.shocks_vol,
-            )
-        elif self.shocks_method == "dirichlet":
-            shocks = sh.generate_dirichlet_shocks(
-                self.df_banks["deposits"],
-                self.df_banks["initial deposits"],
-                option="mean-reverting",
-                vol=self.shocks_vol,
-            )
-        elif self.shocks_method == "non-conservative":
-            shocks = sh.generate_non_conservative_shocks(
-                self.df_banks["deposits"],
-                self.df_banks["initial deposits"],
-                self.df_banks["total assets"],
-                law=self.shocks_law,
-                vol=self.shocks_vol,
-            )
-        else:
-            assert False, ""
+        shocks = self.generate_shocks()
 
         # Tests to ensure the shock created matches the required properties
         assert (
             np.min(self.df_banks["deposits"] + shocks) >= 0
-        ), "negative shocks larger than deposits"  # To ensure shocks are not
-        # higher than the deposits amount of each bank
+        ), "negative shocks larger than deposits"
         if self.conservative_shock:
             assert (
                 abs(shocks.sum()) == 0.0,
                 "Shock doesn't sum to zero, sum is {}".format(
                     abs(shocks.sum())
                 ),
-            )  # To ensure that the conservative shocks are dully conservative
+            )
 
-        # For loops over the instances of ClassBank in the ClassNetwork.
+        # loop 1
         index = np.arange(self.nb_banks)  # Defines an index of the banks
         for bank_id in index:
             self.banks[bank_id].set_shock(shocks[bank_id])
-            self.banks[bank_id].set_collateral(self.collateral_value)
             if self.LCR_mgt_opt:
                 self.banks[bank_id].step_lcr_mgt()
 
-        # Permutation of the banks' indexes to decide in which order banks can close their repos.
+        # loop 2 - after permutation
         index = np.random.permutation(index)
         for bank_id in index:
             self.banks[bank_id].step_end_repos()
 
-        # New permutation of the banks' indexes to decide in which order banks can enter into repos
+        # loop 3 - after second permutation
         index = np.random.permutation(index)
         for bank_id in index:
             self.banks[bank_id].step_enter_repos()
             if not (self.conservative_shock) or not (self.LCR_mgt_opt):
                 self.banks[bank_id].step_central_bank_funding()
 
-        # loop 4: assert constraints and fill data
+        # loop 4: assert constraints (and fill df_banks and dic matrices)
         for bank_id in index:
             self.banks[bank_id].assert_minimum_reserves()
             self.banks[bank_id].assert_alm()
@@ -217,7 +181,6 @@ class ClassNetwork:
     def step_fill_single_bank(self, bank_id):
 
         Bank = self.banks[bank_id]
-        df = Bank.df_reverse_repos
 
         # fill df_banks
         for item in par.accounting_items:
@@ -266,3 +229,197 @@ class ClassNetwork:
             names=["owner_bank_id", "bank_id", "trans_id"],
             axis=0,
         )
+
+    def generate_shocks(self):
+        if self.shocks_method == "bilateral":
+            shocks = self.generate_bilateral_shocks()
+        elif self.shocks_method == "multilateral":  # Damien's proposal,
+            # doesn't work yet, could be enhanced
+            shocks = self.generate_multilateral_shocks()
+        elif self.shocks_method == "dirichlet":
+            shocks = self.generate_dirichlet_shocks(option="mean-reverting")
+        elif self.shocks_method == "non-conservative":
+            shocks = self.generate_non_conservative_shocks()
+        return shocks
+
+    def generate_bilateral_shocks(self):
+        # define middle of the list of banks
+        N_max = (
+            len(self.df_banks["deposits"]) - len(self.df_banks["deposits"]) % 2
+        )  # can not apply a shock on
+        # one bank if odd nb
+        N_half = int(len(self.df_banks["deposits"]) / 2)
+
+        # create a permutation of all the deposits amounts
+        ix = np.arange(len(self.df_banks["deposits"]))  # create an index
+        ix_p = np.random.permutation(ix)  # permutation of the index
+        deposits_p = self.df_banks["deposits"][
+            ix_p
+        ]  # define the permuted array of deposits
+
+        # apply a negative relative shock on the first half of the banks
+        if self.shocks_law == "uniform":
+            rho_1 = np.random.uniform(-1, 0, size=N_half)
+
+        elif self.shocks_law == "beta":
+            rho_1 = -np.random.beta(1, 1, size=N_half)
+
+        elif self.shocks_law == "normal":
+            norm_lower = -1
+            norm_upper = 0
+            mu = 0
+            rho_1 = stats.truncnorm(
+                (norm_lower - mu) / self.shocks_vol,
+                (norm_upper - mu) / self.shocks_vol,
+                loc=mu,
+                scale=self.shocks_vol,
+            ).rvs(N_half)
+
+        else:
+            assert False, ""
+
+        # apply a positive relative shock on the second half of the banks
+        rho_2 = -rho_1 * deposits_p[0:N_half] / deposits_p[N_half:N_max]
+
+        # concatenate the relative shocks
+        if len(self.df_banks["deposits"]) > N_max:
+            rho = np.concatenate([rho_1, rho_2, [0]])
+        elif len(self.df_banks["deposits"]) == N_max:
+            rho = np.concatenate([rho_1, rho_2])
+        else:
+            assert False, ""
+
+        # build an un-permuted array of absolute shocks
+        shocks = np.zeros(len(self.df_banks["deposits"]))
+
+        # compute the absolute shock from the deposit amount
+        shocks[ix_p] = deposits_p * rho
+
+        return shocks
+
+    def generate_multilateral_shocks(self):
+        # define middle of the list of banks
+        N_max = (
+            len(self.df_banks["deposits"]) - len(self.df_banks["deposits"]) % 2
+        )  # can not apply a shock on
+        # one bank if odd nb
+        N_half = int(len(self.df_banks["deposits"]) / 2)
+
+        # create a permutation of all the deposits amounts
+        ix = np.arange(len(self.df_banks["deposits"]))  # create an index
+        ix_p = np.random.permutation(ix)  # permutation of the index
+        deposits_p = self.df_banks["deposits"][
+            ix_p
+        ]  # define the permuted array of deposits
+
+        # apply a shock on the first half of the banks
+        if self.shocks_law == "uniform":
+            rho = np.random.uniform(-0.1, 0.1, size=N_max)  # case uniform  law
+
+        elif self.shocks_law == "beta":
+            rho = -np.random.beta(1, 1, size=N_half)  # case beta  law
+
+        rho_1 = rho[0:N_half]
+        rho_2 = rho[N_half:N_max]
+
+        correction_factor = -(
+            np.sum(rho_1 * deposits_p[0:N_half])
+            / np.sum(rho_2 * deposits_p[N_half:N_max])
+        )
+
+        rho_2 = rho_2 * correction_factor
+
+        # concatenate the relative shocks
+        if len(self.df_banks["deposits"]) > N_max:
+            rho = np.concatenate([rho_1, rho_2, [0]])
+        elif len(self.df_banks["deposits"]) == N_max:
+            rho = np.concatenate([rho_1, rho_2])
+
+        # build an un-permuted array of absolute shocks
+        shocks = np.zeros(len(self.df_banks["deposits"]))
+
+        # compute the absolute shock from the deposit amount
+        shocks[ix_p] = deposits_p * rho
+
+        return shocks
+
+    def generate_dirichlet_shocks(self, option):
+
+        std_control = 1.0 / (self.shocks_vol**2.0)
+
+        if option == "dynamic":
+            dispatch = np.random.dirichlet(
+                (
+                    np.abs(self.df_banks["deposits"] + 1e-8)
+                    / self.df_banks["deposits"].sum()
+                )
+                * std_control
+            )
+        elif option == "static":
+            dispatch = np.random.dirichlet(
+                (
+                    np.ones(len(self.df_banks["deposits"]))
+                    / len(self.df_banks["deposits"])
+                )
+                * std_control
+            )
+        elif option == "mean-reverting":
+            dispatch = np.random.dirichlet(
+                (
+                    self.df_banks["initial deposits"]
+                    / self.df_banks["initial deposits"].sum()
+                )
+                * std_control
+            )
+
+        new_deposits = self.df_banks["deposits"].sum() * dispatch
+        shocks = new_deposits - self.df_banks["deposits"]
+
+        return shocks
+
+    def generate_non_conservative_shocks(self):
+        if self.shocks_law == "log-normal":
+            std_control = np.sqrt(np.log(1.0 + self.shocks_vol**2.0))
+            new_deposits = (
+                np.random.lognormal(
+                    mean=-0.5 * std_control**2,
+                    sigma=std_control,
+                    size=len(self.df_banks["deposits"]),
+                )
+                * self.df_banks["deposits"]
+            )
+
+        elif self.shocks_law == "normal":
+            new_deposits = np.maximum(
+                self.df_banks["deposits"]
+                + np.random.randn(len(self.df_banks["deposits"]))
+                * self.shocks_vol,
+                0.0,
+            )
+
+        elif (
+            self.shocks_law == "normal-mean-reverting"
+        ):  # lux approahc + a clip to the negative side to avoid withdrawing more deposits than initially existing
+            mean_reversion = self.shocks_vol
+            epsilon = np.random.normal(
+                loc=0,
+                scale=self.shocks_vol,
+                size=len(self.df_banks["deposits"]),
+            )
+            shocks = (
+                mean_reversion
+                * (
+                    self.df_banks["initial deposits"]
+                    - self.df_banks["deposits"]
+                )
+                + epsilon * self.df_banks["total assets"]
+            )
+
+            # center the shocks
+            shocks = shocks - np.mean(shocks)
+
+            # clip the negative shocks to the deposits size
+            new_deposits = (self.df_banks["deposits"] + shocks).clip(lower=0)
+
+        shocks = new_deposits - self.df_banks["deposits"]
+        return shocks
