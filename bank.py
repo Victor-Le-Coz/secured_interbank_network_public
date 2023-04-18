@@ -457,6 +457,13 @@ class ClassBank:
         )
 
         # update df_reverse_repos => need to create a version without while loop to save time
+        if (
+            self.df_reverse_repos.loc[bank_id][
+                self.df_reverse_repos.loc[bank_id]["status"]
+            ].size
+            == 0
+        ):
+            self.df_reverse_repos.to_csv("df_reverse_repo_err.csv")
         trans_id = self.df_reverse_repos.loc[bank_id][
             self.df_reverse_repos.loc[bank_id]["status"]
         ].index[0]

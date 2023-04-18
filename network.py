@@ -228,20 +228,6 @@ class ClassNetwork:
             elif item in par.off_bs_items:
                 self.df_banks.loc[bank_id, item] = Bank.off_bs_items[item]
 
-        # df_ending = df[df["maturity"] + df["start_step"] == self.step - 1]
-        # self.df_banks.loc[bank_id, "maturity@ending_amount"] = (
-        #     df_ending["amount"] @ df_ending["maturity"]
-        # )
-        # self.df_banks.loc[bank_id, "ending_amount"] = df_ending["amount"].sum()
-
-        # df_starting = df[df["start_step"] == self.step - 1]
-        # self.df_banks.loc[bank_id, "nb_ending_starting"] = len(
-        #     df_ending
-        # ) + len(df_starting)
-        # self.df_banks.loc[bank_id, "amount_ending_starting"] = (
-        #     df_ending["amount"].sum() + df_starting["amount"].sum()
-        # )
-
         # fill dic_matrices
         self.dic_matrices["adjency"][bank_id, :] = np.array(
             list(self.banks[bank_id].reverse_repos.values())
