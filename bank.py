@@ -37,6 +37,10 @@ class ClassBank:
         self.conservative_shock = conservative_shock
         self.LCR_mgt_opt = LCR_mgt_opt
         self.nb_banks = nb_banks
+        self.initial_deposits = initial_deposits
+
+        # definition of a dictionary (faster) with the accounting data
+        self.dic_balance_sheet = dict.fromkeys(par.accounting_items, 0)
 
         # definition of the df for storing all reverse repo transactions
         self.df_reverse_repos = pd.DataFrame(
@@ -75,57 +79,38 @@ class ClassBank:
         )  # Dictionary of the instances of the ClassBank class existing in
         # the ClassNetwork class.
 
-        # Dictionaries of the balance sheet items of an instance of the
-        # ClassBank.
-        self.assets = {  # Assets.
-            "cash": 0.0,
-            "securities usable": 0.0,
-            "securities encumbered": 0.0,
-            "loans": 0.0,
-            "reverse repo exposures": 0.0,
-        }
-        self.liabilities = {  # Liabilities.
-            "own funds": 0.0,
-            "deposits": initial_deposits,
-            "repo exposures": 0.0,
-            "central bank funding": 0.0,
-        }
-        self.off_bs_items = {  # Off-balance sheet items.
-            "securities collateral": 0.0,
-            "securities reused": 0.0,
-        }
-
         # Run each of the
         self.initialize_balance_sheet()
 
     def initialize_balance_sheet(self):
-        """
-        Instance method initializing the balance sheet items of an instance
-        of ClassBank.
-        :return:
-        """
+
+        # set the initial deposits
+        self.dic_balance_sheet["deposits"] = self.initial_deposits
 
         # The cash is set to its minimum reserve amount.
-        self.assets["cash"] = self.liabilities["deposits"] * self.alpha_init
+        self.dic_balance_sheet["cash"] = (
+            self.dic_balance_sheet["deposits"] * self.alpha_init
+        )
 
         # The collateral is set to the amount allowing to match the beta_init.
-        self.assets["securities usable"] = (
+        self.dic_balance_sheet["securities usable"] = (
             (self.beta_init - self.alpha)
-            * self.liabilities["deposits"]
+            * self.dic_balance_sheet["deposits"]
             / self.collateral_value
         )
 
         # The Own-funds are set to match the leverage ratio.
-        self.liabilities["own funds"] = (
+        self.dic_balance_sheet["own funds"] = (
             self.gamma / (1.0 - self.gamma)
-        ) * self.liabilities["deposits"]
+        ) * self.dic_balance_sheet["deposits"]
 
         # The loans are set to match the assets and liabilities.
-        self.assets["loans"] = (
-            self.liabilities["own funds"]
-            + self.liabilities["deposits"]
-            - self.assets["cash"]
-            - self.assets["securities usable"] * self.collateral_value
+        self.dic_balance_sheet["loans"] = (
+            self.dic_balance_sheet["own funds"]
+            + self.dic_balance_sheet["deposits"]
+            - self.dic_balance_sheet["cash"]
+            - self.dic_balance_sheet["securities usable"]
+            * self.collateral_value
         )
 
     def initialize_banks(self, banks):
@@ -145,16 +130,9 @@ class ClassBank:
                 self.off_balance_repos[bank.id] = 0.0
                 self.banks[bank.id] = bank
 
-    def set_shock(self, shock):
-        """
-        Instance method applying a shock to an instance of ClassBank.
-        It updates the deposits and the cash.
-        :param shock: shock applied
-        :return:
-        """
-        self.shock = shock
-        self.liabilities["deposits"] += self.shock
-        self.assets["cash"] += self.shock
+    def step_set_shock(self, shock):
+        self.dic_balance_sheet["deposits"] += shock
+        self.dic_balance_sheet["cash"] += shock
 
     def set_collateral(self, collateral_value):
         """
@@ -175,10 +153,11 @@ class ClassBank:
         # LCR, this value can be positive or
         # negative.
         delta_cash = (
-            self.beta_star * self.liabilities["deposits"]
-            - self.assets["cash"]
-            - self.assets["securities usable"] * self.collateral_value
-            - self.off_bs_items["securities collateral"]
+            self.beta_star * self.dic_balance_sheet["deposits"]
+            - self.dic_balance_sheet["cash"]
+            - self.dic_balance_sheet["securities usable"]
+            * self.collateral_value
+            - self.dic_balance_sheet["securities collateral"]
             * self.collateral_value
         )
 
@@ -186,12 +165,12 @@ class ClassBank:
         # In case of a negative delta cash,
         # the bank first reimburses its existing central bank funding (MRO)
         # before granting new loans.
-        self.assets["cash"] += delta_cash
-        self.assets["loans"] += -min(
-            self.liabilities["central bank funding"] + delta_cash, 0.0
+        self.dic_balance_sheet["cash"] += delta_cash
+        self.dic_balance_sheet["loans"] += -min(
+            self.dic_balance_sheet["central bank funding"] + delta_cash, 0.0
         )
-        self.liabilities["central bank funding"] = max(
-            self.liabilities["central bank funding"] + delta_cash, 0.0
+        self.dic_balance_sheet["central bank funding"] = max(
+            self.dic_balance_sheet["central bank funding"] + delta_cash, 0.0
         )
 
     def step_end_repos(self):
@@ -202,7 +181,8 @@ class ClassBank:
         :return:
         """
         excess_liquidity = (
-            self.assets["cash"] - self.alpha * self.liabilities["deposits"]
+            self.dic_balance_sheet["cash"]
+            - self.alpha * self.dic_balance_sheet["deposits"]
         )
         excess_liquidity = max(excess_liquidity, 0.0)
         self.end_repos(excess_liquidity)
@@ -240,18 +220,18 @@ class ClassBank:
 
             if (
                 self.off_balance_repos[b]
-                - self.off_bs_items["securities reused"]
+                - self.dic_balance_sheet["securities reused"]
                 > par.float_limit
             ):
                 print(
-                    f"The end repo amount of bank {self.id} with bank {b} is {end} while the off_balance_repo is {self.off_balance_repos[b]} and the securities reused is {self.off_bs_items['securities reused']}"
+                    f"The end repo amount of bank {self.id} with bank {b} is {end} while the off_balance_repo is {self.off_balance_repos[b]} and the securities reused is {self.dic_balance_sheet['securities reused']}"
                 )
 
             # test the accuracy of self.on_balance repos:
             assert (
                 abs(
                     sum(self.off_balance_repos.values())
-                    - self.off_bs_items["securities reused"]
+                    - self.dic_balance_sheet["securities reused"]
                 )
                 < par.float_limit
             ), (
@@ -260,7 +240,7 @@ class ClassBank:
                 "is not equal to the "
                 "Securities Reused {}".format(
                     sum(self.off_balance_repos.values()),
-                    self.off_bs_items["securities reused"],
+                    self.dic_balance_sheet["securities reused"],
                 )
             )
 
@@ -272,12 +252,12 @@ class ClassBank:
                 self.banks[b].end_reverse_repo(self.id, end)
 
                 # Update all the balance sheet items related to the closure of the repo
-                self.assets["cash"] -= end
-                self.liabilities["repo exposures"] -= end
-                self.off_bs_items["securities collateral"] += (
+                self.dic_balance_sheet["cash"] -= end
+                self.dic_balance_sheet["repo exposures"] -= end
+                self.dic_balance_sheet["securities collateral"] += (
                     end / self.collateral_value
                 )
-                self.off_bs_items["securities reused"] -= (
+                self.dic_balance_sheet["securities reused"] -= (
                     end / self.collateral_value
                 )
 
@@ -289,11 +269,12 @@ class ClassBank:
                 target_repo_amount_to_close -= end
 
                 assert (
-                    self.off_bs_items["securities reused"] >= -par.float_limit
+                    self.dic_balance_sheet["securities reused"]
+                    >= -par.float_limit
                 ), (
                     "securities reused negative {} at step {}, due to "
                     "retrieving of end {}".format(
-                        self.off_bs_items["securities reused"],
+                        self.dic_balance_sheet["securities reused"],
                         self.Network.step,
                         end,
                     )
@@ -321,10 +302,10 @@ class ClassBank:
             assert (
                 abs(
                     sum(self.on_balance_repos.values())
-                    - self.assets["securities encumbered"]
+                    - self.dic_balance_sheet["securities encumbered"]
                 )
                 < par.float_limit
-            ), f"the sum of the on-balance repos {sum(self.on_balance_repos.values())} are not equal to the Securities Encumbered {self.off_bs_items['securities encumbered']}"
+            ), f"the sum of the on-balance repos {sum(self.on_balance_repos.values())} are not equal to the Securities Encumbered {self.dic_balance_sheet['securities encumbered']}"
 
             if end > 0.0:
 
@@ -335,10 +316,12 @@ class ClassBank:
                 # not own sufficient colletral to end its reverse repo.
                 self.banks[b].end_reverse_repo(self.id, end)
 
-                self.assets["cash"] -= end
-                self.liabilities["repo exposures"] -= end
-                self.assets["securities usable"] += end / self.collateral_value
-                self.assets["securities encumbered"] -= (
+                self.dic_balance_sheet["cash"] -= end
+                self.dic_balance_sheet["repo exposures"] -= end
+                self.dic_balance_sheet["securities usable"] += (
+                    end / self.collateral_value
+                )
+                self.dic_balance_sheet["securities encumbered"] -= (
                     end / self.collateral_value
                 )
                 self.on_balance_repos[b] -= end
@@ -373,7 +356,7 @@ class ClassBank:
         # securities he received in the first place.
         missing_collateral = max(
             amount
-            - self.off_bs_items["securities collateral"]
+            - self.dic_balance_sheet["securities collateral"]
             * self.collateral_value,
             0.0,
         )
@@ -386,7 +369,7 @@ class ClassBank:
         # recursive algorithm.
         missing_collateral = max(
             amount
-            - self.off_bs_items["securities collateral"]
+            - self.dic_balance_sheet["securities collateral"]
             * self.collateral_value,
             0.0,
         )
@@ -408,24 +391,24 @@ class ClassBank:
         # end its reverse repo.
 
         assert not (
-            self.off_bs_items["securities reused"] > par.float_limit
-            and self.assets["securities usable"] > par.float_limit
+            self.dic_balance_sheet["securities reused"] > par.float_limit
+            and self.dic_balance_sheet["securities usable"] > par.float_limit
         ), (
             "both reused {} and "
             "usable {} "
             "are positive, "
             "while normally supposed to use all usable before using "
             "collateral".format(
-                self.off_bs_items["securities reused"],
-                self.assets["securities usable"],
+                self.dic_balance_sheet["securities reused"],
+                self.dic_balance_sheet["securities usable"],
             )
         )
 
         assert (
             abs(
-                self.off_bs_items["securities collateral"]
-                + self.off_bs_items["securities reused"]
-                - self.assets["reverse repo exposures"]
+                self.dic_balance_sheet["securities collateral"]
+                + self.dic_balance_sheet["securities reused"]
+                - self.dic_balance_sheet["reverse repo exposures"]
             )
             < par.float_limit
         ), (
@@ -439,20 +422,20 @@ class ClassBank:
             "\n "
             "difference {}"
             "".format(
-                self.off_bs_items["securities collateral"],
-                self.off_bs_items["securities reused"],
-                self.assets["reverse repo exposures"],
-                self.assets["reverse repo exposures"]
-                - self.off_bs_items["securities collateral"]
-                - self.off_bs_items["securities reused"],
+                self.dic_balance_sheet["securities collateral"],
+                self.dic_balance_sheet["securities reused"],
+                self.dic_balance_sheet["reverse repo exposures"],
+                self.dic_balance_sheet["reverse repo exposures"]
+                - self.dic_balance_sheet["securities collateral"]
+                - self.dic_balance_sheet["securities reused"],
             )
         )
 
         # Update of the balance sheet items
-        self.assets["cash"] += amount
-        self.assets["reverse repo exposures"] -= amount
+        self.dic_balance_sheet["cash"] += amount
+        self.dic_balance_sheet["reverse repo exposures"] -= amount
         self.reverse_repos[bank_id] -= amount
-        self.off_bs_items["securities collateral"] -= (
+        self.dic_balance_sheet["securities collateral"] -= (
             amount / self.collateral_value
         )
 
@@ -528,15 +511,17 @@ class ClassBank:
         # Define the amount of repo to be requested (it is a positive amount
         # if there is a liquidity need)
         repo_ask = -(
-            self.assets["cash"] - self.alpha * self.liabilities["deposits"]
+            self.dic_balance_sheet["cash"]
+            - self.alpha * self.dic_balance_sheet["deposits"]
         )
 
         # if there is no LCR mgt (no ECB funding to mgt LCR), we might have a biger shock to absorb than the available collateral, so only a part of the shock is absorded on the repo market
         if not (self.LCR_mgt_opt):
             repo_ask = min(
                 repo_ask,
-                self.assets["securities usable"] * self.collateral_value
-                + self.off_bs_items["securities collateral"]
+                self.dic_balance_sheet["securities usable"]
+                * self.collateral_value
+                + self.dic_balance_sheet["securities collateral"]
                 * self.collateral_value,
             )
 
@@ -558,8 +543,9 @@ class ClassBank:
             # Test if the bank agent owns enough collateral to enter
             # into this repo
             assert (
-                self.assets["securities usable"] * self.collateral_value
-                + self.off_bs_items["securities collateral"]
+                self.dic_balance_sheet["securities usable"]
+                * self.collateral_value
+                + self.dic_balance_sheet["securities collateral"]
                 * self.collateral_value
                 - (repo_ask - rest)
                 > -par.float_limit
@@ -567,37 +553,40 @@ class ClassBank:
 
             securities_usable_decrease = min(
                 repo_ask - rest,
-                self.assets["securities usable"] * self.collateral_value,
+                self.dic_balance_sheet["securities usable"]
+                * self.collateral_value,
             )
 
             securities_collateral_decrease = max(
                 repo_ask
                 - rest
-                - self.assets["securities usable"] * self.collateral_value,
+                - self.dic_balance_sheet["securities usable"]
+                * self.collateral_value,
                 0.0,
             )
 
             # Update of the balance sheet items
-            self.assets["cash"] += repo_ask - rest
+            self.dic_balance_sheet["cash"] += repo_ask - rest
             self.on_balance_repos[b] += securities_usable_decrease
-            self.assets["securities usable"] -= (
+            self.dic_balance_sheet["securities usable"] -= (
                 securities_usable_decrease / self.collateral_value
             )
-            self.assets["securities encumbered"] += (
+            self.dic_balance_sheet["securities encumbered"] += (
                 securities_usable_decrease / self.collateral_value
             )
             self.off_balance_repos[b] += securities_collateral_decrease
-            self.off_bs_items["securities collateral"] -= (
+            self.dic_balance_sheet["securities collateral"] -= (
                 securities_collateral_decrease / self.collateral_value
             )
-            self.off_bs_items["securities reused"] += (
+            self.dic_balance_sheet["securities reused"] += (
                 securities_collateral_decrease / self.collateral_value
             )
-            self.liabilities["repo exposures"] += repo_ask - rest
+            self.dic_balance_sheet["repo exposures"] += repo_ask - rest
 
             assert not (
-                self.off_bs_items["securities reused"] > par.float_limit
-                and self.assets["securities usable"] > par.float_limit
+                self.dic_balance_sheet["securities reused"] > par.float_limit
+                and self.dic_balance_sheet["securities usable"]
+                > par.float_limit
             ), (
                 "both reused {} and "
                 "usable {} "
@@ -606,8 +595,8 @@ class ClassBank:
                 "supposed to use all "
                 "usable before using "
                 "collat".format(
-                    self.off_bs_items["securities reused"],
-                    self.assets["securities usable"],
+                    self.dic_balance_sheet["securities reused"],
+                    self.dic_balance_sheet["securities usable"],
                 )
             )
 
@@ -634,7 +623,8 @@ class ClassBank:
         # Define the amount of repo to be requested (it is a positive amount
         # if there is a liquidity need)
         MRO_ask = -(
-            self.assets["cash"] - self.alpha * self.liabilities["deposits"]
+            self.dic_balance_sheet["cash"]
+            - self.alpha * self.dic_balance_sheet["deposits"]
         )
 
         # Case disjunction: nothing to do if the repo_ask is negative
@@ -643,8 +633,8 @@ class ClassBank:
 
         else:
             # perform a central bank funding
-            self.liabilities["central bank funding"] += MRO_ask
-            self.assets["cash"] += MRO_ask
+            self.dic_balance_sheet["central bank funding"] += MRO_ask
+            self.dic_balance_sheet["cash"] += MRO_ask
 
     def choose_bank(self, bank_list):
         trusts = {}
@@ -678,7 +668,8 @@ class ClassBank:
             return amount
 
         reverse_accept = max(
-            self.assets["cash"] - self.alpha * self.liabilities["deposits"],
+            self.dic_balance_sheet["cash"]
+            - self.alpha * self.dic_balance_sheet["deposits"],
             0.0,
         )
 
@@ -695,11 +686,11 @@ class ClassBank:
         # Update all balance sheet items related to the entering into a
         # reverse repo
         reverse_repo = min(amount, reverse_accept)
-        self.off_bs_items["securities collateral"] += (
+        self.dic_balance_sheet["securities collateral"] += (
             reverse_repo / self.collateral_value
         )
-        self.assets["cash"] -= reverse_repo
-        self.assets["reverse repo exposures"] += reverse_repo
+        self.dic_balance_sheet["cash"] -= reverse_repo
+        self.dic_balance_sheet["reverse repo exposures"] += reverse_repo
         self.reverse_repos[bank_id] += reverse_repo
 
         # fill df_reverse_repos
@@ -725,7 +716,7 @@ class ClassBank:
         Instance method computing the total assets of an instance of ClassBank.
         :return:
         """
-        return sum(self.assets.values())
+        return sum(self.dic_balance_sheet.values())
 
     def total_liabilities(self):
         """
@@ -733,7 +724,7 @@ class ClassBank:
         ClassBank.
         :return:
         """
-        return sum(self.liabilities.values())
+        return sum(self.dic_balance_sheet.values())
 
     def __str__(self):
         """
@@ -769,29 +760,32 @@ class ClassBank:
         p_str = p_str.format(
             self.id,
             round(self.total_assets(), 2),
-            round(self.assets["cash"], 2),
+            round(self.dic_balance_sheet["cash"], 2),
             round(
-                self.assets["securities usable"] * self.collateral_value,
-                2,
-            ),
-            round(
-                self.assets["securities encumbered"] * self.collateral_value,
-                2,
-            ),
-            round(self.assets["reverse repo exposures"], 2),
-            round(self.assets["loans"], 2),
-            round(self.total_liabilities(), 2),
-            round(self.liabilities["own funds"], 2),
-            round(self.liabilities["deposits"], 2),
-            round(self.liabilities["repo exposures"], 2),
-            round(self.liabilities["central bank funding"], 2),
-            round(
-                self.off_bs_items["securities collateral"]
+                self.dic_balance_sheet["securities usable"]
                 * self.collateral_value,
                 2,
             ),
             round(
-                self.off_bs_items["securities reused"] * self.collateral_value,
+                self.dic_balance_sheet["securities encumbered"]
+                * self.collateral_value,
+                2,
+            ),
+            round(self.dic_balance_sheet["reverse repo exposures"], 2),
+            round(self.dic_balance_sheet["loans"], 2),
+            round(self.total_liabilities(), 2),
+            round(self.dic_balance_sheet["own funds"], 2),
+            round(self.dic_balance_sheet["deposits"], 2),
+            round(self.dic_balance_sheet["repo exposures"], 2),
+            round(self.dic_balance_sheet["central bank funding"], 2),
+            round(
+                self.dic_balance_sheet["securities collateral"]
+                * self.collateral_value,
+                2,
+            ),
+            round(
+                self.dic_balance_sheet["securities reused"]
+                * self.collateral_value,
                 2,
             ),
             round(self.liquidity_coverage_ratio() * 100, 2),
@@ -807,13 +801,15 @@ class ClassBank:
         :return:
         """
         lcr = (
-            self.assets["cash"]
-            + self.assets["securities usable"] * self.collateral_value
+            self.dic_balance_sheet["cash"]
+            + self.dic_balance_sheet["securities usable"]
+            * self.collateral_value
         )
         lcr += (
-            self.off_bs_items["securities collateral"] * self.collateral_value
+            self.dic_balance_sheet["securities collateral"]
+            * self.collateral_value
         )
-        lcr /= self.beta_reg * self.liabilities["deposits"]
+        lcr /= self.beta_reg * self.dic_balance_sheet["deposits"]
         return lcr
 
     def cash_to_deposits(self):
@@ -822,7 +818,9 @@ class ClassBank:
         of ClassBank.
         :return:
         """
-        return self.assets["cash"] / (self.liabilities["deposits"])
+        return self.dic_balance_sheet["cash"] / (
+            self.dic_balance_sheet["deposits"]
+        )
 
     def leverage_exposure(self):
         """
@@ -836,18 +834,20 @@ class ClassBank:
         :return:
         """
         ltsr = (
-            self.assets["cash"]
-            + self.assets["securities usable"] * self.collateral_value
-            + self.assets["securities encumbered"] * self.collateral_value
-            + self.assets["loans"]
-            + self.assets["reverse repo exposures"]
+            self.dic_balance_sheet["cash"]
+            + self.dic_balance_sheet["securities usable"]
+            * self.collateral_value
+            + self.dic_balance_sheet["securities encumbered"]
+            * self.collateral_value
+            + self.dic_balance_sheet["loans"]
+            + self.dic_balance_sheet["reverse repo exposures"]
             # counterparty credit risk exposure, non zero only if the
             # collateral value is dynamic
             + (
-                self.assets["reverse repo exposures"]
-                - self.off_bs_items["securities collateral"]
+                self.dic_balance_sheet["reverse repo exposures"]
+                - self.dic_balance_sheet["securities collateral"]
                 * self.collateral_value
-                - self.off_bs_items["securities reused"]
+                - self.dic_balance_sheet["securities reused"]
                 * self.collateral_value
             )
         )
@@ -859,7 +859,7 @@ class ClassBank:
         ClassBank.
         :return:
         """
-        return self.liabilities["own funds"] / self.leverage_exposure()
+        return self.dic_balance_sheet["own funds"] / self.leverage_exposure()
 
     def assert_lcr(self):
         """
@@ -869,11 +869,12 @@ class ClassBank:
         time step concerned.
         """
         assert (
-            self.assets["cash"]
-            + self.off_bs_items["securities collateral"]
+            self.dic_balance_sheet["cash"]
+            + self.dic_balance_sheet["securities collateral"]
             * self.collateral_value
-            + self.assets["securities usable"] * self.collateral_value
-            - self.liabilities["deposits"] * self.beta_reg
+            + self.dic_balance_sheet["securities usable"]
+            * self.collateral_value
+            - self.dic_balance_sheet["deposits"] * self.beta_reg
             >= -par.float_limit
         ), self.__str__() + "\nLCR not at its target value for bank {} at " "step {}".format(
             self.id, self.Network.step
@@ -889,7 +890,8 @@ class ClassBank:
 
         # in case the minimum reserve is not respected, print all the positions of the banks in the network
         if (
-            self.assets["cash"] - self.alpha * self.liabilities["deposits"]
+            self.dic_balance_sheet["cash"]
+            - self.alpha * self.dic_balance_sheet["deposits"]
             < -par.float_limit
         ):
             for bank in self.banks.values():
@@ -897,7 +899,8 @@ class ClassBank:
                 print(bank.reverse_repos)
 
         assert (
-            self.assets["cash"] - self.alpha * self.liabilities["deposits"]
+            self.dic_balance_sheet["cash"]
+            - self.alpha * self.dic_balance_sheet["deposits"]
             >= -par.float_limit
         ), (
             self.__str__() + "\nMinimum reserves not respected for bank {} at"
@@ -915,7 +918,7 @@ class ClassBank:
         time step concerned.
         """
         assert (
-            self.liabilities["own funds"]
+            self.dic_balance_sheet["own funds"]
             - self.gamma * self.leverage_exposure()
             > -par.float_limit
         ), (

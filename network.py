@@ -8,7 +8,6 @@ from scipy.stats import pareto
 from tqdm import tqdm
 import graphics as gx
 from bank import ClassBank
-import shocks as sh
 import functions as fct
 import pandas as pd
 import parameters as par
@@ -88,24 +87,11 @@ class ClassNetwork:
         # Definition of the value of the collateral
         self.collateral_value = 1.0
 
-        # build deposits and create
+        # initialize deposits in df_banks
+        self.initialize_deposits()
+
+        # build Banks
         for bank_id in range(self.nb_banks):
-            if self.initialization_method == "pareto":
-                self.df_banks.loc[bank_id, "deposits"] = (
-                    pareto.rvs(
-                        self.alpha_pareto,
-                        loc=0,
-                        scale=1,
-                        size=1,
-                        random_state=None,
-                    )[0]
-                    * 40.0
-                )
-            elif self.initialization_method == "constant":
-                self.df_banks.loc[bank_id, "deposits"] = 100.0
-            self.df_banks.loc[bank_id, "initial deposits"] = self.df_banks.loc[
-                bank_id, "deposits"
-            ]
             self.banks.append(
                 ClassBank(
                     Network=self,
@@ -129,38 +115,49 @@ class ClassNetwork:
             Bank.initialize_banks(self.banks)
 
         # fill the recording data objects at step 0
-        self.step_fill()
+        self.step_fill_df_banks_n_dic_matrices()
+
+    def initialize_deposits(self):
+        if self.initialization_method == "pareto":
+            self.df_banks["deposits"] = (
+                pareto.rvs(
+                    self.alpha_pareto,
+                    loc=0,
+                    scale=1,
+                    size=self.nb_banks,
+                    random_state=None,
+                )
+                * 40.0
+            )
+        elif self.initialization_method == "constant":
+            self.df_banks["deposits"] = np.ones(self.nb_banks) * 100.0
+
+        # store initial deposits
+        self.df_banks["initial deposits"] = self.df_banks["deposits"]
 
     def step_network(self):
 
-        shocks = self.generate_shocks()
+        # Defines an index of the banks
+        index = np.arange(self.nb_banks)
 
-        # Tests to ensure the shock created matches the required properties
-        assert (
-            np.min(self.df_banks["deposits"] + shocks) >= 0
-        ), "negative shocks larger than deposits"
-        if self.conservative_shock:
-            assert (
-                abs(shocks.sum()) == 0.0,
-                "Shock doesn't sum to zero, sum is {}".format(
-                    abs(shocks.sum())
-                ),
-            )
+        # generate shocks
+        arr_shocks = self.generate_shocks()
 
-        # loop 1
-        index = np.arange(self.nb_banks)  # Defines an index of the banks
+        # loop 1: apply shock & lcr mgt
         for bank_id in index:
-            self.banks[bank_id].set_shock(shocks[bank_id])
+            # set the shocks (linear)
+            self.banks[bank_id].step_set_shock(arr_shocks[bank_id])
+            # LCR mgt (linear)
             if self.LCR_mgt_opt:
                 self.banks[bank_id].step_lcr_mgt()
 
-        # loop 2 - after permutation
-        index = np.random.permutation(index)
+        # loop 2: end repo
+        index = np.random.permutation(index)  # permutation
         for bank_id in index:
             self.banks[bank_id].step_end_repos()
 
-        # loop 3 - after second permutation
-        index = np.random.permutation(index)
+        # loop 3: enter repo
+        index = np.random.permutation(index)  # permutation
         for bank_id in index:
             self.banks[bank_id].step_enter_repos()
             if not (self.conservative_shock) or not (self.LCR_mgt_opt):
@@ -172,24 +169,18 @@ class ClassNetwork:
             self.banks[bank_id].assert_alm()
             if self.LCR_mgt_opt:
                 self.banks[bank_id].assert_lcr()
-            self.step_fill_single_bank(bank_id)
-        self.step_fill()
+
+        self.step_fill_df_banks_n_dic_matrices()
 
         # new step of the network
         self.step += 1
 
     def step_fill_single_bank(self, bank_id):
 
-        Bank = self.banks[bank_id]
-
         # fill df_banks
-        for item in par.accounting_items:
-            if item in par.assets:
-                self.df_banks.loc[bank_id, item] = Bank.assets[item]
-            elif item in par.liabilities:
-                self.df_banks.loc[bank_id, item] = Bank.liabilities[item]
-            elif item in par.off_bs_items:
-                self.df_banks.loc[bank_id, item] = Bank.off_bs_items[item]
+        Bank = self.banks[bank_id]
+        for key in par.accounting_items:
+            self.df_banks.loc[bank_id, key] = Bank.dic_balance_sheet[key]
 
         # fill dic_matrices
         self.dic_matrices["adjency"][bank_id, :] = np.array(
@@ -199,7 +190,11 @@ class ClassNetwork:
         self.dic_matrices["trust"][bank_id, :bank_id] = trusts[:bank_id]
         self.dic_matrices["trust"][bank_id, bank_id + 1 :] = trusts[bank_id:]
 
-    def step_fill(self):
+    def step_fill_df_banks_n_dic_matrices(self):
+
+        for bank_id in range(self.nb_banks):
+            self.step_fill_single_bank(bank_id)
+
         # fill df_banks
         self.df_banks["total assets"] = self.df_banks[par.assets].sum(axis=1)
         self.df_banks["excess liquidity"] = (
@@ -232,15 +227,31 @@ class ClassNetwork:
 
     def generate_shocks(self):
         if self.shocks_method == "bilateral":
-            shocks = self.generate_bilateral_shocks()
+            arr_shocks = self.generate_bilateral_shocks()
         elif self.shocks_method == "multilateral":  # Damien's proposal,
             # doesn't work yet, could be enhanced
-            shocks = self.generate_multilateral_shocks()
+            arr_shocks = self.generate_multilateral_shocks()
         elif self.shocks_method == "dirichlet":
-            shocks = self.generate_dirichlet_shocks(option="mean-reverting")
+            arr_shocks = self.generate_dirichlet_shocks(
+                option="mean-reverting"
+            )
         elif self.shocks_method == "non-conservative":
-            shocks = self.generate_non_conservative_shocks()
-        return shocks
+            arr_shocks = self.generate_non_conservative_shocks()
+
+        # Tests
+        assert (
+            np.min(self.df_banks["deposits"] + arr_shocks) >= 0
+        ), "negative shocks larger than deposits"
+
+        if self.conservative_shock:
+            assert (
+                abs(arr_shocks.sum()) == 0.0,
+                "Shock doesn't sum to zero, sum is {}".format(
+                    abs(arr_shocks.sum())
+                ),
+            )
+
+        return arr_shocks
 
     def generate_bilateral_shocks(self):
         # define middle of the list of banks

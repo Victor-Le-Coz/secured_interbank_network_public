@@ -7,7 +7,6 @@ import numpy as np
 from scipy.stats import pareto
 from tqdm import tqdm
 import graphics as gx
-import shocks as sh
 import functions as fct
 from network import ClassNetwork
 import pandas as pd
