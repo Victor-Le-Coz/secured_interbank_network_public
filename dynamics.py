@@ -331,6 +331,12 @@ class ClassDynamics:
                 "amount_ending_starting av. bank",
             ] = 0
 
+        # nb_ending starting per signle bank
+        self.df_bank_trajectory.loc[
+            step,
+            "nb_ending_starting",
+        ] = nb_trans
+
     def plot_n_store_trajectories(self):
         """
         Instance method saving all the figures representing the network

@@ -30,11 +30,8 @@ accounting_items = assets + liabilities + off_bs_items
 other_items = [
     "initial deposits",
     "total assets",
+    "total liabilities",
     "excess liquidity",
-    "maturity@ending_amount",
-    "ending_amount",
-    "nb_ending_starting",
-    "amount_ending_starting",
 ]
 
 # bank items

@@ -175,6 +175,65 @@ class ClassNetwork:
         # new step of the network
         self.step += 1
 
+    def check_constraints(self):
+        self.check_balance_sheet()
+        self.check_min_reserves()
+        if self.LCR_mgt_opt:
+            self.check_lcr()
+
+    def check_balance_sheet(self):
+
+        assessment = (
+            (
+                self.df_banks["total assets"]
+                - self.df_banks["total liabilities"]
+            )
+            .abs()
+            .lt(par.float_limit)
+            .all()
+        )
+
+        if not (assessment):
+            print(
+                r"Assets don't match liabilities for one or several banks, check the df_banks under ./errors"
+            )
+            self.df_banks.to_csv(f"{self.path_results}./errors/df_banks.csv")
+            exit()
+
+    def check_min_reserves(self):
+
+        assessment = (
+            self.df_banks["excess liquidity"].gt(-par.float_limit).all()
+        )
+
+        if not (assessment):
+            print(
+                r"Minimum reserves not respected for one or several banks, check the df_banks under ./errors"
+            )
+            self.df_banks.to_csv(f"{self.path_results}./errors/df_banks.csv")
+            exit()
+
+    def check_lcr(self):
+
+        assessment = (
+            (
+                self.df_banks["cash"]
+                + self.df_banks["securities collateral"]
+                * self.collateral_value
+                + self.df_banks["securities usable"] * self.collateral_value
+                - self.df_banks["deposits"] * self.beta_reg
+            )
+            .gt(-par.float_limit)
+            .all()
+        )
+
+        if not (assessment):
+            print(
+                r"LCR not at its target value one or several banks, check the df_banks under ./errors"
+            )
+            self.df_banks.to_csv(f"{self.path_results}./errors/df_banks.csv")
+            exit()
+
     def step_fill_single_bank(self, bank_id):
 
         # fill df_banks
@@ -197,6 +256,9 @@ class ClassNetwork:
 
         # fill df_banks
         self.df_banks["total assets"] = self.df_banks[par.assets].sum(axis=1)
+        self.df_banks["total liabilities"] = self.df_banks[
+            par.liabilities
+        ].sum(axis=1)
         self.df_banks["excess liquidity"] = (
             self.df_banks["cash"] - self.alpha * self.df_banks["deposits"]
         )
