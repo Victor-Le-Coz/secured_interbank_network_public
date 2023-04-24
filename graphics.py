@@ -526,6 +526,9 @@ def plot_network(adj, network_total_assets, path, step, name_in_title):
 
 
 def plot_core_periphery(bank_network, sig_c, sig_x, path, step, name_in_title):
+
+    fct.init_path(path)
+
     # Visualization
     fig = plt.figure(figsize=halfslide_figsize)
     ax = plt.gca()

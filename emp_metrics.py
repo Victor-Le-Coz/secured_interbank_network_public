@@ -146,42 +146,38 @@ def get_binary_adjs(dic_obs_adj_tr, agg_periods):
     return dic_binary_adjs
 
 
-def get_n_plot_cp_test(dic_binary_adjs, save_every, path_results):
+def get_n_plot_cp_test(
+    dic_obs_matrix_reverse_repo, algo, save_every, path_results
+):
 
-    dic_p_value = {}
-    for agg_period in dic_binary_adjs.keys():
-        dic_p_value.update({agg_period: [1]})
+    sr_pvalue = pd.Series()
 
-    for step in np.arange(
-        len(list(dic_binary_adjs.values())[0]), step=save_every
-    ):
-
-        for agg_period in dic_binary_adjs.keys():
+    for (step, ts_trade) in enumerate(dic_obs_matrix_reverse_repo.keys()):
+        if step % save_every == 0:
 
             # build nx object
             bank_network = nx.from_numpy_matrix(
-                dic_binary_adjs[agg_period][step],
+                np.asarray(dic_obs_matrix_reverse_repo[ts_trade]),
                 parallel_edges=False,
                 create_using=nx.DiGraph,
             )
 
             # run cpnet test
-            sig_c, sig_x, significant, p_value = fct.cpnet_test(bank_network)
+            sig_c, sig_x, significant, p_value = fct.cpnet_test(
+                bank_network, algo=algo
+            )
 
             # store the p_value
-            dic_p_value[agg_period].append(p_value)
+            sr_pvalue.loc[ts_trade] = p_value
 
             # plot
-            fct.init_path(
-                path_results + str(agg_period) + "_step_core-periphery/"
-            )
             gx.plot_core_periphery(
                 bank_network=bank_network,
                 sig_c=sig_c,
                 sig_x=sig_x,
-                path=path_results + str(agg_period) + "_step_core-periphery/",
-                step=step,
+                path=f"{path_results}core-periphery/",
+                step=ts_trade,
                 name_in_title="reverse repo",
             )
 
-    return dic_p_value
+    return sr_pvalue

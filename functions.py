@@ -371,10 +371,25 @@ def reformat_output(output):
         return output_rf
 
 
-def cpnet_test(
-    bank_network,
-):
-    alg = cpnet.BE()  # Load the Borgatti-Everett algorithm
+def cpnet_test(bank_network, algo="BE"):
+
+    if algo == "BE":
+        alg = cpnet.BE()  # Load the Borgatti-Everett algorithm (only binary)
+    elif algo == "KM_ER":
+        alg = cpnet.KM_ER()
+    elif algo == "KM_config":
+        alg = cpnet.KM_config()
+    elif algo == "Divisive":
+        alg = cpnet.Divisive()
+    elif algo == "Rombach":
+        alg = cpnet.Rombach()
+    elif algo == "Rossa":
+        alg = cpnet.Rossa()
+    elif algo == "LapCore":
+        alg = cpnet.LapCore()
+    elif algo == "LowRankCore":
+        alg = cpnet.LowRankCore()
+
     alg.detect(bank_network)  # Feed the network as an input
     x = alg.get_coreness()  # Get the coreness of nodes
     c = alg.get_pair_id()  # Get the group membership of nodes
