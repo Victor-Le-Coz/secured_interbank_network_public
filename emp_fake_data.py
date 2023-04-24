@@ -39,6 +39,27 @@ def get_df_mmsr(nb_tran):
     return df_mmsr
 
 
+def get_df_exposures(lines):
+    df_exposures = pd.DataFrame(
+        index=range(lines),
+        data={
+            "borr_lei": choices(
+                ["bank_" + str(i) for i in range(10)], k=lines
+            ),
+            "lend_lei": choices(
+                ["bank_" + str(i) for i in range(15)]
+                + ["fund_" + str(i) for i in range(5)],
+                k=lines,
+            ),
+            "exposure": np.random.rand(lines) * 100,
+            "Setdate": pd.period_range(
+                start="2020-01-01", freq=freq, periods=lines
+            ).to_timestamp(),
+        },
+    )
+    return df_exposures
+
+
 def get_df_finrep():
     df_finrep = pd.DataFrame(
         data={
