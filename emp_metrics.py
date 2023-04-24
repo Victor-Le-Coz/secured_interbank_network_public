@@ -2,39 +2,43 @@ import numpy as np
 import networkx as nx
 import graphics as gx
 import functions as fct
+import pandas as pd
 
 
 def get_jaccard(dic_binary_adjs):
     """
     jaccard index of the transactions: better approach to mesure the stability of trading relationships when maturities are longer than one day
     """
+
+    # define the lenght
+    nb_steps = len(list(dic_binary_adjs.values())[0])
+    agg_periods = dic_binary_adjs.keys()
+
     # initialisation
-    dic_jaccard = {}
-    for agg_period in dic_binary_adjs.keys():
-        dic_jaccard.update({agg_period: [0.0]})
+    df_jaccard = pd.DataFrame(index=range(nb_steps), columns=agg_periods)
 
     # loop over the steps
-    for step in range(1, len(list(dic_binary_adjs.values())[0])):
-        for agg_period in dic_binary_adjs.keys():
-            # if is in the end of the period
+    for step in range(1, nb_steps):
+        for agg_period in agg_periods:
+            # if it is in the end of the period, do:
             if step % agg_period == agg_period - 1:
-                dic_jaccard[agg_period].append(
-                    (
-                        np.logical_and(
-                            dic_binary_adjs[agg_period][step],
-                            dic_binary_adjs[agg_period][step - agg_period],
-                        ).sum()
-                        / np.logical_or(
-                            dic_binary_adjs[agg_period][step],
-                            dic_binary_adjs[agg_period][step - agg_period],
-                        ).sum()
-                    )
+                df_jaccard.loc[step, agg_period] = (
+                    np.logical_and(
+                        dic_binary_adjs[agg_period][step],
+                        dic_binary_adjs[agg_period][step - agg_period],
+                    ).sum()
+                    / np.logical_or(
+                        dic_binary_adjs[agg_period][step],
+                        dic_binary_adjs[agg_period][step - agg_period],
+                    ).sum()
                 )
             # otherwise, just extend the time series
             else:
-                dic_jaccard[agg_period].append(dic_jaccard[agg_period][-1])
+                df_jaccard.loc[step, agg_period] = df_jaccard.loc[
+                    step - 1, agg_period
+                ]
 
-    return dic_jaccard
+    return df_jaccard
 
 
 def get_density(dic_binary_adjs):
@@ -127,7 +131,11 @@ def get_binary_adjs(dic_obs_adj_tr, agg_periods):
             # build the dic_binary_adj on a given step
             if step % agg_period > 0:
                 dic_binary_adj.update(
-                    {agg_period: np.logical_or(binary_adj, dic_binary_adj[agg_period])}
+                    {
+                        agg_period: np.logical_or(
+                            binary_adj, dic_binary_adj[agg_period]
+                        )
+                    }
                 )
             elif step % agg_period == 0:
                 dic_binary_adj.update({agg_period: binary_adj})
@@ -144,7 +152,9 @@ def get_n_plot_cp_test(dic_binary_adjs, save_every, path_results):
     for agg_period in dic_binary_adjs.keys():
         dic_p_value.update({agg_period: [1]})
 
-    for step in np.arange(len(list(dic_binary_adjs.values())[0]), step=save_every):
+    for step in np.arange(
+        len(list(dic_binary_adjs.values())[0]), step=save_every
+    ):
 
         for agg_period in dic_binary_adjs.keys():
 
@@ -162,7 +172,9 @@ def get_n_plot_cp_test(dic_binary_adjs, save_every, path_results):
             dic_p_value[agg_period].append(p_value)
 
             # plot
-            fct.init_path(path_results + str(agg_period) + "_step_core-periphery/")
+            fct.init_path(
+                path_results + str(agg_period) + "_step_core-periphery/"
+            )
             gx.plot_core_periphery(
                 bank_network=bank_network,
                 sig_c=sig_c,

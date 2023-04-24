@@ -245,6 +245,8 @@ class ClassNetwork:
         self.dic_matrices["adjency"][bank_id, :] = np.array(
             list(self.banks[bank_id].reverse_repos.values())
         )
+        if np.max(list(self.banks[bank_id].reverse_repos.values())) > 1:
+            print("error")
         trusts = list(self.banks[bank_id].trust.values())  # nb_banks-1 items
         self.dic_matrices["trust"][bank_id, :bank_id] = trusts[:bank_id]
         self.dic_matrices["trust"][bank_id, bank_id + 1 :] = trusts[bank_id:]

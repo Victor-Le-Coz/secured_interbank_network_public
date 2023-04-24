@@ -30,7 +30,6 @@ accounting_items = assets + liabilities + off_bs_items
 other_items = [
     "initial deposits",
     "total assets",
-    "total liabilities",
     "excess liquidity",
 ]
 

@@ -21,7 +21,7 @@ def get_df_mmsr(nb_tran):
             ),
             "trns_nominal_amt": np.random.rand(nb_tran) * 100,
             "maturity_time_stamp": pd.to_timedelta(
-                np.random.rand(nb_tran) * 250, unit="d"
+                np.random.rand(nb_tran) * 10, unit="d"
             )
             + pd.period_range(
                 start="2020-01-01", freq=freq, periods=nb_tran

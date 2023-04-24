@@ -209,6 +209,14 @@ class ClassDynamics:
                 self.Network.step, "repo exposures av. network"
             ] = np.mean(self.Network.dic_matrices["non-zero_adjency"])
 
+        if (
+            self.df_network_trajectory.loc[
+                self.Network.step, "repo exposures max network"
+            ]
+            > 0.99
+        ):
+            print("error")
+
         # Collateral reuse
         self.df_network_trajectory.loc[
             self.Network.step, "collateral reuse"

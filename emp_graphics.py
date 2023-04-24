@@ -10,20 +10,14 @@ halfslide_figsize = (6, 6)  # for the network plots notably
 figsize = small_figsize
 
 
-def plot_jaccard_aggregated(dic_jaccard, path):
+def plot_jaccard_aggregated(df_jaccard, path):
     fig = plt.figure(figsize=figsize)
-    length = len(list(dic_jaccard.values())[0])
-    for agg_period in dic_jaccard.keys():
-        plt.plot(
-            np.arange(length),
-            dic_jaccard[agg_period],
-        )
-
+    df_jaccard.plot()
     plt.xlabel("Steps")
     plt.ylabel("Jaccard index")
     plt.title("Jaccard index aggregated")
     plt.legend(
-        [str(agg_period) + " time steps" for agg_period in dic_jaccard.keys()],
+        [str(agg_period) + " time steps" for agg_period in df_jaccard.keys()],
         loc="upper left",
     )
     plt.grid()
