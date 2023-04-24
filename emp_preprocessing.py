@@ -1,6 +1,7 @@
 import pandas as pd
 import pickle
 from tqdm import tqdm
+import functions as fct
 
 
 def build_from_mmsr(df_mmsr):
@@ -44,6 +45,7 @@ def build_from_mmsr(df_mmsr):
                     + df_mmsr.loc[ts_trade, "trns_nominal_amt"]
                 )
 
+    fct.init_path("./support")
     pickle.dump(
         dic_obs_matrix_reverse_repo,
         open("./support/dic_obs_matrix_reverse_repo.pickle", "wb"),
@@ -83,6 +85,7 @@ def build_from_exposures(df_exposures):
             df_exposures.loc[index, "borr_lei"],
         ] = df_exposures.loc[index, "exposure"]
 
+    fct.init_path("./support")
     pickle.dump(
         dic_obs_matrix_reverse_repo,
         open("./support/dic_obs_matrix_reverse_repo.pickle", "wb"),
