@@ -56,7 +56,8 @@ def plot_step_degree_distribution(
     agg_periods = dic_in_degree.keys()
 
     fig, (ax1, ax2) = plt.subplots(1, 2)
-    width = 0.2
+    width = 0.1
+    space = 0.05
     pos = 0
 
     for agg_period in agg_periods:
@@ -67,7 +68,6 @@ def plot_step_degree_distribution(
             return_counts=True,
         )
         ax1.bar(hist[0] + pos, hist[1], width=width)
-        pos = pos + width + 0.1
 
         # out degree plot
         hist = np.unique(
@@ -75,7 +75,7 @@ def plot_step_degree_distribution(
             return_counts=True,
         )
         ax2.bar(hist[0] + pos, hist[1], width=width)
-        pos = pos + width + 0.1
+        pos = pos + width + space
 
     ax1.set_xlabel("degree")
     ax1.set_ylabel("frequency")
@@ -160,5 +160,3 @@ def get_n_plot_cp_test(
             )
 
     sr_pvalue.to_csv(f"{path_results}sr_pvalue.csv")
-
-    return sr_pvalue

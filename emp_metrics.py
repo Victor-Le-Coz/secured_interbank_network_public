@@ -88,8 +88,8 @@ def get_degree_distribution(dic_binary_adjs):
     dic_in_degree = {}
     dic_out_degree = {}
     for agg_period in agg_periods:
-        dic_in_degree.update({agg_period: df_in_degree_distribution})
-        dic_out_degree.update({agg_period: df_out_degree_distribution})
+        dic_in_degree.update({agg_period: df_in_degree_distribution.copy()})
+        dic_out_degree.update({agg_period: df_out_degree_distribution.copy()})
 
     for step in range(1, nb_steps):
         # Build the degree distribution time series - version aggregated.
@@ -97,10 +97,6 @@ def get_degree_distribution(dic_binary_adjs):
 
             # if is in the end of the period
             if step % agg_period == agg_period - 1:
-
-                # debuging
-                if agg_period == 50:
-                    print("dingo")
 
                 # first define a networkx object.
                 bank_network = nx.from_numpy_array(
