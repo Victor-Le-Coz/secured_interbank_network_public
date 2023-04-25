@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from random import choices
 
-freq = "1h"
+freq = "5h"
 
 
 def get_df_mmsr(nb_tran):

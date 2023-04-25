@@ -55,7 +55,7 @@ def build_from_mmsr(df_mmsr):
     return dic_obs_matrix_reverse_repo
 
 
-def get_dic_obs_adj_cr():
+def get_dic_obs_matrix_reverse_repo():
     return pickle.load(
         open("./support/dic_obs_matrix_reverse_repo.pickle", "rb")
     )
@@ -68,7 +68,9 @@ def build_from_exposures(df_exposures):
 
     # define the list of dates in the mmsr database
     # mmsr_trade_dates = pd.unique(df_exposures["Setdate"])
-    mmsr_trade_dates = sorted(list(set(df_exposures["Setdate"])))
+    mmsr_trade_dates = sorted(
+        list(set(df_exposures["Setdate"].dt.strftime("%Y-%m-%d")))
+    )
 
     # initialisation of a dictionary of the observed paths
     dic_obs_matrix_reverse_repo = {}  # for the exposures
@@ -79,7 +81,7 @@ def build_from_exposures(df_exposures):
 
     # building of the matrices and storage in the dictionary observed_path - as the maturity of the evergreen is one day when it is repeated (and notice perdio when it is closed) one can apply the same rule everywhere
     for index in tqdm(df_exposures.index):
-        ts_trade = df_exposures.loc[index, "Setdate"]
+        ts_trade = df_exposures.loc[index, "Setdate"].strftime("%Y-%m-%d")
         dic_obs_matrix_reverse_repo[ts_trade].loc[
             df_exposures.loc[index, "lend_lei"],
             df_exposures.loc[index, "borr_lei"],

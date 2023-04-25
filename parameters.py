@@ -103,3 +103,16 @@ link_network_metrics = [
     "jaccard index",
     "raw jaccard index",
 ]
+
+
+cp_algos = [
+    "Rombach",
+    "Rossa",
+    "LapCore",
+    "LapSgnCore",
+    "LowRankCore",
+    "MINRES",  # do not take weights into acount
+    "Surprise",  # do not take weights into acount
+    "Lip",  # do not take weights into acount
+    "BE",  # do not take weights into acount
+]

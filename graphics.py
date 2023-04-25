@@ -542,7 +542,7 @@ def plot_core_periphery(bank_network, sig_c, sig_x, path, step, name_in_title):
     )
     fig.tight_layout()
     plt.savefig(
-        path + "step_{" "}_core-periphery_structure.pdf".format(step),
+        f"{path}step_core-periphery_structure_{step}.pdf",
         bbox_inches="tight",
     )
     plt.close()

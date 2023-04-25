@@ -14,21 +14,21 @@ agg_periods = [1, 50, 100, 250]
 path_results = "./results/general-testing/"
 
 # load data (faster)
-dic_obs_adj_cr, dic_obs_adj_tr = (
-    ep.get_dic_obs_adj_cr(),
+dic_obs_adj_cr, dic_obs_matrix_reverse_repo = (
+    ep.get_dic_obs_matrix_reverse_repo(),
     ep.get_dic_obs_adj_tr(),
 )
 
 # get aggregated adjency matrices
-dic_binary_adjs = em.get_binary_adjs(dic_obs_adj_tr, agg_periods)
+dic_binary_adjs = em.get_binary_adjs(dic_obs_matrix_reverse_repo, agg_periods)
 
 # get jaccard
 df_jaccard = em.get_jaccard(dic_binary_adjs)
 eg.plot_jaccard_aggregated(df_jaccard, path_results)
 
 # get density
-dic_density = em.get_density(dic_binary_adjs)
-eg.plot_network_density(dic_density, path_results)
+df_density = em.get_density(dic_binary_adjs)
+eg.plot_network_density(df_density, path_results)
 
 
 # get degree distribution
@@ -36,11 +36,11 @@ eg.plot_network_density(dic_density, path_results)
 # for the transactions aggregated
 (
     dic_in_degree_distribution,
-    dic_out_degree_distribution,
+    df_out_degree_distribution,
 ) = em.get_degree_distribution(dic_binary_adjs)
-eg.plot_degree_distribution(
+eg.plot_step_degree_distribution(
     dic_in_degree_distribution,
-    dic_out_degree_distribution,
+    df_out_degree_distribution,
     path_results,
     name="degree_distribution_tr",
 )
@@ -49,11 +49,11 @@ eg.plot_degree_distribution(
 dic_binary_adjs = em.get_binary_adjs(dic_obs_adj_cr, [1])
 (
     dic_in_degree_distribution,
-    dic_out_degree_distribution,
+    df_out_degree_distribution,
 ) = em.get_degree_distribution(dic_binary_adjs)
-eg.plot_degree_distribution(
+eg.plot_step_degree_distribution(
     dic_in_degree_distribution,
-    dic_out_degree_distribution,
+    df_out_degree_distribution,
     path_results,
     name="degree_distribution_cr",
 )
@@ -62,11 +62,11 @@ eg.plot_degree_distribution(
 dic_binary_adjs = em.get_binary_adjs(dic_obs_adj_cr, [1])
 (
     dic_in_degree_distribution,
-    dic_out_degree_distribution,
+    df_out_degree_distribution,
 ) = em.get_degree_distribution(dic_binary_adjs)
-eg.plot_degree_distribution(
+eg.plot_step_degree_distribution(
     dic_in_degree_distribution,
-    dic_out_degree_distribution,
+    df_out_degree_distribution,
     path_results,
     name="degree_distribution_cr",
 )
@@ -75,7 +75,7 @@ eg.plot_degree_distribution(
 # for the transactions
 
 # build the dic_binary_adjs
-dic_binary_adjs = em.get_binary_adjs(dic_obs_adj_tr, agg_periods)
+dic_binary_adjs = em.get_binary_adjs(dic_obs_matrix_reverse_repo, agg_periods)
 
 # build nx object
 bank_network = nx.from_numpy_matrix(
