@@ -76,9 +76,3 @@ def get_df_finrep():
         },
     )
     return df_finrep
-
-
-# Set the path of the maintenance period source file
-df_maintenance_periods = pd.read_csv(
-    "./support/ECB_maintenance_periods.csv", index_col=0
-)
