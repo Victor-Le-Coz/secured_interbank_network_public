@@ -11,31 +11,31 @@ def get_jaccard(dic_binary_adjs):
     """
 
     # define the lenght
-    nb_steps = len(list(dic_binary_adjs.values())[0])
+    days = list(list(dic_binary_adjs.values())[0].keys())
     agg_periods = dic_binary_adjs.keys()
 
     # initialisation
-    df_jaccard = pd.DataFrame(index=range(nb_steps), columns=agg_periods)
+    df_jaccard = pd.DataFrame(index=days, columns=agg_periods)
 
     # loop over the steps
-    for step in range(1, nb_steps):
+    for step, day in enumerate(days[1:], 1):
         for agg_period in agg_periods:
             # if it is in the end of the period, do:
             if step % agg_period == agg_period - 1:
-                df_jaccard.loc[step, agg_period] = (
+                df_jaccard.loc[day, agg_period] = (
                     np.logical_and(
-                        dic_binary_adjs[agg_period][step],
-                        dic_binary_adjs[agg_period][step - agg_period],
+                        dic_binary_adjs[agg_period][day],
+                        dic_binary_adjs[agg_period][days[step - agg_period]],
                     ).sum()
                     / np.logical_or(
-                        dic_binary_adjs[agg_period][step],
-                        dic_binary_adjs[agg_period][step - agg_period],
+                        dic_binary_adjs[agg_period][day],
+                        dic_binary_adjs[agg_period][days[step - agg_period]],
                     ).sum()
                 )
             # otherwise, just extend the time series
             else:
-                df_jaccard.loc[step, agg_period] = df_jaccard.loc[
-                    step - 1, agg_period
+                df_jaccard.loc[day, agg_period] = df_jaccard.loc[
+                    days[step - 1], agg_period
                 ]
 
     return df_jaccard
@@ -44,27 +44,27 @@ def get_jaccard(dic_binary_adjs):
 def get_density(dic_binary_adjs):
 
     # define variable
-    nb_steps = len(list(dic_binary_adjs.values())[0])
+    days = list(list(dic_binary_adjs.values())[0].keys())
     agg_periods = dic_binary_adjs.keys()
-    n_banks = len(list(dic_binary_adjs.values())[0][0])
+    n_banks = len(list(list(dic_binary_adjs.values())[0].values())[0])
 
     # initialisation
-    df_density = pd.DataFrame(index=range(nb_steps), columns=agg_periods)
+    df_density = pd.DataFrame(index=days, columns=agg_periods)
 
     # loop over the steps
-    for step in range(1, nb_steps):
+    for step, day in enumerate(days[1:], 1):
         for agg_period in agg_periods:
             # if is in the end of the period
             if step % agg_period == agg_period - 1:
-                df_density.loc[step, agg_period] = dic_binary_adjs[agg_period][
-                    step
+                df_density.loc[day, agg_period] = dic_binary_adjs[agg_period][
+                    day
                 ].sum() / (
                     n_banks * (n_banks - 1.0)
                 )  # for a directed graph
             # otherwise, just extend the time series
             else:
-                df_density.loc[step, agg_period] = df_density.loc[
-                    step - 1, agg_period
+                df_density.loc[day, agg_period] = df_density.loc[
+                    days[step - 1], agg_period
                 ]
 
     return df_density
@@ -73,16 +73,16 @@ def get_density(dic_binary_adjs):
 def get_degree_distribution(dic_binary_adjs):
 
     # define variable
-    nb_steps = len(list(dic_binary_adjs.values())[0])
+    days = list(list(dic_binary_adjs.values())[0].keys())
     agg_periods = dic_binary_adjs.keys()
-    n_banks = len(list(dic_binary_adjs.values())[0][0])
+    n_banks = len(list(list(dic_binary_adjs.values())[0].values())[0])
 
     # initialisation
     df_in_degree_distribution = pd.DataFrame(
-        index=range(nb_steps), columns=range(n_banks), dtype=float
+        index=days, columns=range(n_banks), dtype=float
     )
     df_out_degree_distribution = pd.DataFrame(
-        index=range(nb_steps), columns=range(n_banks), dtype=float
+        index=days, columns=range(n_banks), dtype=float
     )
 
     dic_in_degree = {}
@@ -91,7 +91,7 @@ def get_degree_distribution(dic_binary_adjs):
         dic_in_degree.update({agg_period: df_in_degree_distribution.copy()})
         dic_out_degree.update({agg_period: df_out_degree_distribution.copy()})
 
-    for step in range(1, nb_steps):
+    for step, day in enumerate(days[1:], 1):
         # Build the degree distribution time series - version aggregated.
         for agg_period in agg_periods:
 
@@ -100,7 +100,7 @@ def get_degree_distribution(dic_binary_adjs):
 
                 # first define a networkx object.
                 bank_network = nx.from_numpy_array(
-                    dic_binary_adjs[agg_period][step],
+                    dic_binary_adjs[agg_period][day],
                     parallel_edges=False,
                     create_using=nx.DiGraph,
                 )
@@ -112,17 +112,17 @@ def get_degree_distribution(dic_binary_adjs):
                     bank_network.out_degree(), dtype=float
                 )[:, 1]
 
-                dic_in_degree[agg_period].loc[step] = ar_in_degree
-                dic_out_degree[agg_period].loc[step] = ar_out_degree
+                dic_in_degree[agg_period].loc[day] = ar_in_degree
+                dic_out_degree[agg_period].loc[day] = ar_out_degree
 
             # otherwise, just extend the time series
             else:
-                dic_in_degree[agg_period].loc[step] = dic_in_degree[
+                dic_in_degree[agg_period].loc[day] = dic_in_degree[
                     agg_period
-                ].loc[step - 1]
-                dic_out_degree[agg_period].loc[step] = dic_out_degree[
+                ].loc[days[step - 1]]
+                dic_out_degree[agg_period].loc[day] = dic_out_degree[
                     agg_period
-                ].loc[step - 1]
+                ].loc[days[step - 1]]
 
     return dic_in_degree, dic_out_degree
 
@@ -139,7 +139,7 @@ def get_binary_adjs(dic_obs_matrix_reverse_repo, agg_periods):
     # dictionary of the time series of the aggregated adjency matrix
     dic_binary_adjs = {}
     for agg_period in agg_periods:
-        dic_binary_adjs.update({agg_period: []})
+        dic_binary_adjs.update({agg_period: {}})
 
     # build the aggregated adjancency matrix of the reverse repos at different aggregation periods
     for (step, ts_trade) in enumerate(dic_obs_matrix_reverse_repo.keys()):
@@ -164,6 +164,8 @@ def get_binary_adjs(dic_obs_matrix_reverse_repo, agg_periods):
                 dic_binary_adj.update({agg_period: binary_adj})
 
             # store the results in a list for each agg period
-            dic_binary_adjs[agg_period].append(dic_binary_adj[agg_period])
+            dic_binary_adjs[agg_period].update(
+                {ts_trade: dic_binary_adj[agg_period]}
+            )
 
     return dic_binary_adjs

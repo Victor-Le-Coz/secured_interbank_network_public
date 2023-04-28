@@ -96,7 +96,7 @@ class ClassDynamics:
             ] = self.Network.df_banks[item].sum()
 
         # degree
-        bank_network = nx.from_numpy_matrix(
+        bank_network = nx.from_numpy_array(
             self.Network.dic_matrices["binary_adjency"],
             parallel_edges=False,
             create_using=nx.DiGraph,
@@ -243,7 +243,7 @@ class ClassDynamics:
             ] = self.Network.df_banks.loc[self.single_bank_id, item]
 
         # In and Out-degree
-        bank_network = nx.from_numpy_matrix(
+        bank_network = nx.from_numpy_array(
             self.Network.dic_matrices["binary_adjency"],
             parallel_edges=False,
             create_using=nx.DiGraph,
@@ -405,7 +405,7 @@ class ClassDynamics:
         # special case here, an intermediary computation to keep track of p-values
         if self.cp_option:
             if self.Network.step > 0:
-                bank_network = nx.from_numpy_matrix(
+                bank_network = nx.from_numpy_array(
                     self.Network.dic_matrices["binary_adjency"],
                     parallel_edges=False,
                     create_using=nx.DiGraph,

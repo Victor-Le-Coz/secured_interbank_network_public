@@ -485,7 +485,7 @@ def plot_average_maturity_repo(df_network_trajectory, path):
 
 def plot_network(adj, network_total_assets, path, step, name_in_title):
     # build a network from an adjacency matrix
-    bank_network = nx.from_numpy_matrix(
+    bank_network = nx.from_numpy_array(
         adj, parallel_edges=False, create_using=nx.DiGraph
     )
     # define the weight list from the weight information
@@ -525,12 +525,14 @@ def plot_network(adj, network_total_assets, path, step, name_in_title):
     plt.close()
 
 
-def plot_core_periphery(bank_network, sig_c, sig_x, path, step, name_in_title):
+def plot_core_periphery(
+    bank_network, sig_c, sig_x, path, step, name_in_title, figsize=(6, 3)
+):
 
     fct.init_path(path)
 
     # Visualization
-    fig = plt.figure(figsize=halfslide_figsize)
+    fig = plt.figure(figsize=figsize)
     ax = plt.gca()
     ax, pos = cpnet.draw(bank_network, sig_c, sig_x, ax)
 

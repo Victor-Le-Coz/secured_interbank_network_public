@@ -80,9 +80,9 @@ class ClassNetwork:
         )
 
         # initialize the matrices dictionary (exposures)
-        self.dic_matrices = dict.fromkeys(
-            par.matrices, np.zeros((self.nb_banks, self.nb_banks))
-        )
+        self.dic_matrices = dict.fromkeys(par.matrices)
+        for key in self.dic_matrices.keys():
+            self.dic_matrices[key] = np.zeros((self.nb_banks, self.nb_banks)).copy()
 
         # Definition of the value of the collateral
         self.collateral_value = 1.0
