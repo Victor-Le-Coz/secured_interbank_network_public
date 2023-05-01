@@ -20,14 +20,16 @@ dic_obs_adj_cr, dic_obs_matrix_reverse_repo = (
 )
 
 # get aggregated adjency matrices
-dic_binary_adjs = em.get_binary_adjs(dic_obs_matrix_reverse_repo, agg_periods)
+dic_dic_binary_adj = em.get_binary_adjs(
+    dic_obs_matrix_reverse_repo, agg_periods
+)
 
 # get jaccard
-df_jaccard = em.get_jaccard(dic_binary_adjs)
+df_jaccard = em.get_jaccard(dic_dic_binary_adj)
 eg.plot_jaccard_aggregated(df_jaccard, path_results)
 
 # get density
-df_density = em.get_density(dic_binary_adjs)
+df_density = em.get_density(dic_dic_binary_adj)
 eg.plot_network_density(df_density, path_results)
 
 
@@ -37,7 +39,7 @@ eg.plot_network_density(df_density, path_results)
 (
     dic_in_degree_distribution,
     df_out_degree_distribution,
-) = em.get_degree_distribution(dic_binary_adjs)
+) = em.get_degree_distribution(dic_dic_binary_adj)
 eg.plot_step_degree_distribution(
     dic_in_degree_distribution,
     df_out_degree_distribution,
@@ -46,11 +48,11 @@ eg.plot_step_degree_distribution(
 )
 
 # for the exposures
-dic_binary_adjs = em.get_binary_adjs(dic_obs_adj_cr, [1])
+dic_dic_binary_adj = em.get_binary_adjs(dic_obs_adj_cr, [1])
 (
     dic_in_degree_distribution,
     df_out_degree_distribution,
-) = em.get_degree_distribution(dic_binary_adjs)
+) = em.get_degree_distribution(dic_dic_binary_adj)
 eg.plot_step_degree_distribution(
     dic_in_degree_distribution,
     df_out_degree_distribution,
@@ -59,11 +61,11 @@ eg.plot_step_degree_distribution(
 )
 
 # for the exposures
-dic_binary_adjs = em.get_binary_adjs(dic_obs_adj_cr, [1])
+dic_dic_binary_adj = em.get_binary_adjs(dic_obs_adj_cr, [1])
 (
     dic_in_degree_distribution,
     df_out_degree_distribution,
-) = em.get_degree_distribution(dic_binary_adjs)
+) = em.get_degree_distribution(dic_dic_binary_adj)
 eg.plot_step_degree_distribution(
     dic_in_degree_distribution,
     df_out_degree_distribution,
@@ -75,11 +77,13 @@ eg.plot_step_degree_distribution(
 # for the transactions
 
 # build the dic_binary_adjs
-dic_binary_adjs = em.get_binary_adjs(dic_obs_matrix_reverse_repo, agg_periods)
+dic_dic_binary_adj = em.get_binary_adjs(
+    dic_obs_matrix_reverse_repo, agg_periods
+)
 
 # build nx object
 bank_network = nx.from_numpy_matrix(
-    dic_binary_adjs[50][200], parallel_edges=False, create_using=nx.DiGraph
+    dic_dic_binary_adj[50][200], parallel_edges=False, create_using=nx.DiGraph
 )
 
 # run cpnet test

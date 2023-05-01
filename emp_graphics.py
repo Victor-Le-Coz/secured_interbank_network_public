@@ -97,7 +97,9 @@ def plot_step_degree_distribution(
     # ax2.set_xticks(hist[0] + (pos - width) / 2)
     # ax2.set_xticklabels(hist[0])
 
-    plt.savefig(f"{path}{name}_{day}.pdf", bbox_inches="tight")
+    plt.savefig(
+        f"{path}{name}_{day.strftime('%Y-%m-%d')}.pdf", bbox_inches="tight"
+    )
     plt.close()
 
 
@@ -134,7 +136,7 @@ def plot_degree_distribution(
         )
 
 
-def get_n_plot_cp_test(
+def run_n_plot_cp_test(
     dic_obs_matrix_reverse_repo, algo, save_every, path_results, figsize=(6, 3)
 ):
 
@@ -176,29 +178,48 @@ def get_n_plot_cp_test(
     return sr_pvalue
 
 
-def mlt_get_n_plot_cp_test(
-    dic_obs_matrix_reverse_repo,
+def mlt_run_n_plot_cp_test(
+    dic,
     algos,
     save_every,
     path_results,
     figsize=(6, 3),
+    opt_agg=False,
 ):
-    df_pvalue = pd.DataFrame(columns=algos)
-    for algo in algos:
-        df_pvalue[algo] = get_n_plot_cp_test(
-            dic_obs_matrix_reverse_repo,
-            algo=algo,
-            save_every=save_every,
-            path_results=f"{path_results}core-periphery/{algo}/",
-            figsize=figsize,
-        )
-    df_pvalue.to_csv(f"{path_results}core-periphery/df_pvalue.csv")
 
-    ax = df_pvalue.plot(figsize=figsize, style=".")
-    lgd = ax.legend(loc="upper left", bbox_to_anchor=(1, 1))
-    plt.savefig(
-        f"{path_results}core-periphery/pvalues.pdf",
-        bbox_extra_artists=(lgd,),
-        bbox_inches="tight",
-    )
-    plt.close()
+    # case dijonction to build the list of agg periods
+    if opt_agg:
+        agg_periods = dic.keys()
+    else:
+        agg_periods = ["weighted"]
+
+    for agg_period in agg_periods:
+
+        # define the path
+        path = f"{path_results}core-periphery/{agg_period}/"
+
+        # case dijonction for the dictionary of adjency periods
+        if opt_agg:
+            dic_adj = dic[agg_period]
+        else:
+            dic_adj = dic
+
+        df_pvalue = pd.DataFrame(columns=algos)
+        for algo in algos:
+            df_pvalue[algo] = run_n_plot_cp_test(
+                dic_adj,
+                algo=algo,
+                save_every=save_every,
+                path_results=f"{path}{algo}/",
+                figsize=figsize,
+            )
+        df_pvalue.to_csv(f"{path}df_pvalue.csv")
+
+        ax = df_pvalue.plot(figsize=figsize, style=".")
+        lgd = ax.legend(loc="upper left", bbox_to_anchor=(1, 1))
+        plt.savefig(
+            f"{path}pvalues.pdf",
+            bbox_extra_artists=(lgd,),
+            bbox_inches="tight",
+        )
+        plt.close()
