@@ -33,11 +33,6 @@ class ClassDynamics:
         # Create the required path to store the results
         fct.init_results_path(self.path_results)
 
-        # Definition of the internal parameters of ClassDynamics
-        self.banks_degree = np.zeros(
-            self.Network.nb_banks
-        )  # Numpy array of the degree of the banks in the network.
-
         # individual trajectory
         self.df_bank_trajectory = pd.DataFrame(index=range(self.nb_steps))
         self.single_bank_id = 0  # the selected single bank id
@@ -94,16 +89,6 @@ class ClassDynamics:
             self.df_network_trajectory.loc[
                 self.Network.step, f"{item} tot. network"
             ] = self.Network.df_banks[item].sum()
-
-        # degree
-        bank_network = nx.from_numpy_array(
-            self.Network.dic_matrices["binary_adjency"],
-            parallel_edges=False,
-            create_using=nx.DiGraph,
-        )  # first define a networkx object.
-        self.df_network_trajectory.loc[
-            self.Network.step, "av. in-degree"
-        ] = np.array(bank_network.in_degree())[:, 1].mean()
 
         # jaccard
         # first update agg adjancency matrix
@@ -209,14 +194,6 @@ class ClassDynamics:
                 self.Network.step, "repo exposures av. network"
             ] = np.mean(self.Network.dic_matrices["non-zero_adjency"])
 
-        if (
-            self.df_network_trajectory.loc[
-                self.Network.step, "repo exposures max network"
-            ]
-            > 0.99
-        ):
-            print("error")
-
         # Collateral reuse
         self.df_network_trajectory.loc[
             self.Network.step, "collateral reuse"
@@ -231,8 +208,27 @@ class ClassDynamics:
             + 1e-10
         )
 
-        # degree
-        self.banks_degree = np.array(bank_network.degree())[:, 1]
+        # av degree
+        bank_network = nx.from_numpy_array(
+            self.Network.dic_matrices["binary_adjency"],
+            parallel_edges=False,
+            create_using=nx.DiGraph,
+        )  # first define a networkx object.
+        self.df_network_trajectory.loc[
+            self.Network.step, "av. in-degree"
+        ] = np.array(bank_network.in_degree())[:, 1].mean()
+
+        # degree distribution
+        for agg_period in self.agg_periods:
+            bank_network = nx.from_numpy_array(
+                self.dic_agg_binary_adj[agg_period],
+                parallel_edges=False,
+                create_using=nx.DiGraph,
+            )
+
+            self.Network.df_banks[f"degree_{agg_period}"] = np.array(
+                bank_network.degree()
+            )[:, 1]
 
     def fill_df_bank_trajectory(self):
 
@@ -424,9 +420,9 @@ class ClassDynamics:
                 )  # plot charts
 
         # Plot the link between centrality and total asset size
-        gx.plot_asset_per_degree(
-            self.Network.df_banks["total assets"],
-            self.banks_degree,
+        gx.plot_step_degree_per_asset(
+            self.Network.df_banks,
+            self.agg_periods,
             self.path_results,
         )
 

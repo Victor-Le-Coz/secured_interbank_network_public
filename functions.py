@@ -459,3 +459,19 @@ def get_trunc_lognorm(mu, sigma, lower_bound, upper_bound=np.inf, size=10000):
     norm_data = X.rvs(size)
     log_norm_data = np.exp(norm_data)
     return log_norm_data
+
+
+def last_common_element(list1, list2):
+    """
+    This function returns the last common element between two lists.
+    If the lists do not have any common elements, the function returns None.
+    """
+    # Traverse both lists in reverse order
+    for i in range(len(list1) - 1, -1, -1):
+        for j in range(len(list2) - 1, -1, -1):
+            # If the current element of both lists is equal
+            if list1[i] == list2[j]:
+                # We have found the common element, return it
+                return list1[i]
+    # If we get here, there is no common element
+    return None

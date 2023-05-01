@@ -550,16 +550,35 @@ def plot_core_periphery(
     plt.close()
 
 
-def plot_asset_per_degree(total_assets, degree, path):
+def plot_step_degree_per_asset_old(banks_tot_assets, banks_degree, path):
     fig = plt.figure(figsize=figsize)
-    plt.scatter(degree, total_assets)
-    for i in range(len(degree)):
-        plt.text(x=degree[i], y=total_assets[i], s=str(i))
-    plt.xlabel("Degree")
-    plt.ylabel("Assets")
+    plt.scatter(banks_degree, banks_tot_assets)
+    for i in range(len(banks_degree)):
+        plt.text(x=banks_degree[i], y=banks_tot_assets[i], s=str(i))
+    plt.ylabel("Degree")
+    plt.xlabel("Assets")
     plt.title("Assets size verus degree")
     fig.tight_layout()
     plt.savefig(path + "Asset_per_degree.pdf", bbox_inches="tight")
+    plt.close()
+
+
+def plot_step_degree_per_asset(df_banks, agg_periods, path, figsize=(6, 3)):
+    df_banks.plot(
+        x="total assets",
+        y=[f"degree_{agg_period}" for agg_period in agg_periods],
+        figsize=figsize,
+        style=".",
+    )
+    plt.legend(
+        loc="upper left",
+        bbox_to_anchor=(1, 1),
+    )
+    plt.ylabel("Degree")
+    plt.xlabel("Assets")
+    plt.yscale("log")
+    plt.title("degree verus total assets")
+    plt.savefig(path + "degree_per_asset.pdf", bbox_inches="tight")
     plt.close()
 
 

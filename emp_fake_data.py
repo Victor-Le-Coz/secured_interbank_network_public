@@ -72,7 +72,7 @@ def get_df_finrep():
                 )
                 * 50
             ),
-            "total_assets": np.random.rand(50 * 25) * 100,
+            "total assets": np.random.rand(50 * 25) * 100,
         },
     )
     return df_finrep

@@ -77,19 +77,18 @@ def get_density(dic_dic_binary_adj):
     return df_density
 
 
-def get_degree_distribution(dic_dic_binary_adj):
+def get_degree_distribution(dic_dic_binary_adj, bank_ids):
 
-    # define variable
+    # define variables
     days = list(list(dic_dic_binary_adj.values())[0].keys())
     agg_periods = dic_dic_binary_adj.keys()
-    n_banks = len(list(list(dic_dic_binary_adj.values())[0].values())[0])
 
     # initialisation
     df_in_degree_distribution = pd.DataFrame(
-        index=days, columns=range(n_banks), dtype=float
+        index=days, columns=bank_ids, dtype=float
     )
     df_out_degree_distribution = pd.DataFrame(
-        index=days, columns=range(n_banks), dtype=float
+        index=days, columns=bank_ids, dtype=float
     )
 
     dic_in_degree = {}
@@ -132,3 +131,32 @@ def get_degree_distribution(dic_dic_binary_adj):
                 ].loc[days[step - 1]]
 
     return dic_in_degree, dic_out_degree
+
+
+def build_df_banks(df_finrep, dic_in_degree, dic_out_degree, path):
+    # select the final day (common between the 2 lists)
+    mmsr_days = list(list(dic_in_degree.values())[0].index)
+    finrep_days = list(df_finrep["date"])
+    day = fct.last_common_element(mmsr_days, finrep_days)
+
+    # build the degree per bank
+    bank_ids = list(list(dic_in_degree.values())[0].columns)
+    agg_periods = list(dic_in_degree.keys())
+    df_banks = pd.DataFrame(index=bank_ids)
+    for agg_period in agg_periods:
+        df_banks[f"degree_{agg_period}"] = (
+            dic_in_degree[agg_period].loc[day]
+            + dic_out_degree[agg_period].loc[day]
+        )
+
+    # build the total asset per bank
+    df_finrep = df_finrep[df_finrep["date"] == day]
+    df_banks = df_banks.merge(
+        df_finrep[["lei", "total assets"]], right_on="lei", left_index=True
+    )
+    df_banks.set_index("lei", inplace=True)
+
+    # save the results to csv
+    df_banks.to_csv(f"{path}df_banks.csv")
+
+    return df_banks

@@ -168,7 +168,7 @@ def run_n_plot_cp_test(
                 sig_c=sig_c,
                 sig_x=sig_x,
                 path=f"{path_results}",
-                step=ts_trade,
+                step=ts_trade.strftime("%Y-%m-%d"),
                 name_in_title="reverse repo",
                 figsize=figsize,
             )
