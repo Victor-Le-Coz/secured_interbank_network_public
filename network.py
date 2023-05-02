@@ -165,14 +165,11 @@ class ClassNetwork:
             if not (self.conservative_shock) or not (self.LCR_mgt_opt):
                 self.banks[bank_id].step_central_bank_funding()
 
-        # loop 4: assert constraints (and fill df_banks and dic matrices)
-        for bank_id in index:
-            self.banks[bank_id].assert_minimum_reserves()
-            self.banks[bank_id].assert_alm()
-            if self.LCR_mgt_opt:
-                self.banks[bank_id].assert_lcr()
-
+        # # loop 4: fill df_banks and dic matrices
         self.step_fill_df_banks_n_dic_matrices()
+
+        # assert constraints (matricial)
+        self.check_constraints()
 
         # new step of the network
         self.step += 1

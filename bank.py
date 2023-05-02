@@ -861,26 +861,23 @@ class ClassBank:
         """
         return self.dic_balance_sheet["own funds"] / self.leverage_exposure()
 
-    def assert_lcr(self):
+    def check_balance_sheet(self):
         """
-        Instance method evaluating if the LCR constraint is meet for an
+        Instance method evaluating if accounting constraints are meet for an
         instance of ClassBank.
         :return: Breaks the code and returns a description of the bank and
         time step concerned.
         """
         assert (
-            self.dic_balance_sheet["cash"]
-            + self.dic_balance_sheet["securities collateral"]
-            * self.collateral_value
-            + self.dic_balance_sheet["securities usable"]
-            * self.collateral_value
-            - self.dic_balance_sheet["deposits"] * self.beta_reg
-            >= -par.float_limit
-        ), self.__str__() + "\nLCR not at its target value for bank {} at " "step {}".format(
-            self.id, self.Network.step
+            np.abs(self.total_assets() - self.total_liabilities())
+            < par.float_limit
+        ), self.__str__() + "\nAssets don't match Liabilities for bank {} at " "step {}, for the amount {}".format(
+            self.id,
+            self.Network.step,
+            (self.total_assets() - self.total_liabilities()),
         )
 
-    def assert_minimum_reserves(self):
+    def check_min_reserves(self):
         """
         Instance method evaluating if the minimum reserves constraint is
         meet for an instance of ClassBank.
@@ -910,6 +907,25 @@ class ClassBank:
             )
         )
 
+    def check_lcr(self):
+        """
+        Instance method evaluating if the LCR constraint is meet for an
+        instance of ClassBank.
+        :return: Breaks the code and returns a description of the bank and
+        time step concerned.
+        """
+        assert (
+            self.dic_balance_sheet["cash"]
+            + self.dic_balance_sheet["securities collateral"]
+            * self.collateral_value
+            + self.dic_balance_sheet["securities usable"]
+            * self.collateral_value
+            - self.dic_balance_sheet["deposits"] * self.beta_reg
+            >= -par.float_limit
+        ), self.__str__() + "\nLCR not at its target value for bank {} at " "step {}".format(
+            self.id, self.Network.step
+        )
+
     def assert_leverage(self):
         """
         Instance method evaluating if the leverage ratio constraint is meet
@@ -925,22 +941,6 @@ class ClassBank:
             self.__str__() + "\nLeverage ratio below its regulatory "
             "requirement for bank {} at step {}"
             "".format(self.id, self.Network.step)
-        )
-
-    def assert_alm(self):
-        """
-        Instance method evaluating if accounting constraints are meet for an
-        instance of ClassBank.
-        :return: Breaks the code and returns a description of the bank and
-        time step concerned.
-        """
-        assert (
-            np.abs(self.total_assets() - self.total_liabilities())
-            < par.float_limit
-        ), self.__str__() + "\nAssets don't match Liabilities for bank {} at " "step {}, for the amount {}".format(
-            self.id,
-            self.Network.step,
-            (self.total_assets() - self.total_liabilities()),
         )
 
     def store_df_reverse_repos(self, path):

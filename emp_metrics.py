@@ -133,7 +133,7 @@ def get_degree_distribution(dic_dic_binary_adj, bank_ids):
     return dic_in_degree, dic_out_degree
 
 
-def build_df_banks(df_finrep, dic_in_degree, dic_out_degree, path):
+def build_df_banks_emp(df_finrep, dic_in_degree, dic_out_degree, path):
     # select the final day (common between the 2 lists)
     mmsr_days = list(list(dic_in_degree.values())[0].index)
     finrep_days = list(df_finrep["date"])
@@ -142,21 +142,21 @@ def build_df_banks(df_finrep, dic_in_degree, dic_out_degree, path):
     # build the degree per bank
     bank_ids = list(list(dic_in_degree.values())[0].columns)
     agg_periods = list(dic_in_degree.keys())
-    df_banks = pd.DataFrame(index=bank_ids)
+    df_banks_emp = pd.DataFrame(index=bank_ids)
     for agg_period in agg_periods:
-        df_banks[f"degree_{agg_period}"] = (
+        df_banks_emp[f"degree_{agg_period}"] = (
             dic_in_degree[agg_period].loc[day]
             + dic_out_degree[agg_period].loc[day]
         )
 
     # build the total asset per bank
     df_finrep = df_finrep[df_finrep["date"] == day]
-    df_banks = df_banks.merge(
+    df_banks_emp = df_banks_emp.merge(
         df_finrep[["lei", "total assets"]], right_on="lei", left_index=True
     )
-    df_banks.set_index("lei", inplace=True)
+    df_banks_emp.set_index("lei", inplace=True)
 
     # save the results to csv
-    df_banks.to_csv(f"{path}df_banks.csv")
+    df_banks_emp.to_csv(f"{path}df_banks.csv")
 
-    return df_banks
+    return df_banks_emp

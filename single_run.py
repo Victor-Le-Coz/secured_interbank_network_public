@@ -82,7 +82,7 @@ if __name__ == "__main__":
         shocks_method="non-conservative",
         shocks_law="normal-mean-reverting",
         shocks_vol=0.01,
-        result_location="./results/single_run/general-testing/",
+        result_location="./results/single_run/",
         min_repo_size=1e-8,
         nb_steps=int(1e2),
         save_every=2500,
