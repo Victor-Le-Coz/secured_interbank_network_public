@@ -51,7 +51,7 @@ initialization_methods = ["constant", "pareto"]
 matrices = ["adjency", "trust", "binary_adjency", "non-zero_adjency"]
 
 # reverse repos
-reverse_repos = ["amount", "start_step", "maturity", "status"]
+reverse_repos = ["amount", "start_step", "tenor", "status"]
 
 # metrics
 metrics = ["degree"]

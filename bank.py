@@ -4,6 +4,7 @@ os.environ["OMP_NUM_THREADS"] = "1"
 import numpy as np
 import pandas as pd
 import parameters as par
+import pickle
 
 
 class ClassBank:
@@ -440,13 +441,42 @@ class ClassBank:
         )
 
         # update df_reverse_repos => need to create a version without while loop to save time
+
+        # debug
         if (
             self.df_reverse_repos.loc[bank_id][
                 self.df_reverse_repos.loc[bank_id]["status"]
             ].size
             == 0
         ):
-            self.df_reverse_repos.to_csv("df_reverse_repo_err.csv")
+            print(self.id)
+
+            self.df_reverse_repos.to_csv("./support/df_reverse_repo_err.csv")
+
+            pickle.dump(
+                self.on_balance_repos,
+                open("./support/on_balance_repos.pickle", "wb"),
+                protocol=pickle.HIGHEST_PROTOCOL,
+            )
+            pickle.dump(
+                self.off_balance_repos,
+                open("./support/on_balance_repos.pickle", "wb"),
+                protocol=pickle.HIGHEST_PROTOCOL,
+            )
+
+            print(bank_id)
+
+            pickle.dump(
+                self.banks[bank_id].on_balance_repos,
+                open("./support/bank_id_on_balance_repos.pickle", "wb"),
+                protocol=pickle.HIGHEST_PROTOCOL,
+            )
+            pickle.dump(
+                self.banks[bank_id].off_balance_repos,
+                open("./support/bank_id_off_balance_repos.pickle", "wb"),
+                protocol=pickle.HIGHEST_PROTOCOL,
+            )
+
         trans_id = self.df_reverse_repos.loc[bank_id][
             self.df_reverse_repos.loc[bank_id]["status"]
         ].index[0]
@@ -462,7 +492,7 @@ class ClassBank:
             self.df_reverse_repos.loc[(bank_id, trans_id), "status"] = False
 
             # record the maturity of the closed transaction
-            self.df_reverse_repos.loc[(bank_id, trans_id), "maturity"] = (
+            self.df_reverse_repos.loc[(bank_id, trans_id), "tenor"] = (
                 self.Network.step
                 - self.df_reverse_repos.loc[(bank_id, trans_id), "start_step"]
             )
@@ -709,8 +739,6 @@ class ClassBank:
         # bank_id
         return max(amount - reverse_accept, 0.0)
 
-    # <editor-fold desc="Instance methods for the computation of regulatory
-    # ratios, and other balance sheet measures">
     def total_assets(self):
         """
         Instance method computing the total assets of an instance of ClassBank.

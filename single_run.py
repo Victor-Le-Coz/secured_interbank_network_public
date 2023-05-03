@@ -69,7 +69,7 @@ def single_run(
 
 if __name__ == "__main__":
     single_run(
-        nb_banks=50,
+        nb_banks=500,
         alpha_init=0.1,  # initial cash (< 1/(1-gamma) - beta)
         alpha=0.01,
         beta_init=0.5,  # initial collateral  (< 1/(1-gamma) - alpha)
@@ -84,7 +84,7 @@ if __name__ == "__main__":
         shocks_vol=0.01,
         result_location="./results/single_run/",
         min_repo_size=1e-8,
-        nb_steps=int(1e2),
+        nb_steps=int(1e4),
         save_every=2500,
         jaccard_periods=par.agg_periods,
         agg_periods=par.agg_periods,

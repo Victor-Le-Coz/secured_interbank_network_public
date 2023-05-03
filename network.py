@@ -263,7 +263,9 @@ class ClassNetwork:
         )
 
         # fill dic_matrices
-        self.dic_matrices["adjency"][self.dic_matrices["adjency"] < 0] = 0
+        self.dic_matrices["adjency"][
+            self.dic_matrices["adjency"] < self.min_repo_size
+        ] = 0
         self.dic_matrices["non-zero_adjency"] = self.dic_matrices["adjency"][
             np.nonzero(self.dic_matrices["adjency"])
         ]
@@ -276,6 +278,10 @@ class ClassNetwork:
         self.df_reverse_repos.to_csv(f"{path}df_reverse_repos.csv")
 
     def build_df_reverse_repos(self):
+
+        # print
+        print("build df_reverse_repos")
+
         dfs = []
         for Bank in self.banks:
             dfs.append(Bank.df_reverse_repos)

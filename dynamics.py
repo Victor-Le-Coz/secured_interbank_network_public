@@ -11,6 +11,8 @@ import functions as fct
 from network import ClassNetwork
 import pandas as pd
 import parameters as par
+import emp_preprocessing as ep
+import emp_metrics as em
 
 
 class ClassDynamics:
@@ -42,6 +44,26 @@ class ClassDynamics:
 
         # definition of the p-value parameter of the core-perihpery structure dected by the cpnet algo
         self.p_value = 1  # initialization at 1 (non significant test)
+
+        # initialisation of an array of size nb_steps * nb_banks * nb_banks
+        self.arr_matrix_reverse_repo = np.zeros(
+            (self.nb_steps, self.Network.nb_banks, self.Network.nb_banks)
+        )  # for the reverse repo exposures
+
+        # initialisation of an dic of array of binary adj matrices
+        self.dic_arr_binary_adj = {}
+        for agg_period in self.agg_periods:
+            self.dic_arr_binary_adj.update(
+                {
+                    agg_period: np.zeros(
+                        (
+                            self.nb_steps,
+                            self.Network.nb_banks,
+                            self.Network.nb_banks,
+                        )
+                    )
+                }
+            )
 
         self.dic_agg_binary_adj = (
             {}
@@ -90,59 +112,24 @@ class ClassDynamics:
                 self.Network.step, f"{item} tot. network"
             ] = self.Network.df_banks[item].sum()
 
-        # jaccard
-        # first update agg adjancency matrix
-        if self.Network.step > 0:
-            for agg_period in self.agg_periods:
-                if self.Network.step % agg_period > 0:
-                    self.dic_agg_binary_adj.update(
-                        {
-                            agg_period: np.logical_or(
-                                self.Network.dic_matrices["binary_adjency"],
-                                self.dic_agg_binary_adj[agg_period],
-                            )
-                        }
-                    )
-                elif self.Network.step % agg_period == 0:
-                    self.dic_agg_binary_adj.update(
-                        {
-                            agg_period: self.Network.dic_matrices[
-                                "binary_adjency"
-                            ]
-                        }
-                    )
-        for agg_period in self.agg_periods:
-            if self.Network.step == 0:
-                self.df_network_trajectory.loc[
-                    self.Network.step,
-                    f"jaccard index-{agg_period}",
-                ] = 0
+        # gini
+        self.df_network_trajectory.loc[self.Network.step, "gini"] = fct.gini(
+            self.Network.df_banks["total assets"]
+        )
 
-            elif self.Network.step % agg_period == agg_period - 1:
-                self.df_network_trajectory.loc[
-                    self.Network.step,
-                    f"jaccard index-{agg_period}",
-                ] = (
-                    np.logical_and(
-                        self.dic_agg_binary_adj[agg_period],
-                        self.dic_prev_agg_binary_adj[agg_period],
-                    ).sum()
-                    / np.logical_or(
-                        self.dic_agg_binary_adj[agg_period],
-                        self.dic_prev_agg_binary_adj[agg_period],
-                    ).sum()
-                )
-                self.dic_prev_agg_binary_adj.update(
-                    {agg_period: self.dic_agg_binary_adj[agg_period].copy()}
-                )
-            elif self.Network.step > 0:
-                self.df_network_trajectory.loc[
-                    self.Network.step,
-                    f"jaccard index-{agg_period}",
-                ] = self.df_network_trajectory.loc[
-                    self.Network.step - 1,
-                    f"jaccard index-{agg_period}",
-                ]
+        # Collateral reuse
+        self.df_network_trajectory.loc[
+            self.Network.step, "collateral reuse"
+        ] = (
+            self.df_network_trajectory.loc[
+                self.Network.step, "securities reused tot. network"
+            ]
+        ) / (
+            self.df_network_trajectory.loc[
+                self.Network.step, "securities collateral tot. network"
+            ]
+            + 1e-10
+        )
 
         # density
         for agg_period in self.agg_periods:
@@ -167,11 +154,6 @@ class ClassDynamics:
                     f"network density-{agg_period}",
                 ]
 
-        # gini
-        self.df_network_trajectory.loc[self.Network.step, "gini"] = fct.gini(
-            self.Network.df_banks["total assets"]
-        )
-
         # repo exposures
         if len(self.Network.dic_matrices["non-zero_adjency"]) == 0:
             self.df_network_trajectory.loc[
@@ -194,20 +176,6 @@ class ClassDynamics:
                 self.Network.step, "repo exposures av. network"
             ] = np.mean(self.Network.dic_matrices["non-zero_adjency"])
 
-        # Collateral reuse
-        self.df_network_trajectory.loc[
-            self.Network.step, "collateral reuse"
-        ] = (
-            self.df_network_trajectory.loc[
-                self.Network.step, "securities reused tot. network"
-            ]
-        ) / (
-            self.df_network_trajectory.loc[
-                self.Network.step, "securities collateral tot. network"
-            ]
-            + 1e-10
-        )
-
         # av degree
         bank_network = nx.from_numpy_array(
             self.Network.dic_matrices["binary_adjency"],
@@ -225,7 +193,6 @@ class ClassDynamics:
                 parallel_edges=False,
                 create_using=nx.DiGraph,
             )
-
             self.Network.df_banks[f"degree_{agg_period}"] = np.array(
                 bank_network.degree()
             )[:, 1]
@@ -256,23 +223,30 @@ class ClassDynamics:
         # build the df_reverse_repos history from all banks data
         self.Network.build_df_reverse_repos()
 
-        # fill df_network_trajectory & df_bank_trajectory from the df_reverse_repos data
+        # build adj matrices from df_reverse repos
+        self.build_adj_matrices()
+
+        # fill step df_network_trajectory & df_bank_trajectory from the df_reverse_repos data
+        print("expost fill step df network trajectory")
         for step in tqdm(
             range(self.Network.step + 1)
         ):  # +1 to cover all steps up to now
-            self.expost_fill_df_network_trajectory(step)
-            self.expost_fill_df_bank_trajectory(step)
+            self.expost_fill_step_df_network_trajectory(step)
+            self.expost_fill_step_df_bank_trajectory(step)
 
-    def expost_fill_df_network_trajectory(self, step):
+        # fill df_network_trajectory & df_bank_trajectory from the adj matrices
+        self.expost_fill_df_network_trajectory()
+
+    def expost_fill_step_df_network_trajectory(self, step):
 
         df = self.Network.df_reverse_repos
 
         # repos maturity av. network
-        df_ending = df[df["maturity"] + df["start_step"] == step - 1]
+        df_ending = df[df["tenor"] + df["start_step"] == step - 1]
         if df_ending["amount"].sum() > 0:
             self.df_network_trajectory.loc[
                 step, "repos maturity av. network"
-            ] = (df_ending["amount"] @ df_ending["maturity"]) / df_ending[
+            ] = (df_ending["amount"] @ df_ending["tenor"]) / df_ending[
                 "amount"
             ].sum()
         else:
@@ -296,7 +270,17 @@ class ClassDynamics:
                 "amount_ending_starting av. network",
             ] = 0
 
-    def expost_fill_df_bank_trajectory(self, step):
+    def expost_fill_df_network_trajectory(self):
+
+        # expost jaccard
+        df_jaccard = em.get_jaccard_np(
+            self.dic_arr_binary_adj, range(self.Network.step)
+        )
+        self.df_network_trajectory[
+            [f"jaccard index-{agg_period}" for agg_period in self.agg_periods]
+        ] = df_jaccard
+
+    def expost_fill_step_df_bank_trajectory(self, step):
 
         df = self.Network.df_reverse_repos
 
@@ -311,10 +295,10 @@ class ClassDynamics:
             ] = 0
 
         # repos maturity av. network
-        df_ending = df[df["maturity"] + df["start_step"] == step - 1]
+        df_ending = df[df["tenor"] + df["start_step"] == step - 1]
         if df_ending["amount"].sum() > 0:
             self.df_bank_trajectory.loc[step, "repos maturity av. bank"] = (
-                df_ending["amount"] @ df_ending["maturity"]
+                df_ending["amount"] @ df_ending["tenor"]
             ) / df_ending["amount"].sum()
         else:
             self.df_bank_trajectory.loc[step, "repos maturity av. bank"] = 0
@@ -340,6 +324,53 @@ class ClassDynamics:
             step,
             "nb_ending_starting",
         ] = nb_trans
+
+    def build_arr_matrix_reverse_repo_from_df_reverse_repos(self):
+
+        # print
+        print("build arr_matrix_reverse_repo")
+
+        # loop over the rows of df_reverse_repos
+        for index, row in tqdm(self.Network.df_reverse_repos.iterrows()):
+
+            # get the tenor (fill by current step if tenor is empty)
+            if np.isnan(row["tenor"]):
+                tenor = self.Network.step - row["start_step"]
+            else:
+                tenor = row["tenor"]
+
+            # build the array of the reverse repo exposures
+            for step in range(row["start_step"], row["start_step"] + tenor):
+                self.arr_matrix_reverse_repo[step, index[0], index[1]] += row[
+                    "amount"
+                ]
+
+        # loop over the steps to clean values close to zero
+        for step in range(self.Network.step):
+            self.arr_matrix_reverse_repo[step][
+                self.arr_matrix_reverse_repo[step] < self.Network.min_repo_size
+            ] = 0
+
+    def build_arr_binary_adj(self):
+
+        # print
+        print("build arr_binary_adj (compiled)")
+
+        # convert list to array
+        arr_agg_period = np.array(self.agg_periods)
+
+        # build arr of results with numba
+        arr_binary_adj = ep.fast_build_arr_binary_adj(
+            self.arr_matrix_reverse_repo, arr_agg_period, self.Network.step
+        )
+
+        # convert array results to dictionaries
+        for period_nb, agg_period in enumerate(self.agg_periods):
+            self.dic_arr_binary_adj[agg_period] = arr_binary_adj[period_nb]
+
+    def build_adj_matrices(self):
+        self.build_arr_matrix_reverse_repo_from_df_reverse_repos()
+        self.build_arr_binary_adj()
 
     def plot_n_store_trajectories(self):
         """
@@ -503,6 +534,8 @@ class ClassDynamics:
         self.step_record_trajectories()
         self.expost_record_trajectories()
         self.plot_n_store_trajectories()
+
+        print("simulate the repo market")
 
         # simulate the network
         for _ in tqdm(range(self.nb_steps - 1)):

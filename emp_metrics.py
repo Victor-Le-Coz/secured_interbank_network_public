@@ -48,6 +48,44 @@ def get_jaccard(dic_dic_binary_adj):
     return df_jaccard
 
 
+def get_jaccard_np(dic_arr_binary_adj, days):
+    """
+    jaccard index of the transactions: better approach to mesure the stability of trading relationships when maturities are longer than one day
+    """
+
+    # define the lenght
+    agg_periods = dic_arr_binary_adj.keys()
+
+    # initialisation
+    df_jaccard = pd.DataFrame(
+        index=days,
+        columns=[f"jaccard index-{agg_period}" for agg_period in agg_periods],
+    )
+
+    # loop over the steps
+    for step, day in enumerate(days[1:], 1):
+        for agg_period in agg_periods:
+            # if it is in the end of the period, do:
+            if step % agg_period == agg_period - 1:
+                df_jaccard.loc[day, f"jaccard index-{agg_period}"] = (
+                    np.logical_and(
+                        dic_arr_binary_adj[agg_period][step],
+                        dic_arr_binary_adj[agg_period][step - agg_period],
+                    ).sum()
+                    / np.logical_or(
+                        dic_arr_binary_adj[agg_period][step],
+                        dic_arr_binary_adj[agg_period][step - agg_period],
+                    ).sum()
+                )
+            # otherwise, just extend the time series
+            else:
+                df_jaccard.loc[
+                    day, f"jaccard index-{agg_period}"
+                ] = df_jaccard.loc[step - 1, f"jaccard index-{agg_period}"]
+
+    return df_jaccard
+
+
 def get_density(dic_dic_binary_adj):
 
     # define variable
