@@ -15,7 +15,7 @@ path_results = "./results/general-testing/"
 
 # load data (faster)
 dic_obs_adj_cr, dic_obs_matrix_reverse_repo = (
-    ep.get_dic_obs_matrix_reverse_repo(),
+    ep.load_dic_obs_matrix_reverse_repo(),
     ep.get_dic_obs_adj_tr(),
 )
 

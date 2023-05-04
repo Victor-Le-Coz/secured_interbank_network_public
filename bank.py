@@ -264,8 +264,9 @@ class ClassBank:
 
                 self.off_balance_repos[b] -= end
 
-                if self.off_balance_repos[b] < -par.float_limit:
-                    print(self.off_balance_repos)
+                # # when the off balance repo is below some limit, we set the value of the exposure to 0
+                # if self.off_balance_repos[b] < par.float_limit:
+                #     self.off_balance_repos[b] = 0
 
                 target_repo_amount_to_close -= end
 
@@ -326,6 +327,10 @@ class ClassBank:
                     end / self.collateral_value
                 )
                 self.on_balance_repos[b] -= end
+
+                # # when the on balance repo is below some limit, we set the value of the exposure to 0
+                # if self.on_balance_repos[b] < par.float_limit:
+                #     self.on_balance_repos[b] = 0
 
                 # fix, it seems the previous version was an error
                 target_repo_amount_to_close -= end
@@ -477,13 +482,14 @@ class ClassBank:
                 protocol=pickle.HIGHEST_PROTOCOL,
             )
 
-        trans_id = self.df_reverse_repos.loc[bank_id][
+        # initialize the list of trans_ids with status == True
+        trans_ids = self.df_reverse_repos.loc[bank_id][
             self.df_reverse_repos.loc[bank_id]["status"]
-        ].index[0]
-        last_trans_id = self.df_reverse_repos.loc[bank_id][
-            self.df_reverse_repos.loc[bank_id]["status"]
-        ].index[-1]
+        ].index
+        trans_id = trans_ids[0]
+        last_trans_id = trans_ids[-1]
         remaining_amount = amount
+        i = 0
         while (
             remaining_amount
             >= self.df_reverse_repos.loc[(bank_id, trans_id), "amount"]
@@ -504,7 +510,8 @@ class ClassBank:
 
             # next transaction
             if trans_id < last_trans_id:
-                trans_id += 1
+                i += 1
+                trans_id = trans_ids[i]
 
         # specific case if the remaining amount is smaller than the transaction size: need to create and close a special transaction
         if (

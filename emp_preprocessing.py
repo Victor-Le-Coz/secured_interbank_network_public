@@ -57,7 +57,7 @@ def build_from_mmsr(df_mmsr):
     return dic_obs_matrix_reverse_repo
 
 
-def get_dic_obs_matrix_reverse_repo():
+def load_dic_obs_matrix_reverse_repo():
     return pickle.load(
         open("./support/dic_obs_matrix_reverse_repo.pickle", "rb")
     )
@@ -168,71 +168,19 @@ def build_rolling_binary_adj(dic_obs_matrix_reverse_repo, agg_periods):
     )
 
     # convert array results to dictionaries
-    dic_dic_binary_adj = {}
+    dic_arr_binary_adj = {}
     for period_nb, agg_period in enumerate(agg_periods):
-        dic_dic_binary_adj.update({agg_period: {}})
-        for day_nb, day in enumerate(days):
-            dic_dic_binary_adj[agg_period].update(
-                {day: arr_binary_adj[period_nb, day_nb]}
-            )
+        dic_arr_binary_adj.update({agg_period: arr_binary_adj[period_nb]})
 
     # dump results
     pickle.dump(
-        dic_dic_binary_adj,
-        open("./support/dic_dic_binary_adj.pickle", "wb"),
+        dic_arr_binary_adj,
+        open("./support/dic_arr_binary_adj.pickle", "wb"),
         protocol=pickle.HIGHEST_PROTOCOL,
     )
 
-    return dic_dic_binary_adj
+    return dic_arr_binary_adj
 
 
-def get_dic_dic_binary_adj():
-    return pickle.load(open("./support/dic_dic_binary_adj.pickle", "rb"))
-
-
-# to be deleted
-# old version, not rollwing window
-def build_dic_dic_binary_adj(dic_obs_matrix_reverse_repo, agg_periods):
-
-    n_banks = len(list(dic_obs_matrix_reverse_repo.values())[0])
-
-    # tempory dictionary of the aggregated ajency matrix (to compute the logical or)
-    dic_temp_adj = {}
-    for agg_period in agg_periods:
-        dic_temp_adj.update({agg_period: np.zeros((n_banks, n_banks))})
-
-    # dictionary of the aggregated adjency matrix (which are dictionaries across time)
-    dic_dic_binary_adj = {}
-    for agg_period in agg_periods:
-        dic_dic_binary_adj.update({agg_period: {}})
-
-    # build the aggregated adjancency matrix of the reverse repos at different aggregation periods
-    for (step, day) in enumerate(dic_obs_matrix_reverse_repo.keys()):
-
-        # build a binary adjency matrix from the weighted adjency matrix
-        binary_adj = np.where(
-            dic_obs_matrix_reverse_repo[day] > 0, True, False
-        )
-
-        for agg_period in agg_periods:
-
-            # update the tempory adj matrix to count the links
-            if step % agg_period > 0:
-                dic_temp_adj.update(
-                    {
-                        agg_period: np.logical_or(
-                            binary_adj, dic_temp_adj[agg_period]
-                        )
-                    }
-                )
-
-            # reset the dic temporary to 0
-            elif step % agg_period == 0:
-                dic_temp_adj.update({agg_period: binary_adj})
-
-            # store the results in a dic for each agg period
-            dic_dic_binary_adj[agg_period].update(
-                {day: dic_temp_adj[agg_period]}
-            )
-
-    return dic_dic_binary_adj
+def load_dic_arr_binary_adj():
+    return pickle.load(open("./support/dic_arr_binary_adj.pickle", "rb"))

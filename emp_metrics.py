@@ -6,52 +6,12 @@ import pandas as pd
 from tqdm import tqdm
 import dask
 import pickle
+from tqdm import tqdm
 
 
-def get_jaccard(dic_dic_binary_adj):
-    """
-    jaccard index of the transactions: better approach to mesure the stability of trading relationships when maturities are longer than one day
-    """
+def get_jaccard(dic_arr_binary_adj, days):
 
-    # define the lenght
-    days = list(list(dic_dic_binary_adj.values())[0].keys())
-    agg_periods = dic_dic_binary_adj.keys()
-
-    # initialisation
-    df_jaccard = pd.DataFrame(index=days, columns=agg_periods)
-
-    # loop over the steps
-    for step, day in enumerate(days[1:], 1):
-        for agg_period in agg_periods:
-            # if it is in the end of the period, do:
-            if step % agg_period == agg_period - 1:
-                df_jaccard.loc[day, agg_period] = (
-                    np.logical_and(
-                        dic_dic_binary_adj[agg_period][day],
-                        dic_dic_binary_adj[agg_period][
-                            days[step - agg_period]
-                        ],
-                    ).sum()
-                    / np.logical_or(
-                        dic_dic_binary_adj[agg_period][day],
-                        dic_dic_binary_adj[agg_period][
-                            days[step - agg_period]
-                        ],
-                    ).sum()
-                )
-            # otherwise, just extend the time series
-            else:
-                df_jaccard.loc[day, agg_period] = df_jaccard.loc[
-                    days[step - 1], agg_period
-                ]
-
-    return df_jaccard
-
-
-def get_jaccard_np(dic_arr_binary_adj, days):
-    """
-    jaccard index of the transactions: better approach to mesure the stability of trading relationships when maturities are longer than one day
-    """
+    print("compute jaccard")
 
     # define the lenght
     agg_periods = dic_arr_binary_adj.keys()
@@ -63,7 +23,7 @@ def get_jaccard_np(dic_arr_binary_adj, days):
     )
 
     # loop over the steps
-    for step, day in enumerate(days[1:], 1):
+    for step, day in enumerate(tqdm(days[1:]), 1):
         for agg_period in agg_periods:
             # if it is in the end of the period, do:
             if step % agg_period == agg_period - 1:
@@ -81,45 +41,56 @@ def get_jaccard_np(dic_arr_binary_adj, days):
             else:
                 df_jaccard.loc[
                     day, f"jaccard index-{agg_period}"
-                ] = df_jaccard.loc[step - 1, f"jaccard index-{agg_period}"]
+                ] = df_jaccard.loc[
+                    days[step - 1], f"jaccard index-{agg_period}"
+                ]
 
     return df_jaccard
 
 
-def get_density(dic_dic_binary_adj):
+def get_density(dic_arr_binary_adj, days):
+
+    print("compute density")
 
     # define variable
-    days = list(list(dic_dic_binary_adj.values())[0].keys())
-    agg_periods = dic_dic_binary_adj.keys()
-    n_banks = len(list(list(dic_dic_binary_adj.values())[0].values())[0])
+    agg_periods = dic_arr_binary_adj.keys()
+    n_days, n_banks, nbanks = list(dic_arr_binary_adj.values())[0].shape
 
     # initialisation
-    df_density = pd.DataFrame(index=days, columns=agg_periods)
+    df_density = pd.DataFrame(
+        index=days,
+        columns=[
+            f"network density-{agg_period}" for agg_period in agg_periods
+        ],
+    )
 
     # loop over the steps
-    for step, day in enumerate(days[1:], 1):
+    for step, day in enumerate(tqdm(days[1:]), 1):
         for agg_period in agg_periods:
             # if is in the end of the period
             if step % agg_period == agg_period - 1:
-                df_density.loc[day, agg_period] = dic_dic_binary_adj[
-                    agg_period
-                ][day].sum() / (
+                df_density.loc[
+                    day, f"network density-{agg_period}"
+                ] = dic_arr_binary_adj[agg_period][step].sum() / (
                     n_banks * (n_banks - 1.0)
                 )  # for a directed graph
             # otherwise, just extend the time series
             else:
-                df_density.loc[day, agg_period] = df_density.loc[
-                    days[step - 1], agg_period
+                df_density.loc[
+                    day, f"network density-{agg_period}"
+                ] = df_density.loc[
+                    days[step - 1], f"network density-{agg_period}"
                 ]
 
     return df_density
 
 
-def get_degree_distribution(dic_dic_binary_adj, bank_ids):
+def get_degree_distribution(dic_arr_binary_adj, bank_ids, days):
+
+    print("compute degree")
 
     # define variables
-    days = list(list(dic_dic_binary_adj.values())[0].keys())
-    agg_periods = dic_dic_binary_adj.keys()
+    agg_periods = dic_arr_binary_adj.keys()
 
     # initialisation
     df_in_degree_distribution = pd.DataFrame(
@@ -144,7 +115,7 @@ def get_degree_distribution(dic_dic_binary_adj, bank_ids):
 
                 # first define a networkx object.
                 bank_network = nx.from_numpy_array(
-                    dic_dic_binary_adj[agg_period][day],
+                    dic_arr_binary_adj[agg_period][day],
                     parallel_edges=False,
                     create_using=nx.DiGraph,
                 )

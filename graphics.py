@@ -576,7 +576,7 @@ def plot_step_degree_per_asset(df_banks, agg_periods, path, figsize=(6, 3)):
     )
     plt.ylabel("Degree")
     plt.xlabel("Assets")
-    plt.yscale("log")
+    plt.xscale("log")
     plt.title("degree verus total assets")
     plt.savefig(path + "degree_per_asset.pdf", bbox_inches="tight")
     plt.close()

@@ -69,7 +69,7 @@ def single_run(
 
 if __name__ == "__main__":
     single_run(
-        nb_banks=500,
+        nb_banks=100,
         alpha_init=0.1,  # initial cash (< 1/(1-gamma) - beta)
         alpha=0.01,
         beta_init=0.5,  # initial collateral  (< 1/(1-gamma) - alpha)
@@ -78,10 +78,10 @@ if __name__ == "__main__":
         gamma=0.5,
         collateral_value=1.0,
         initialization_method="pareto",
-        alpha_pareto=1.2,
+        alpha_pareto=2,
         shocks_method="non-conservative",
         shocks_law="normal-mean-reverting",
-        shocks_vol=0.01,
+        shocks_vol=0.10,
         result_location="./results/single_run/",
         min_repo_size=1e-8,
         nb_steps=int(1e4),

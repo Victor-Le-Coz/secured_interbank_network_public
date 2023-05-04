@@ -47,8 +47,8 @@ def get_df_exposures(lines):
                 ["bank_" + str(i) for i in range(10)], k=lines
             ),
             "lend_lei": choices(
-                ["bank_" + str(i) for i in range(15)]
-                + ["fund_" + str(i) for i in range(5)],
+                ["bank_" + str(i) for i in range(10)],
+                # + ["fund_" + str(i) for i in range(5)],
                 k=lines,
             ),
             "exposure": np.random.rand(lines) * 100,
