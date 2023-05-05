@@ -148,6 +148,18 @@ def fast_build_arr_binary_adj(
     return arr_binary_adj
 
 
+def convert_dic_to_array(dic_obs_matrix_reverse_repo):
+    # convert dic to array
+    bank_ids = list(list(dic_obs_matrix_reverse_repo.values())[0].index)
+    n_banks = len(bank_ids)
+    days = list(dic_obs_matrix_reverse_repo.keys())
+    arr_obs_matrix_reverse_repo = np.fromiter(
+        dic_obs_matrix_reverse_repo.values(),
+        np.dtype((float, [n_banks, n_banks])),
+    )
+    return arr_obs_matrix_reverse_repo
+
+
 def build_rolling_binary_adj(dic_obs_matrix_reverse_repo, agg_periods):
 
     # convert dic to array

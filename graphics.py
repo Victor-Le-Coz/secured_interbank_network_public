@@ -431,14 +431,14 @@ def plot_av_degre(df_network_trajectory, agg_periods, path):
             df_network_trajectory[column],
         )
     plt.xlabel("Steps")
-    plt.ylabel("av. in-degree")
-    plt.title("av. in-degree")
+    plt.ylabel("av. degree")
+    plt.title("av. degree")
     plt.legend(
         [f"av. degree-{agg_period}" for agg_period in agg_periods],
         loc="upper left",
     )
     fig.tight_layout()
-    plt.savefig(path + "average_in-degree.pdf", bbox_inches="tight")
+    plt.savefig(path + "average_degree.pdf", bbox_inches="tight")
     plt.close()
 
 

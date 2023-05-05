@@ -7,12 +7,6 @@ import pandas as pd
 import graphics as gx
 import parameters as par
 
-# define the figure size
-small_figsize = (4, 3)  # default one, the previsous version was (8,6)
-slide_figsize = (12, 6)  # for the single trajectories
-halfslide_figsize = (6, 6)  # for the network plots notably
-figsize = small_figsize
-
 
 def plot_jaccard_aggregated(df_jaccard, path, figsize=(6, 3)):
     fct.init_path(path)
@@ -137,19 +131,30 @@ def plot_degree_distribution(
 
 
 def run_n_plot_cp_test(
-    dic_obs_matrix_reverse_repo, algo, save_every, path_results, figsize=(6, 3)
+    arr_matrix_reverse_repo,
+    algo,
+    save_every,
+    days,
+    path_results,
+    figsize=(6, 3),
 ):
 
-    sr_pvalue = pd.Series()
+    print(f"core-periphery tests using the {algo} approach")
 
+    # initialise results and path
+    sr_pvalue = pd.Series()
     fct.delete_n_init_path(path_results)
 
-    for (step, ts_trade) in enumerate(dic_obs_matrix_reverse_repo.keys()):
-        if step % save_every == 0:
+    for step, day in enumerate(days[1:], 1):
+
+        # we run the analyis every x days + for the last day
+        if step % save_every == 0 or day == days[-1]:
+
+            print(f"test at step {step}")
 
             # build nx object
             bank_network = nx.from_numpy_array(
-                np.asarray(dic_obs_matrix_reverse_repo[ts_trade]),
+                arr_matrix_reverse_repo[step],
                 parallel_edges=False,
                 create_using=nx.DiGraph,
             )
@@ -160,15 +165,20 @@ def run_n_plot_cp_test(
             )
 
             # store the p_value (only the first one)
-            sr_pvalue.loc[ts_trade] = p_values[0]
+            sr_pvalue.loc[day] = p_values[0]
 
             # plot
+            if isinstance(day, pd.Timestamp):
+                day_print = day.strftime("%Y-%m-%d")
+            else:
+                day_print = day
+
             gx.plot_core_periphery(
                 bank_network=bank_network,
                 sig_c=sig_c,
                 sig_x=sig_x,
                 path=f"{path_results}",
-                step=ts_trade.strftime("%Y-%m-%d"),
+                step=day_print,
                 name_in_title="reverse repo",
                 figsize=figsize,
             )
@@ -182,10 +192,13 @@ def mlt_run_n_plot_cp_test(
     dic,
     algos,
     save_every,
+    days,
     path_results,
     figsize=(6, 3),
     opt_agg=False,
 ):
+
+    print("run core-periphery tests")
 
     # case dijonction to build the list of agg periods
     if opt_agg:
@@ -210,6 +223,7 @@ def mlt_run_n_plot_cp_test(
                 dic_adj,
                 algo=algo,
                 save_every=save_every,
+                days=days,
                 path_results=f"{path}{algo}/",
                 figsize=figsize,
             )

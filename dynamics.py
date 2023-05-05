@@ -4,7 +4,6 @@ os.environ["OMP_NUM_THREADS"] = "1"
 
 import networkx as nx
 import numpy as np
-from scipy.stats import pareto
 from tqdm import tqdm
 import graphics as gx
 import functions as fct
@@ -13,6 +12,7 @@ import pandas as pd
 import parameters as par
 import emp_preprocessing as ep
 import emp_metrics as em
+import emp_graphics as eg
 
 
 class ClassDynamics:
@@ -23,6 +23,7 @@ class ClassDynamics:
         path_results,
         agg_periods,
         jaccard_periods,
+        save_every,
         cp_option=False,
     ):
         # initialization of the class parameters.
@@ -30,6 +31,7 @@ class ClassDynamics:
         self.nb_steps = nb_steps
         self.path_results = path_results
         self.agg_periods = agg_periods
+        self.save_every = save_every
         self.cp_option = cp_option
 
         # Create the required path to store the results
@@ -174,21 +176,6 @@ class ClassDynamics:
                 self.Network.step, "repo exposures av. network"
             ] = np.mean(self.Network.dic_matrices["non-zero_adjency"])
 
-        # degree distribution
-        for agg_period in self.agg_periods:
-
-            # define the matrix
-            bank_network = nx.from_numpy_array(
-                self.dic_agg_binary_adj[agg_period],
-                parallel_edges=False,
-                create_using=nx.DiGraph,
-            )
-
-            # fill df_network_trajectory
-            self.df_network_trajectory.loc[
-                self.Network.step, f"av. degree-{agg_period}"
-            ] = np.array(bank_network.degree())[:, 1].mean()
-
     def expost_fill_df_banks(self):
 
         # degree distribution
@@ -303,7 +290,13 @@ class ClassDynamics:
             ]
         ] = df_density
 
-        # expost degree
+        # expost av. degree
+        df_av_degree = em.get_av_degree(
+            self.dic_arr_binary_adj, range(self.Network.step)
+        )
+        self.df_network_trajectory[
+            [f"av. degree-{agg_period}" for agg_period in self.agg_periods]
+        ] = df_av_degree
 
     def expost_fill_step_df_bank_trajectory(self, step):
 
@@ -480,28 +473,6 @@ class ClassDynamics:
             self.Network.step,
         )
 
-        # Plot the core-periphery detection and assessment
-        # special case here, an intermediary computation to keep track of p-values
-        if self.cp_option:
-            if self.Network.step > 0:
-                bank_network = nx.from_numpy_array(
-                    self.Network.dic_matrices["binary_adjency"],
-                    parallel_edges=False,
-                    create_using=nx.DiGraph,
-                )  # build nx object
-                sig_c, sig_x, significant, p_value = fct.cpnet_test(
-                    bank_network
-                )  # run cpnet test
-                self.p_value = p_value  # record p_value
-                gx.plot_core_periphery(
-                    bank_network=bank_network,
-                    sig_c=sig_c,
-                    sig_x=sig_x,
-                    path=self.path_results + "core-periphery_structure/",
-                    step=self.Network.step,
-                    name_in_title="reverse repo exposures",
-                )  # plot charts
-
         # Plot the link between centrality and total asset size
         gx.plot_step_degree_per_asset(
             self.Network.df_banks,
@@ -581,10 +552,29 @@ class ClassDynamics:
         # Plot the single bank trajectory time series.
         gx.plot_df_bank_trajectory(self.df_bank_trajectory, self.path_results)
 
-    def simulate(self, save_every, output_keys=False):
+        # Plot the core-periphery detection and assessment
+        eg.mlt_run_n_plot_cp_test(
+            self.dic_arr_binary_adj,
+            algos=par.cp_algos,
+            save_every=self.save_every,
+            days=range(self.Network.step),
+            path_results=self.path_results,
+            opt_agg=True,
+        )
+        eg.mlt_run_n_plot_cp_test(
+            self.arr_matrix_reverse_repo,
+            algos=par.cp_algos,
+            save_every=self.save_every,
+            days=range(self.Network.step),
+            path_results=self.path_results,
+            opt_agg=False,
+        )
+        self.p_value = 0  # to be modified
+
+    def simulate(self, output_keys=False):
 
         # record and store trajectories & parameters used at step 0
-        self.save_param(save_every)
+        self.save_param()
         self.step_record_trajectories()
         self.expost_record_trajectories()
         self.plot_n_store_trajectories()
@@ -601,12 +591,12 @@ class ClassDynamics:
             self.step_record_trajectories()
 
             # store only every given steps
-            if self.Network.step % save_every == 0:
+            if self.Network.step % self.save_every == 0:
                 self.expost_record_trajectories()
                 self.plot_n_store_trajectories()
 
         # store the final step (if not already done)
-        if self.nb_steps % save_every != 0:
+        if self.nb_steps % self.save_every != 0:
             self.expost_record_trajectories()
             self.plot_n_store_trajectories()
 
@@ -626,7 +616,7 @@ class ClassDynamics:
                 f"{metric}:{self.df_network_trajectory.loc[self.Network.step, metric]}"
             )
 
-    def save_param(self, save_every):
+    def save_param(self):
         with open(self.path_results + "param.txt", "w") as f:
             f.write(
                 (
@@ -664,7 +654,7 @@ class ClassDynamics:
                     self.path_results,
                     self.Network.min_repo_size,
                     self.nb_steps,
-                    save_every,
+                    self.save_every,
                     self.agg_periods,
                     self.Network.LCR_mgt_opt,
                 )
@@ -738,11 +728,11 @@ def single_run(
         path_results=result_location,
         jaccard_periods=jaccard_periods,
         agg_periods=agg_periods,
+        save_every=save_every,
         cp_option=cp_option,
     )
 
     output = dynamics.simulate(
-        save_every=save_every,
         output_keys=output_keys,
     )
 

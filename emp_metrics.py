@@ -54,7 +54,7 @@ def get_density(dic_arr_binary_adj, days):
 
     # define variable
     agg_periods = dic_arr_binary_adj.keys()
-    n_days, n_banks, nbanks = list(dic_arr_binary_adj.values())[0].shape
+    n_days, n_banks, n_banks = list(dic_arr_binary_adj.values())[0].shape
 
     # initialisation
     df_density = pd.DataFrame(
@@ -83,6 +83,34 @@ def get_density(dic_arr_binary_adj, days):
                 ]
 
     return df_density
+
+
+def get_av_degree(dic_arr_binary_adj, days):
+
+    # define variable
+    agg_periods = dic_arr_binary_adj.keys()
+
+    # initialisation
+    df_av_degree = pd.DataFrame(
+        index=days,
+        columns=[f"av. degree-{agg_period}" for agg_period in agg_periods],
+    )
+
+    # loop over the steps
+    for step, day in enumerate(tqdm(days[1:]), 1):
+        for agg_period in agg_periods:
+            # define the matrix
+            bank_network = nx.from_numpy_array(
+                dic_arr_binary_adj[agg_period][step],
+                parallel_edges=False,
+                create_using=nx.DiGraph,
+            )
+
+            df_av_degree.loc[day, f"av. degree-{agg_period}"] = np.array(
+                bank_network.degree()
+            )[:, 1].mean()
+
+    return df_av_degree
 
 
 def get_degree_distribution(dic_arr_binary_adj, bank_ids, days):
