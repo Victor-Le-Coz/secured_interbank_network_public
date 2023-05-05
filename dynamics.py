@@ -727,3 +727,63 @@ class ClassDynamics:
         output.update({"core-peri. p-val.": self.p_value})
 
         return output
+
+
+def single_run(
+    nb_banks,
+    alpha_init,
+    alpha,
+    beta_init,
+    beta_reg,
+    beta_star,
+    gamma,
+    collateral_value,
+    initialization_method,
+    alpha_pareto,
+    shocks_method,
+    shocks_law,
+    shocks_vol,
+    result_location,
+    min_repo_size,
+    nb_steps,
+    save_every,
+    jaccard_periods,
+    agg_periods,
+    cp_option,
+    LCR_mgt_opt,
+    output_keys,
+):
+
+    Network = ClassNetwork(
+        nb_banks=nb_banks,
+        alpha_init=alpha_init,
+        beta_init=beta_init,
+        beta_reg=beta_reg,
+        beta_star=beta_star,
+        alpha=alpha,
+        gamma=gamma,
+        collateral_value=collateral_value,
+        initialization_method=initialization_method,
+        alpha_pareto=alpha_pareto,
+        shocks_method=shocks_method,
+        shocks_law=shocks_law,
+        shocks_vol=shocks_vol,
+        min_repo_size=min_repo_size,
+        LCR_mgt_opt=LCR_mgt_opt,
+    )
+
+    dynamics = ClassDynamics(
+        Network,
+        nb_steps=nb_steps,
+        path_results=result_location,
+        jaccard_periods=jaccard_periods,
+        agg_periods=agg_periods,
+        cp_option=cp_option,
+    )
+
+    output = dynamics.simulate(
+        save_every=save_every,
+        output_keys=output_keys,
+    )
+
+    return output

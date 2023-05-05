@@ -445,8 +445,7 @@ class ClassBank:
             amount / self.collateral_value
         )
 
-        # update df_reverse_repos => need to create a version without while loop to save time
-
+        # update df_reverse_repos
         # debug
         if (
             self.df_reverse_repos.loc[bank_id][
@@ -454,31 +453,18 @@ class ClassBank:
             ].size
             == 0
         ):
-            print(self.id)
-
-            self.df_reverse_repos.to_csv("./support/df_reverse_repo_err.csv")
-
-            pickle.dump(
-                self.on_balance_repos,
-                open("./support/on_balance_repos.pickle", "wb"),
-                protocol=pickle.HIGHEST_PROTOCOL,
+            self.df_reverse_repos.to_csv(
+                f"./support/{self.id}_df_reverse_repo_err.csv"
             )
-            pickle.dump(
-                self.off_balance_repos,
-                open("./support/on_balance_repos.pickle", "wb"),
-                protocol=pickle.HIGHEST_PROTOCOL,
-            )
-
-            print(bank_id)
 
             pickle.dump(
                 self.banks[bank_id].on_balance_repos,
-                open("./support/bank_id_on_balance_repos.pickle", "wb"),
+                open(f"./support/{bank_id}_on_balance_repos.pickle", "wb"),
                 protocol=pickle.HIGHEST_PROTOCOL,
             )
             pickle.dump(
                 self.banks[bank_id].off_balance_repos,
-                open("./support/bank_id_off_balance_repos.pickle", "wb"),
+                open(f"./support/{bank_id}_off_balance_repos.pickle", "wb"),
                 protocol=pickle.HIGHEST_PROTOCOL,
             )
 
