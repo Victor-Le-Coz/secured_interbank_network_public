@@ -377,7 +377,7 @@ def plot_excess_liquidity_and_deposits(time_series_metrics, path):
     length = len(time_series_metrics["Excess Liquidity"])
     plt.plot(np.arange(length), time_series_metrics["Excess Liquidity"])
     plt.plot(np.arange(length), time_series_metrics["Deposits tot. volume"])
-    plt.legend(["Excess Liquidity" + "Deposits"], loc="upper left")
+    plt.legend(["Excess Liquidity", "Deposits"], loc="upper left")
     plt.xlabel("Steps")
     plt.ylabel("Monetary units")
     plt.title("Total excess liquidity & deposits")

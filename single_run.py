@@ -19,7 +19,7 @@ if __name__ == "__main__":
         shocks_method="non-conservative",
         shocks_law="normal-mean-reverting",
         shocks_vol=0.05,
-        result_location="./results/single_run/",
+        result_location="./results/main-test/",
         min_repo_size=1e-8,
         time_steps=int(1e4),
         save_every=2500,

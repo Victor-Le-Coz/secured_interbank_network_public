@@ -79,7 +79,8 @@ def generate_multilateral_shocks(deposits, law, vol):
     rho_2 = rho[N_half:N_max]
 
     correction_factor = -(
-        np.sum(rho_1 * deposits_p[0:N_half]) / np.sum(rho_2 * deposits_p[N_half:N_max])
+        np.sum(rho_1 * deposits_p[0:N_half])
+        / np.sum(rho_2 * deposits_p[N_half:N_max])
     )
 
     rho_2 = rho_2 * correction_factor
@@ -141,12 +142,17 @@ def generate_non_conservative_shocks(
         )
 
     elif law == "normal":
-        new_deposits = np.maximum(deposits + np.random.randn(len(deposits)) * vol, 0.0)
+        new_deposits = np.maximum(
+            deposits + np.random.randn(len(deposits)) * vol, 0.0
+        )
 
     elif law == "normal-mean-reverting":
         mean_reversion = vol
         epsilon = np.random.normal(loc=0, scale=vol, size=len(deposits))
-        shocks = mean_reversion * (initial_deposits - deposits) + epsilon * total_assets
+        shocks = (
+            mean_reversion * (initial_deposits - deposits)
+            + epsilon * total_assets
+        )
 
         # center the shocks
         shocks = shocks - np.mean(shocks)
