@@ -18,7 +18,7 @@ if __name__ == "__main__":
         shocks_vol=0.05,
         result_location="./results/single_run/",
         min_repo_size=1e-8,
-        nb_steps=int(1e4),
+        nb_steps=int(1e3),
         save_every=2500,
         jaccard_periods=par.agg_periods,
         agg_periods=par.agg_periods,

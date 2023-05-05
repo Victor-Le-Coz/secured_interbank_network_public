@@ -152,64 +152,6 @@ class ClassDynamics:
                         }
                     )
 
-        # jaccard
-        for agg_period in self.agg_periods:
-            if self.Network.step == 0:
-                self.df_network_trajectory.loc[
-                    self.Network.step,
-                    f"jaccard index-{agg_period}",
-                ] = 0
-
-            elif self.Network.step % agg_period == agg_period - 1:
-                self.df_network_trajectory.loc[
-                    self.Network.step,
-                    f"jaccard index-{agg_period}",
-                ] = (
-                    np.logical_and(
-                        self.dic_agg_binary_adj[agg_period],
-                        self.dic_prev_agg_binary_adj[agg_period],
-                    ).sum()
-                    / np.logical_or(
-                        self.dic_agg_binary_adj[agg_period],
-                        self.dic_prev_agg_binary_adj[agg_period],
-                    ).sum()
-                )
-                self.dic_prev_agg_binary_adj.update(
-                    {agg_period: self.dic_agg_binary_adj[agg_period].copy()}
-                )
-
-            elif self.Network.step > 0:
-                self.df_network_trajectory.loc[
-                    self.Network.step,
-                    f"jaccard index-{agg_period}",
-                ] = self.df_network_trajectory.loc[
-                    self.Network.step - 1,
-                    f"jaccard index-{agg_period}",
-                ]
-
-        # density
-        for agg_period in self.agg_periods:
-            if self.Network.step == 0:
-                self.df_network_trajectory.loc[
-                    self.Network.step,
-                    f"network density-{agg_period}",
-                ] = 0
-            elif self.Network.step % agg_period == agg_period - 1:
-                self.df_network_trajectory.loc[
-                    self.Network.step,
-                    f"network density-{agg_period}",
-                ] = self.dic_agg_binary_adj[agg_period].sum() / (
-                    self.Network.nb_banks * (self.Network.nb_banks - 1.0)
-                )  # for a directed graph
-            elif self.Network.step > 0:
-                self.df_network_trajectory.loc[
-                    self.Network.step,
-                    f"network density-{agg_period}",
-                ] = self.df_network_trajectory.loc[
-                    self.Network.step - 1,
-                    f"network density-{agg_period}",
-                ]
-
         # repo exposures
         if len(self.Network.dic_matrices["non-zero_adjency"]) == 0:
             self.df_network_trajectory.loc[
@@ -232,24 +174,35 @@ class ClassDynamics:
                 self.Network.step, "repo exposures av. network"
             ] = np.mean(self.Network.dic_matrices["non-zero_adjency"])
 
-        # av degree
-        bank_network = nx.from_numpy_array(
-            self.Network.dic_matrices["binary_adjency"],
-            parallel_edges=False,
-            create_using=nx.DiGraph,
-        )  # first define a networkx object.
-        self.df_network_trajectory.loc[
-            self.Network.step, "av. in-degree"
-        ] = np.array(bank_network.in_degree())[:, 1].mean()
-
         # degree distribution
         for agg_period in self.agg_periods:
+
+            # define the matrix
             bank_network = nx.from_numpy_array(
                 self.dic_agg_binary_adj[agg_period],
                 parallel_edges=False,
                 create_using=nx.DiGraph,
             )
-            self.Network.df_banks[f"degree_{agg_period}"] = np.array(
+
+            # fill df_network_trajectory
+            self.df_network_trajectory.loc[
+                self.Network.step, f"av. degree-{agg_period}"
+            ] = np.array(bank_network.degree())[:, 1].mean()
+
+    def expost_fill_df_banks(self):
+
+        # degree distribution
+        for agg_period in self.agg_periods:
+
+            # define the matrix
+            bank_network = nx.from_numpy_array(
+                self.dic_agg_binary_adj[agg_period],
+                parallel_edges=False,
+                create_using=nx.DiGraph,
+            )
+
+            # fill df_banks
+            self.Network.df_banks[f"degree-{agg_period}"] = np.array(
                 bank_network.degree()
             )[:, 1]
 
@@ -281,6 +234,9 @@ class ClassDynamics:
 
         # build adj matrices from df_reverse repos
         self.build_adj_matrices()
+
+        # specific case fill df_banks expost at some specific step
+        self.expost_fill_df_banks()
 
         # fill step df_network_trajectory & df_bank_trajectory from the df_reverse_repos data
         print("expost fill step df network trajectory")
@@ -346,6 +302,8 @@ class ClassDynamics:
                 for agg_period in self.agg_periods
             ]
         ] = df_density
+
+        # expost degree
 
     def expost_fill_step_df_bank_trajectory(self, step):
 
@@ -601,7 +559,9 @@ class ClassDynamics:
         )
 
         # Plot the time series of the network average degree
-        gx.plot_degre_network(self.df_network_trajectory, self.path_results)
+        gx.plot_av_degre(
+            self.df_network_trajectory, self.agg_periods, self.path_results
+        )
 
         # # Plot the time series of the average nb of transactions per step and per bank
         # gx.plot_average_nb_transactions(

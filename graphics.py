@@ -383,7 +383,7 @@ def plot_excess_liquidity_and_deposits(df_network_trajectory, path):
         df_network_trajectory.index,
         df_network_trajectory["deposits tot. network"],
     )
-    plt.legend(["excess liquidity" + "deposits"], loc="upper left")
+    plt.legend(["excess liquidity", "deposits"], loc="upper left")
     plt.xlabel("Steps")
     plt.ylabel("Monetary units")
     plt.title("Total excess liquidity & deposits")
@@ -422,14 +422,21 @@ def plot_collateral(df_network_trajectory, path):
     plt.close()
 
 
-def plot_degre_network(df_network_trajectory, path):
+def plot_av_degre(df_network_trajectory, agg_periods, path):
+    fig = plt.figure()
     fig = plt.figure(figsize=figsize)
-    plt.plot(
-        df_network_trajectory.index, df_network_trajectory["av. in-degree"]
-    )
+    for column in [f"av. degree-{agg_period}" for agg_period in agg_periods]:
+        plt.plot(
+            df_network_trajectory.index,
+            df_network_trajectory[column],
+        )
     plt.xlabel("Steps")
     plt.ylabel("av. in-degree")
     plt.title("av. in-degree")
+    plt.legend(
+        [f"av. degree-{agg_period}" for agg_period in agg_periods],
+        loc="upper left",
+    )
     fig.tight_layout()
     plt.savefig(path + "average_in-degree.pdf", bbox_inches="tight")
     plt.close()
@@ -566,7 +573,7 @@ def plot_step_degree_per_asset_old(banks_tot_assets, banks_degree, path):
 def plot_step_degree_per_asset(df_banks, agg_periods, path, figsize=(6, 3)):
     df_banks.plot(
         x="total assets",
-        y=[f"degree_{agg_period}" for agg_period in agg_periods],
+        y=[f"degree-{agg_period}" for agg_period in agg_periods],
         figsize=figsize,
         style=".",
     )
