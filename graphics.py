@@ -195,7 +195,9 @@ def bar_plot_balance_sheet(
         width=barWidth,
         label="Own Funds",
     )
-    ax3.legend(["Securities Collateral", "Securities Reused"], loc="upper left")
+    ax3.legend(
+        ["Securities Collateral", "Securities Reused"], loc="upper left"
+    )
     ax3.tick_params(axis="x", labelrotation=90, labelsize="small")
     ax3.set_title("Off Balance Sheets of Banks at step {}".format(int(step)))
 
@@ -314,19 +316,26 @@ def plot_repos(time_series_metrics, path):
 def plot_jaccard_not_aggregated(time_series_metrics, jaccard_periods, path):
     fig = plt.figure(figsize=figsize)
     length = len(
-        time_series_metrics["Jaccard index " + str(jaccard_periods[0]) + " time steps"]
+        time_series_metrics[
+            "Jaccard index " + str(jaccard_periods[0]) + " time steps"
+        ]
     )
     for jaccard_period in jaccard_periods:
         plt.plot(
             np.arange(length),
-            time_series_metrics["Jaccard index " + str(jaccard_period) + " time steps"],
+            time_series_metrics[
+                "Jaccard index " + str(jaccard_period) + " time steps"
+            ],
         )
 
     plt.xlabel("Steps")
     plt.ylabel("Jaccard index")
     plt.title("Jaccard index")
     plt.legend(
-        [str(jaccard_period) + " time steps" for jaccard_period in jaccard_periods],
+        [
+            str(jaccard_period) + " time steps"
+            for jaccard_period in jaccard_periods
+        ],
         loc="upper left",
     )
     plt.grid()
@@ -338,7 +347,9 @@ def plot_jaccard_not_aggregated(time_series_metrics, jaccard_periods, path):
 def plot_jaccard_aggregated(time_series_metrics, agg_periods, path):
     fig = plt.figure(figsize=figsize)
     length = len(
-        time_series_metrics["Jaccard index over " + str(agg_periods[0]) + " time steps"]
+        time_series_metrics[
+            "Jaccard index over " + str(agg_periods[0]) + " time steps"
+        ]
     )
     for agg_period in agg_periods:
         plt.plot(
@@ -381,7 +392,9 @@ def plot_excess_liquidity_and_deposits(time_series_metrics, path):
 def plot_collateral(time_series_metrics, path):
     fig = plt.figure(figsize=figsize)
     length = len(time_series_metrics["Securities Usable tot. volume"])
-    plt.plot(np.arange(length), time_series_metrics["Securities Usable tot. volume"])
+    plt.plot(
+        np.arange(length), time_series_metrics["Securities Usable tot. volume"]
+    )
     plt.plot(
         np.arange(length),
         time_series_metrics["Securities Encumbered tot. volume"],
@@ -390,7 +403,9 @@ def plot_collateral(time_series_metrics, path):
         np.arange(length),
         time_series_metrics["Securities Collateral tot. volume"],
     )
-    plt.plot(np.arange(length), time_series_metrics["Securities Reused tot. volume"])
+    plt.plot(
+        np.arange(length), time_series_metrics["Securities Reused tot. volume"]
+    )
     plt.legend(
         [
             "Securities Usable",
@@ -473,18 +488,21 @@ def plot_average_maturity_repo(time_series_metrics, path):
 
 def plot_network(adj, network_total_assets, path, step, name_in_title):
     # build a network from an adjacency matrix
-    bank_network = nx.from_numpy_matrix(
+    bank_network = nx.from_numpy_array(
         adj, parallel_edges=False, create_using=nx.DiGraph
     )
     # define the weight list from the weight information
     weights = [
-        bank_network[node1][node2]["weight"] for node1, node2 in bank_network.edges()
+        bank_network[node1][node2]["weight"]
+        for node1, node2 in bank_network.edges()
     ]
     # log scale the big values in the repo network
     log_weights = [1 if i <= 1 else np.log(i) + 1 for i in weights]
 
     # define the size of the nodes a a function of the total deposits
-    log_node_sizes = [0 if i <= 1 else np.log(i) + 1 for i in network_total_assets]
+    log_node_sizes = [
+        0 if i <= 1 else np.log(i) + 1 for i in network_total_assets
+    ]
 
     # define the position of the nodes
     pos = nx.spring_layout(bank_network)
@@ -517,7 +535,11 @@ def plot_core_periphery(bank_network, sig_c, sig_x, path, step, name_in_title):
     ax, pos = cpnet.draw(bank_network, sig_c, sig_x, ax)
 
     # show the plot
-    plt.title("{} core-periphery structure at the step {}".format(name_in_title, step))
+    plt.title(
+        "{} core-periphery structure at the step {}".format(
+            name_in_title, step
+        )
+    )
     fig.tight_layout()
     plt.savefig(
         path + "step_{" "}_core-periphery_structure.pdf".format(step),
@@ -632,7 +654,10 @@ def plot_multiple_key(
     else:
         plt.xlabel(input_param)
 
-    if short_key in mtr.log_output_mlt_keys and input_param in mtr.log_input_params:
+    if (
+        short_key in mtr.log_output_mlt_keys
+        and input_param in mtr.log_input_params
+    ):
         plt.ylabel(short_key + " (log-scale)")
         plt.gca().set_yscale("log")
     else:
@@ -659,7 +684,10 @@ def plot_single_key(key, param_values, input_param, output, path):
         plt.xlabel(input_param + " (log-scale)")
     else:
         plt.xlabel(input_param)
-    if key in mtr.log_output_single_keys and input_param in mtr.log_input_params:
+    if (
+        key in mtr.log_output_single_keys
+        and input_param in mtr.log_input_params
+    ):
         plt.ylabel(key + " (log-scale)")
         plt.gca().set_yscale("log")
     else:
