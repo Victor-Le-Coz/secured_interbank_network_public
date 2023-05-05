@@ -2,7 +2,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
 .idea/
 results/
 saved_results/
@@ -14,6 +13,8 @@ support/
 .ipynb_checkpoints/
 /dask-worker-space/
 /matplotlib-lebxwh_c/
+.history/
+
 
 # C extensions
 *.so
