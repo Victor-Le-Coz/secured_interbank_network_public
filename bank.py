@@ -552,7 +552,7 @@ class ClassBank:
             - self.alpha * self.dic_balance_sheet["deposits"]
         )
 
-        # if there is no LCR mgt (no ECB funding to mgt LCR), we might have a biger shock to absorb than the available collateral, so only a part of the shock is absorded on the repo market
+        # if there is no LCR mgt (no ECB funding to mgt LCR), we might have a bigger shock to absorb than the available collateral, so only a part of the shock is absorded on the repo market
         if not (self.LCR_mgt_opt):
             repo_ask = min(
                 repo_ask,
