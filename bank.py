@@ -446,17 +446,16 @@ class ClassBank:
         )
 
         # update df_reverse_repos
-        # debug
-        if (
-            self.df_reverse_repos.loc[bank_id][
-                self.df_reverse_repos.loc[bank_id]["status"]
-            ].size
-            == 0
-        ):
+        # initialize the list of trans_ids with status == True
+        trans_ids = self.df_reverse_repos.loc[bank_id][
+            self.df_reverse_repos.loc[bank_id]["status"]
+        ].index
+
+        # case with an issue (no solution yet, just print the issue and a warning)
+        if len(trans_ids) == 0:
             self.df_reverse_repos.to_csv(
                 f"./support/{self.id}_df_reverse_repo_err.csv"
             )
-
             pickle.dump(
                 self.banks[bank_id].on_balance_repos,
                 open(f"./support/{bank_id}_on_balance_repos.pickle", "wb"),
@@ -467,62 +466,66 @@ class ClassBank:
                 open(f"./support/{bank_id}_off_balance_repos.pickle", "wb"),
                 protocol=pickle.HIGHEST_PROTOCOL,
             )
-
-        # initialize the list of trans_ids with status == True
-        trans_ids = self.df_reverse_repos.loc[bank_id][
-            self.df_reverse_repos.loc[bank_id]["status"]
-        ].index
-        trans_id = trans_ids[0]
-        last_trans_id = trans_ids[-1]
-        remaining_amount = amount
-        i = 0
-        while (
-            remaining_amount
-            >= self.df_reverse_repos.loc[(bank_id, trans_id), "amount"]
-        ):
-            # close the transaction
-            self.df_reverse_repos.loc[(bank_id, trans_id), "status"] = False
-
-            # record the maturity of the closed transaction
-            self.df_reverse_repos.loc[(bank_id, trans_id), "tenor"] = (
-                self.Network.step
-                - self.df_reverse_repos.loc[(bank_id, trans_id), "start_step"]
+            print(
+                "WARNING: df_reverse_repo and on_balance_repos / off_balance_repos do not match !"
             )
 
-            # decrease the remaining amount
-            remaining_amount -= self.df_reverse_repos.loc[
-                (bank_id, trans_id), "amount"
-            ]
+        if len(trans_ids) > 0:
+            trans_id = trans_ids[0]
+            last_trans_id = trans_ids[-1]
+            remaining_amount = amount
+            i = 0
+            while (
+                remaining_amount
+                >= self.df_reverse_repos.loc[(bank_id, trans_id), "amount"]
+            ):
+                # close the transaction
+                self.df_reverse_repos.loc[
+                    (bank_id, trans_id), "status"
+                ] = False
 
-            # next transaction
-            if trans_id < last_trans_id:
-                i += 1
-                trans_id = trans_ids[i]
+                # record the maturity of the closed transaction
+                self.df_reverse_repos.loc[(bank_id, trans_id), "tenor"] = (
+                    self.Network.step
+                    - self.df_reverse_repos.loc[
+                        (bank_id, trans_id), "start_step"
+                    ]
+                )
 
-        # specific case if the remaining amount is smaller than the transaction size: need to create and close a special transaction
-        if (
-            remaining_amount
-            < self.df_reverse_repos.loc[(bank_id, trans_id), "amount"]
-        ):
+                # decrease the remaining amount
+                remaining_amount -= self.df_reverse_repos.loc[
+                    (bank_id, trans_id), "amount"
+                ]
 
-            # create a new transaction with the status closed
-            start_step = self.df_reverse_repos.loc[
-                (bank_id, trans_id), "start_step"
-            ]
-            self.df_reverse_repos.loc[(bank_id, last_trans_id + 1), :] = [
-                remaining_amount,
-                start_step,
-                self.Network.step - start_step,
-                False,
-            ]
+                # next transaction
+                if trans_id < last_trans_id:
+                    i += 1
+                    trans_id = trans_ids[i]
 
-            # update the amount of the transaction
-            self.df_reverse_repos.loc[
-                (bank_id, trans_id), "amount"
-            ] -= remaining_amount
+            # specific case if the remaining amount is smaller than the transaction size: need to create and close a special transaction
+            if (
+                remaining_amount
+                < self.df_reverse_repos.loc[(bank_id, trans_id), "amount"]
+            ):
+
+                # create a new transaction with the status closed
+                start_step = self.df_reverse_repos.loc[
+                    (bank_id, trans_id), "start_step"
+                ]
+                self.df_reverse_repos.loc[(bank_id, last_trans_id + 1), :] = [
+                    remaining_amount,
+                    start_step,
+                    self.Network.step - start_step,
+                    False,
+                ]
+
+                # update the amount of the transaction
+                self.df_reverse_repos.loc[
+                    (bank_id, trans_id), "amount"
+                ] -= remaining_amount
 
         # Once a reverse repo is ended, there is an excess liquidity which
-        # required closing the own repos of the bank self
+        # requires closing the own repos of the bank self
         self.step_end_repos()
 
     def step_enter_repos(self):

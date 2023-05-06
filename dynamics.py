@@ -13,6 +13,7 @@ import parameters as par
 import emp_preprocessing as ep
 import emp_metrics as em
 import emp_graphics as eg
+from graphics import ClassGraphics
 
 
 class ClassDynamics:
@@ -22,8 +23,8 @@ class ClassDynamics:
         nb_steps,
         path_results,
         agg_periods,
-        jaccard_periods,
-        save_every,
+        dump_period,
+        plot_period,
         cp_option=False,
     ):
         # initialization of the class parameters.
@@ -31,7 +32,7 @@ class ClassDynamics:
         self.nb_steps = nb_steps
         self.path_results = path_results
         self.agg_periods = agg_periods
-        self.save_every = save_every
+        self.dump_period = dump_period
         self.cp_option = cp_option
 
         # Create the required path to store the results
@@ -102,6 +103,9 @@ class ClassDynamics:
                     )
                 }
             )
+
+        # initialise the class graphics
+        self.Graphics = ClassGraphics(Dynamics=self, plot_period=plot_period)
 
     def step_record_trajectories(self):
         self.fill_df_network_trajectory()
@@ -235,6 +239,15 @@ class ClassDynamics:
 
         # fill df_network_trajectory & df_bank_trajectory from the adj matrices
         self.expost_fill_df_network_trajectory()
+
+        # save the data frame results
+        self.df_bank_trajectory.to_csv(
+            f"{self.path_results}df_bank_trajectory.csv"
+        )
+        self.df_network_trajectory.to_csv(
+            f"{self.path_results}df_network_trajectory.csv"
+        )
+        self.Network.store_network(self.path_results)
 
     def expost_fill_step_df_network_trajectory(self, step):
 
@@ -373,17 +386,9 @@ class ClassDynamics:
 
         # save last step to csv
         fct.init_path(f"{self.path_results}matrices/")
-        np.savetxt(
-            f"{self.path_results}matrices/arr_matrix_reverse_repo_{self.Network.step}.csv",
+        fct.save_np_array(
             self.arr_matrix_reverse_repo[self.Network.step],
-            delimiter=",",
-        )
-
-        # debug - compare with previous version
-        np.savetxt(
-            f"{self.path_results}matrices/exposure_old_version_matrix_{self.Network.step}.csv",
-            self.Network.dic_matrices["adjency"],
-            delimiter=",",
+            f"{self.path_results}matrices/arr_matrix_reverse_repo_{self.Network.step}.csv",
         )
 
     def build_arr_binary_adj(self):
@@ -407,177 +412,20 @@ class ClassDynamics:
 
             # save last step to csv
             fct.init_path(f"{self.path_results}matrices/{agg_period}/")
-            np.savetxt(
-                f"{self.path_results}matrices/{agg_period}/arr_binary_adj_{self.Network.step}.csv",
+            fct.save_np_array(
                 arr_binary_adj[period_nb][self.Network.step],
-                delimiter=",",
+                f"{self.path_results}matrices/{agg_period}/arr_binary_adj_{self.Network.step}.csv",
             )
 
     def build_adj_matrices(self):
         self.build_arr_matrix_reverse_repo_from_df_reverse_repos()
         self.build_arr_binary_adj()
 
-    def plot_n_store_trajectories(self):
-        """
-        Instance method saving all the figures representing the network
-        status at a given time-step as well as all the time series plots of the chosen metrics
-        :return:
-        """
-
-        # save the data frame results
-        self.df_bank_trajectory.to_csv(
-            f"{self.path_results}df_bank_trajectory.csv"
-        )
-        self.df_network_trajectory.to_csv(
-            f"{self.path_results}df_network_trajectory.csv"
-        )
-        self.Network.store_network(self.path_results)
-
-        gx.plot_network(
-            adj=self.Network.dic_matrices["adjency"],
-            network_total_assets=self.Network.df_banks["total assets"],
-            path=self.path_results + "repo_networks/",
-            step=self.Network.step,
-            name_in_title="reverse repo",
-        )
-        fct.save_np_array(
-            self.Network.dic_matrices["adjency"],
-            self.path_results + "repo_networks/adj_matrix",
-        )
-
-        # Plot the trust network
-        gx.plot_network(
-            adj=self.Network.dic_matrices["trust"].T
-            / (self.Network.dic_matrices["trust"].std() + 1e-8),
-            network_total_assets=self.Network.df_banks["total assets"],
-            path=self.path_results + "trust_networks/",
-            step=self.Network.step,
-            name_in_title="trust",
-        )
-        fct.save_np_array(
-            self.Network.dic_matrices["trust"],
-            self.path_results + "trust_networks/trust",
-        )
-
-        # Plot the break-down of the balance per bank
-        gx.bar_plot_balance_sheet(
-            self.Network.df_banks,
-            self.path_results + "balance_Sheets/",
-            self.Network.step,
-        )
-
-        # Plot the break-down of the deposits per bank in relative shares
-        gx.bar_plot_deposits(
-            self.Network.df_banks["deposits"],
-            self.path_results + "deposits/",
-            self.Network.step,
-        )
-
-        # Plot the link between centrality and total asset size
-        gx.plot_step_degree_per_asset(
-            self.Network.df_banks,
-            self.agg_periods,
-            self.path_results,
-        )
-
-        # Plot the time series of the total repos in the network
-        gx.plot_repos(
-            self.df_network_trajectory,
-            self.path_results,
-        )
-
-        # Plot the time series of the total MROS and loans in the network
-        gx.plot_assets_loans_mros(
-            self.df_network_trajectory,
-            self.path_results,
-        )
-
-        # Plot the time series of the securities usable, encumbered and
-        # re-used in the network
-        gx.plot_collateral(self.df_network_trajectory, self.path_results)
-
-        # Plot the time series of the weighted average number of time the
-        # collateral is reused in the network
-        gx.plot_collateral_reuse(
-            self.df_network_trajectory,
-            self.path_results,
-        )
-
-        # Plot the time series of the jaccard index
-        gx.plot_jaccard_aggregated(
-            self.df_network_trajectory,
-            self.path_results,
-        )
-
-        # Plot the time series of the total excess liquidity and deposits in
-        # the network
-        gx.plot_excess_liquidity_and_deposits(
-            self.df_network_trajectory, self.path_results
-        )
-
-        # Plot the time series of the network density
-        gx.plot_network_density(
-            self.df_network_trajectory,
-            self.path_results,
-        )
-
-        # Plot the time series of the gini coefficients
-        gx.plot_gini(self.df_network_trajectory, self.path_results)
-
-        # Plot the time series of the statistics of the size of reverse repo
-        gx.plot_reverse_repo_size_stats(
-            self.df_network_trajectory, self.path_results
-        )
-
-        # Plot the time series of the network average degree
-        gx.plot_av_degre(
-            self.df_network_trajectory, self.agg_periods, self.path_results
-        )
-
-        # # Plot the time series of the average nb of transactions per step and per bank
-        # gx.plot_average_nb_transactions(
-        #     self.df_network_trajectory, self.path_results
-        # )
-
-        # Plot the time series of the average nb of transactions per step and per bank
-        gx.plot_average_size_transactions(
-            self.df_network_trajectory, self.path_results
-        )
-
-        # Plot the average maturity of repos.
-        gx.plot_average_maturity_repo(
-            self.df_network_trajectory, self.path_results
-        )
-
-        # Plot the single bank trajectory time series.
-        gx.plot_df_bank_trajectory(self.df_bank_trajectory, self.path_results)
-
-        # Plot the core-periphery detection and assessment
-        eg.mlt_run_n_plot_cp_test(
-            self.dic_arr_binary_adj,
-            algos=par.cp_algos,
-            save_every=self.save_every,
-            days=range(self.Network.step),
-            path_results=self.path_results,
-            opt_agg=True,
-        )
-        eg.mlt_run_n_plot_cp_test(
-            self.arr_matrix_reverse_repo,
-            algos=par.cp_algos,
-            save_every=self.save_every,
-            days=range(self.Network.step),
-            path_results=self.path_results,
-            opt_agg=False,
-        )
-        self.p_value = 0  # to be modified
-
     def simulate(self, output_keys=False):
 
         # record and store trajectories & parameters used at step 0
         self.save_param()
         self.step_record_trajectories()
-        self.expost_record_trajectories()
-        self.plot_n_store_trajectories()
 
         print("simulate the repo market")
 
@@ -590,15 +438,14 @@ class ClassDynamics:
             # record trajectories
             self.step_record_trajectories()
 
-            # store only every given steps
-            if self.Network.step % self.save_every == 0:
+            # compute and dump expost trajectories every dump period
+            if self.Network.step % self.dump_period == 0:
                 self.expost_record_trajectories()
-                self.plot_n_store_trajectories()
+                self.Graphics.plot()
 
         # store the final step (if not already done)
-        if self.nb_steps % self.save_every != 0:
-            self.expost_record_trajectories()
-            self.plot_n_store_trajectories()
+        self.expost_record_trajectories()
+        self.Graphics.plot()
 
         # final print
         self.print_summary()
@@ -654,7 +501,7 @@ class ClassDynamics:
                     self.path_results,
                     self.Network.min_repo_size,
                     self.nb_steps,
-                    self.save_every,
+                    self.dump_period,
                     self.agg_periods,
                     self.Network.LCR_mgt_opt,
                 )
@@ -696,8 +543,8 @@ def single_run(
     result_location,
     min_repo_size,
     nb_steps,
-    save_every,
-    jaccard_periods,
+    dump_period,
+    plot_period,
     agg_periods,
     cp_option,
     LCR_mgt_opt,
@@ -726,9 +573,9 @@ def single_run(
         Network,
         nb_steps=nb_steps,
         path_results=result_location,
-        jaccard_periods=jaccard_periods,
         agg_periods=agg_periods,
-        save_every=save_every,
+        dump_period=dump_period,
+        plot_period=plot_period,
         cp_option=cp_option,
     )
 

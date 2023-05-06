@@ -4,40 +4,7 @@ import networkx as nx
 from matplotlib import pyplot as plt
 import functions as fct
 import pandas as pd
-import graphics as gx
 import parameters as par
-
-
-def plot_jaccard_aggregated(df_jaccard, path, figsize=(6, 3)):
-    fct.init_path(path)
-    df_jaccard.to_csv(f"{path}df_jaccard.csv")
-    df_jaccard.plot(figsize=figsize)
-    plt.xlabel("Steps")
-    plt.ylabel("Jaccard index")
-    plt.title("Jaccard index aggregated")
-    plt.legend(
-        [str(agg_period) + " time steps" for agg_period in df_jaccard.keys()],
-        loc="upper left",
-    )
-    plt.grid()
-    plt.savefig(path + "jaccard_index_agg.pdf", bbox_inches="tight")
-    plt.close()
-
-
-def plot_network_density(df_density, path, figsize=(6, 3)):
-    fct.init_path(path)
-    df_density.to_csv(f"{path}df_density.csv")
-    df_density.plot(figsize=figsize)
-    plt.xlabel("Steps")
-    plt.ylabel("Network density")
-    plt.title("Network density")
-    plt.legend(
-        [str(agg_period) + " time steps" for agg_period in df_density.keys()],
-        loc="upper left",
-    )
-    plt.grid()
-    plt.savefig(path + "network_density.pdf", bbox_inches="tight")
-    plt.close()
 
 
 def plot_step_degree_distribution(
@@ -130,6 +97,37 @@ def plot_degree_distribution(
         )
 
 
+def plot_core_periphery(
+    bank_network,
+    sig_c,
+    sig_x,
+    path,
+    step,
+    name_in_title,
+    figsize=(6, 3),
+):
+
+    fct.init_path(path)
+
+    # Visualization
+    fig = plt.figure(figsize=figsize)
+    ax = plt.gca()
+    ax, pos = cpnet.draw(bank_network, sig_c, sig_x, ax)
+
+    # show the plot
+    plt.title(
+        "{} core-periphery structure at the step {}".format(
+            name_in_title, step
+        )
+    )
+    fig.tight_layout()
+    plt.savefig(
+        f"{path}step_core-periphery_structure_{step}.pdf",
+        bbox_inches="tight",
+    )
+    plt.close()
+
+
 def run_n_plot_cp_test(
     arr_matrix_reverse_repo,
     algo,
@@ -173,7 +171,7 @@ def run_n_plot_cp_test(
             else:
                 day_print = day
 
-            gx.plot_core_periphery(
+            plot_core_periphery(
                 bank_network=bank_network,
                 sig_c=sig_c,
                 sig_x=sig_x,

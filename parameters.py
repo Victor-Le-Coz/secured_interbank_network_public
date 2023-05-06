@@ -3,6 +3,12 @@ agg_periods = [1, 50, 100, 250]
 # The parameter sets the limit to the float precision when running the algorithm, a value lower than this amount is considered as negligible.
 float_limit = 1e-10  # required to model a 1000 bilion euros balance sheet
 
+
+# define default figure size (but can always be updated for single charts)
+small_figsize = (6, 3)  # default one
+slide_figsize = (12, 6)  # for the single trajectories
+halfslide_figsize = (6, 6)  # for the network plots notably
+
 # accounting items
 assets = [
     "cash",
