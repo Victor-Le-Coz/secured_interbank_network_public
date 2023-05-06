@@ -4,6 +4,7 @@ from tqdm import tqdm
 import functions as fct
 import numpy as np
 from numba import jit
+import parameters as par
 
 
 def build_from_mmsr(df_mmsr):
@@ -103,23 +104,23 @@ def build_from_exposures(df_exposures):
 
 @jit(nopython=True)
 def fast_build_arr_binary_adj(
-    arr_obs_matrix_reverse_repo, arr_agg_period, n_days
+    arr_obs_matrix_reverse_repo, arr_agg_period, nb_days
 ):
 
     # get the lenght of the arrays
-    n, n_banks, n_banks = arr_obs_matrix_reverse_repo.shape
+    n, nb_banks, nb_banks = arr_obs_matrix_reverse_repo.shape
     n_agg_periods = arr_agg_period.shape[0]
 
     # tempory array of the aggregated ajency matrix (to compute the logical or)
-    arr_temp_adj = np.zeros((n_agg_periods, n_banks, n_banks))
+    arr_temp_adj = np.zeros((n_agg_periods, nb_banks, nb_banks))
 
     # array of the aggregated adjency matrix
     arr_binary_adj = np.zeros(
-        (n_agg_periods, n_days + 1, n_banks, n_banks), dtype=np.int16
+        (n_agg_periods, nb_days + 1, nb_banks, nb_banks), dtype=np.int16
     )
 
     # build the aggregated adjancency matrix of the reverse repos at different aggregation periods
-    for day_nb in np.arange(n_days + 1):
+    for day_nb in np.arange(nb_days + 1):
 
         # loop over the possible agg periods
         for period_nb in np.arange(n_agg_periods):
@@ -143,7 +144,7 @@ def fast_build_arr_binary_adj(
             arr_binary_adj[period_nb, day_nb] = arr_temp_adj[period_nb]
 
             # reset the dic temporary to 0
-            arr_temp_adj[period_nb] = np.zeros((n_banks, n_banks))
+            arr_temp_adj[period_nb] = np.zeros((nb_banks, nb_banks))
 
     return arr_binary_adj
 
@@ -151,28 +152,28 @@ def fast_build_arr_binary_adj(
 def convert_dic_to_array(dic_obs_matrix_reverse_repo):
     # convert dic to array
     bank_ids = list(list(dic_obs_matrix_reverse_repo.values())[0].index)
-    n_banks = len(bank_ids)
+    nb_banks = len(bank_ids)
     days = list(dic_obs_matrix_reverse_repo.keys())
     arr_obs_matrix_reverse_repo = np.fromiter(
         dic_obs_matrix_reverse_repo.values(),
-        np.dtype((float, [n_banks, n_banks])),
+        np.dtype((float, [nb_banks, nb_banks])),
     )
     return arr_obs_matrix_reverse_repo
 
 
-def build_rolling_binary_adj(dic_obs_matrix_reverse_repo, agg_periods):
+def build_rolling_binary_adj(dic_obs_matrix_reverse_repo):
 
     # convert dic to array
     bank_ids = list(list(dic_obs_matrix_reverse_repo.values())[0].index)
-    n_banks = len(bank_ids)
+    nb_banks = len(bank_ids)
     days = list(dic_obs_matrix_reverse_repo.keys())
     arr_obs_matrix_reverse_repo = np.fromiter(
         dic_obs_matrix_reverse_repo.values(),
-        np.dtype((float, [n_banks, n_banks])),
+        np.dtype((float, [nb_banks, nb_banks])),
     )
 
     # convert list to array
-    arr_agg_period = np.array(agg_periods)
+    arr_agg_period = np.array(par.agg_periods)
 
     # build arr of results with numba
     arr_binary_adj = fast_build_arr_binary_adj(
@@ -181,7 +182,7 @@ def build_rolling_binary_adj(dic_obs_matrix_reverse_repo, agg_periods):
 
     # convert array results to dictionaries
     dic_arr_binary_adj = {}
-    for period_nb, agg_period in enumerate(agg_periods):
+    for period_nb, agg_period in enumerate(par.agg_periods):
         dic_arr_binary_adj.update({agg_period: arr_binary_adj[period_nb]})
 
     # dump results

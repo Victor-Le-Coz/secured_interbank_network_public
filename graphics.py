@@ -7,6 +7,7 @@ from cProfile import label
 import cpnet  # Librairy for the estimation of core-periphery structures
 import networkx as nx
 from matplotlib import pyplot as plt
+import pandas as pd
 
 # import modules
 import functions as fct
@@ -28,15 +29,10 @@ class ClassGraphics:
         self.plot_trajectory()
 
     def plot_trajectory(self):
-        self.plot_trajectory_from_df()
-        self.plot_trajectory_from_adj()
-
-    def plot_trajectory_from_df(self):
 
         df_network_trajectory = self.Dynamics.df_network_trajectory
         df_bank_trajectory = self.Dynamics.df_bank_trajectory
         path_results = self.Dynamics.path_results
-        agg_periods = self.Dynamics.agg_periods
 
         # Plot the time series of the total repos in the network
         self.plot_repos(
@@ -48,6 +44,12 @@ class ClassGraphics:
         self.plot_assets_loans_mros(
             df_network_trajectory,
             path_results,
+        )
+
+        # Plot the time series of the total excess liquidity and deposits in
+        # the network
+        self.plot_excess_liquidity_and_deposits(
+            df_network_trajectory, path_results
         )
 
         # Plot the time series of the securities usable, encumbered and
@@ -67,12 +69,6 @@ class ClassGraphics:
             path_results,
         )
 
-        # Plot the time series of the total excess liquidity and deposits in
-        # the network
-        self.plot_excess_liquidity_and_deposits(
-            df_network_trajectory, path_results
-        )
-
         # Plot the time series of the network density
         self.plot_network_density(
             df_network_trajectory,
@@ -85,13 +81,6 @@ class ClassGraphics:
         # Plot the time series of the statistics of the size of reverse repo
         self.plot_reverse_repo_size_stats(df_network_trajectory, path_results)
 
-        # Plot the time series of the network average degree
-        self.plot_av_degre(
-            df_network_trajectory,
-            agg_periods,
-            path_results,
-        )
-
         # Plot average size of transactions
         self.plot_average_size_transactions(
             df_network_trajectory, path_results
@@ -103,17 +92,39 @@ class ClassGraphics:
         # Plot the single bank trajectory time series.
         self.plot_df_bank_trajectory(df_bank_trajectory, path_results)
 
-    def plot_trajectory_from_adj(self):
+        days = range(
+            self.Dynamics.Network.step + 1
+        )  # to cover all steps up to now
 
-        dic_arr_binary_adj = self.Dynamics.dic_arr_binary_adj
-        arr_matrix_reverse_repo = self.Dynamics.arr_matrix_reverse_repo
-        days = range(self.Dynamics.Network.step)
-        path_results = self.Dynamics.path_results
+        # plot degree distribution
+        self.plot_degree_distribution(
+            self.Dynamics.dic_in_degree,
+            self.Dynamics.dic_out_degree,
+            days,
+            f"{path_results}degree_distribution/",
+            self.plot_period,
+        )
+
+        # Plot the time series of the network average degree
+        self.plot_av_degre(
+            df_network_trajectory,
+            path_results,
+        )
+
+        # Plot degree per asset
+        self.plot_step_degree_per_asset(
+            self.Dynamics.Network.df_banks,
+            self.Dynamics.dic_degree,
+            range(self.Dynamics.Network.nb_banks),
+            days,
+            self.Dynamics.Network.step,
+            f"{path_results}degree_per_asset/",
+        )
 
         # Plot the core-periphery detection and assessment
         if self.Dynamics.cp_option:
             eg.mlt_run_n_plot_cp_test(
-                dic=dic_arr_binary_adj,
+                dic=self.Dynamics.dic_arr_binary_adj,
                 algos=par.cp_algos,
                 save_every=self.Dynamics.plot_period,
                 days=days,
@@ -121,7 +132,7 @@ class ClassGraphics:
                 opt_agg=True,
             )
             eg.mlt_run_n_plot_cp_test(
-                dic=arr_matrix_reverse_repo,
+                dic=self.Dynamics.arr_matrix_reverse_repo,
                 algos=par.cp_algos,
                 save_every=self.Dynamics.plot_period,
                 days=days,
@@ -338,17 +349,99 @@ class ClassGraphics:
         plt.savefig(path + "collateral.pdf", bbox_inches="tight")
         plt.close()
 
+    def plot_step_degree_distribution(
+        self,
+        dic_in_degree,
+        dic_out_degree,
+        days,
+        step,
+        path,
+        figsize=par.small_figsize,
+    ):
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
+        width = 0.1
+        space = 0.05
+        pos = 0
+
+        for agg_period in par.agg_periods:
+
+            # in degree plot
+            hist = np.unique(
+                dic_in_degree[agg_period][step],
+                return_counts=True,
+            )
+            ax1.bar(hist[0] + pos, hist[1], width=width)
+
+            # out degree plot
+            hist = np.unique(
+                dic_out_degree[agg_period][step],
+                return_counts=True,
+            )
+            ax2.bar(hist[0] + pos, hist[1], width=width)
+            pos = pos + width + space
+
+        ax1.set_xlabel("degree")
+        ax1.set_ylabel("frequency")
+        ax1.set_title("distribution of in-degree")
+        ax1.legend(
+            [
+                str(agg_period) + " time steps"
+                for agg_period in par.agg_periods
+            ],
+            loc="upper left",
+        )
+
+        ax2.set_xlabel("degree")
+        ax2.set_title("distribution of out-degree")
+        ax2.legend(
+            [
+                str(agg_period) + " time steps"
+                for agg_period in par.agg_periods
+            ],
+            loc="upper left",
+        )
+
+        if isinstance(days[step], pd.Timestamp):
+            day_print = days[step].strftime("%Y-%m-%d")
+        else:
+            day_print = days[step]
+        plt.savefig(
+            f"{path}degree_distribution_{day_print}.pdf", bbox_inches="tight"
+        )
+        plt.close()
+
+    def plot_degree_distribution(
+        self,
+        dic_in_degree,
+        dic_out_degree,
+        days,
+        path,
+        plot_period,
+        figsize=par.small_figsize,
+    ):
+
+        for step, day in enumerate(days):
+            if step % plot_period == 0:
+                self.plot_step_degree_distribution(
+                    dic_in_degree,
+                    dic_out_degree,
+                    days,
+                    step,
+                    path,
+                    figsize=figsize,
+                )
+
     def plot_av_degre(
         self,
         df_network_trajectory,
-        agg_periods,
         path,
         figsize=par.small_figsize,
     ):
         fig = plt.figure()
         fig = plt.figure(figsize=figsize)
         for column in [
-            f"av. degree-{agg_period}" for agg_period in agg_periods
+            f"av. degree-{agg_period}" for agg_period in par.agg_periods
         ]:
             plt.plot(
                 df_network_trajectory.index,
@@ -358,11 +451,56 @@ class ClassGraphics:
         plt.ylabel("av. degree")
         plt.title("av. degree")
         plt.legend(
-            [f"av. degree-{agg_period}" for agg_period in agg_periods],
+            [f"av. degree-{agg_period}" for agg_period in par.agg_periods],
             loc="upper left",
         )
         fig.tight_layout()
         plt.savefig(path + "average_degree.pdf", bbox_inches="tight")
+        plt.close()
+
+    def plot_step_degree_per_asset(
+        self, df_banks, dic_degree, bank_ids, days, step, path, figsize=(6, 3)
+    ):
+
+        fct.init_path(path)
+
+        # build the degree per bank on the date step
+        df_degree = pd.DataFrame(index=bank_ids)
+        for agg_period in par.agg_periods:
+            df_degree[f"degree-{agg_period}"] = dic_degree[agg_period][step]
+
+        # merge the 2 df
+        df = pd.merge(
+            df_banks,
+            df_degree,
+            right_index=True,
+            left_index=True,
+            how="inner",
+        )
+
+        df.plot(
+            x="total assets",
+            y=[f"degree-{agg_period}" for agg_period in par.agg_periods],
+            figsize=figsize,
+            style=".",
+        )
+        plt.legend(
+            loc="upper left",
+            bbox_to_anchor=(1, 1),
+        )
+        plt.ylabel("Degree")
+        plt.xlabel("Assets")
+        plt.xscale("log")
+
+        if isinstance(days[step], pd.Timestamp):
+            day_print = days[step].strftime("%Y-%m-%d")
+        else:
+            day_print = days[step]
+
+        plt.title(f"degree verus total assets at step {day_print}")
+        plt.savefig(
+            f"{path}degree_per_asset_step_{day_print}.pdf", bbox_inches="tight"
+        )
         plt.close()
 
     def plot_average_nb_transactions(
@@ -533,9 +671,9 @@ class ClassGraphics:
             step=self.Dynamics.Network.step,
             name_in_title="trust",
         )
-        fct.save_np_array(
+        fct.dump_np_array(
             self.Dynamics.Network.dic_matrices["trust"],
-            self.Dynamics.path_results + "trust_networks/trust",
+            self.Dynamics.path_results + "trust_networks/trust.csv",
         )
 
         # Plot the break-down of the balance per bank
@@ -551,14 +689,6 @@ class ClassGraphics:
             self.Dynamics.Network.step,
             self.Dynamics.path_results,
         )
-
-        # # Plot the link between centrality and total asset size
-        # self.plot_step_degree_per_asset(
-        #     self.Dynamics.Network.df_banks,
-        #     self.Dynamics.agg_periods,
-        #     self.Dynamics.Network.step,
-        #     self.Dynamics.path_results,
-        # )
 
     def plot_step_network(
         self,
@@ -606,28 +736,6 @@ class ClassGraphics:
         plt.savefig(
             path + "step_{}_network.pdf".format(step),
             bbox_inches="tight",
-        )
-        plt.close()
-
-    def plot_step_degree_per_asset(
-        self, df_banks, agg_periods, step, path, figsize=(6, 3)
-    ):
-        df_banks.plot(
-            x="total assets",
-            y=[f"degree-{agg_period}" for agg_period in agg_periods],
-            figsize=figsize,
-            style=".",
-        )
-        plt.legend(
-            loc="upper left",
-            bbox_to_anchor=(1, 1),
-        )
-        plt.ylabel("Degree")
-        plt.xlabel("Assets")
-        plt.xscale("log")
-        plt.title(f"degree verus total assets at step {step}")
-        plt.savefig(
-            f"{path}degree_per_asset_step{step}.pdf", bbox_inches="tight"
         )
         plt.close()
 
@@ -830,7 +938,6 @@ def plot_multiple_key(
     param_values,
     input_param,
     output,
-    agg_periods,
     path,
     short_key,
     nb_char,
@@ -856,7 +963,7 @@ def plot_multiple_key(
         plt.ylabel(short_key)
 
     plt.legend(
-        [str(agg_period) + " time steps" for agg_period in agg_periods],
+        [str(agg_period) + " time steps" for agg_period in par.agg_periods],
         loc="upper left",
     )
     plt.title(short_key + "x periods as a fct. of " + input_param)
@@ -893,7 +1000,7 @@ def plot_single_key(
 
 
 def plot_output_by_param(
-    param_values, input_param, output, jaccard_periods, agg_periods, path
+    param_values, input_param, output, jaccard_periods, path
 ):
     output = fct.reformat_output(output)
 
@@ -903,7 +1010,6 @@ def plot_output_by_param(
             param_values=param_values,
             input_param=input_param,
             output=output,
-            agg_periods=agg_periods,
             path=path,
             short_key=short_key,
             nb_char=len(short_key),
@@ -914,7 +1020,6 @@ def plot_output_by_param(
         param_values=param_values,
         input_param=input_param,
         output=output,
-        agg_periods=jaccard_periods,
         path=path,
         short_key="jaccard index",
         nb_char=len(short_key),

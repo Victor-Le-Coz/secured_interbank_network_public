@@ -7,24 +7,24 @@ from tqdm import tqdm
 import dask
 import pickle
 from tqdm import tqdm
+import parameters as par
 
 
-def get_jaccard(dic_arr_binary_adj, days):
+def get_jaccard(dic_arr_binary_adj, days, path=False):
 
-    print("compute jaccard")
-
-    # define the lenght
-    agg_periods = dic_arr_binary_adj.keys()
+    print("get jaccard")
 
     # initialisation
     df_jaccard = pd.DataFrame(
         index=days,
-        columns=[f"jaccard index-{agg_period}" for agg_period in agg_periods],
+        columns=[
+            f"jaccard index-{agg_period}" for agg_period in par.agg_periods
+        ],
     )
 
     # loop over the steps
     for step, day in enumerate(tqdm(days[1:]), 1):
-        for agg_period in agg_periods:
+        for agg_period in par.agg_periods:
             # if it is in the end of the period, do:
             if step % agg_period == agg_period - 1:
                 df_jaccard.loc[day, f"jaccard index-{agg_period}"] = (
@@ -45,34 +45,37 @@ def get_jaccard(dic_arr_binary_adj, days):
                     days[step - 1], f"jaccard index-{agg_period}"
                 ]
 
+    if path:
+        fct.init_path(path)
+        df_jaccard.to_csv(f"{path}df_jaccard.csv")
+
     return df_jaccard
 
 
-def get_density(dic_arr_binary_adj, days):
+def get_density(dic_arr_binary_adj, days, path=False):
 
-    print("compute density")
+    print("get density")
 
     # define variable
-    agg_periods = dic_arr_binary_adj.keys()
-    n_days, n_banks, n_banks = list(dic_arr_binary_adj.values())[0].shape
+    nb_days, nb_banks, nb_banks = list(dic_arr_binary_adj.values())[0].shape
 
     # initialisation
     df_density = pd.DataFrame(
         index=days,
         columns=[
-            f"network density-{agg_period}" for agg_period in agg_periods
+            f"network density-{agg_period}" for agg_period in par.agg_periods
         ],
     )
 
     # loop over the steps
     for step, day in enumerate(tqdm(days[1:]), 1):
-        for agg_period in agg_periods:
+        for agg_period in par.agg_periods:
             # if is in the end of the period
             if step % agg_period == agg_period - 1:
                 df_density.loc[
                     day, f"network density-{agg_period}"
                 ] = dic_arr_binary_adj[agg_period][step].sum() / (
-                    n_banks * (n_banks - 1.0)
+                    nb_banks * (nb_banks - 1.0)
                 )  # for a directed graph
             # otherwise, just extend the time series
             else:
@@ -82,118 +85,106 @@ def get_density(dic_arr_binary_adj, days):
                     days[step - 1], f"network density-{agg_period}"
                 ]
 
+    if path:
+        fct.init_path(path)
+        df_density.to_csv(f"{path}df_density.csv")
+
     return df_density
 
 
-def get_av_degree(dic_arr_binary_adj, days):
+def get_degree_distribution(dic_arr_binary_adj, path=False):
 
-    # define variable
-    agg_periods = dic_arr_binary_adj.keys()
+    print("get degree distribution")
 
-    # initialisation
-    df_av_degree = pd.DataFrame(
-        index=days,
-        columns=[f"av. degree-{agg_period}" for agg_period in agg_periods],
-    )
+    # define variables
+    nb_days, nb_banks, nb_banks = list(dic_arr_binary_adj.values())[0].shape
 
-    # loop over the steps
-    for step, day in enumerate(tqdm(days[1:]), 1):
-        for agg_period in agg_periods:
-            # define the matrix
+    # initialization
+    dic_in_degree = {}
+    dic_out_degree = {}
+    dic_degree = {}
+    for agg_period in par.agg_periods:
+        dic_in_degree.update(
+            {agg_period: np.zeros((nb_days, nb_banks), dtype=np.int16)}
+        )
+        dic_out_degree.update(
+            {agg_period: np.zeros((nb_days, nb_banks), dtype=np.int16)}
+        )
+        dic_degree.update(
+            {agg_period: np.zeros((nb_days, nb_banks), dtype=np.int16)}
+        )
+
+    for step in tqdm(range(1, nb_days)):
+        # Build the degree distribution time series - version aggregated.
+        for agg_period in par.agg_periods:
+
+            # first define a networkx object.
             bank_network = nx.from_numpy_array(
                 dic_arr_binary_adj[agg_period][step],
                 parallel_edges=False,
                 create_using=nx.DiGraph,
             )
 
-            df_av_degree.loc[day, f"av. degree-{agg_period}"] = np.array(
-                bank_network.degree()
-            )[:, 1].mean()
+            # fill in the arrays the dictionaries
+            dic_in_degree[agg_period][step] = np.array(
+                bank_network.in_degree(), dtype=np.int16
+            )[:, 1]
+            dic_out_degree[agg_period][step] = np.array(
+                bank_network.out_degree(), dtype=np.int16
+            )[:, 1]
+            dic_degree[agg_period][step] = np.array(
+                bank_network.degree(), dtype=np.int16
+            )[:, 1]
+
+    if path:
+        fct.init_path(path)
+        for agg_period in par.agg_periods:
+            fct.dump_np_array(
+                dic_in_degree[agg_period],
+                f"{path}arr_in_degree_{agg_period}.csv",
+            )
+            fct.dump_np_array(
+                dic_out_degree[agg_period],
+                f"{path}arr_out_degree_{agg_period}.csv",
+            )
+            fct.dump_np_array(
+                dic_degree[agg_period], f"{path}arr_degree_{agg_period}.csv"
+            )
+
+    return dic_in_degree, dic_out_degree, dic_degree
+
+
+def get_av_degree(dic_degree, days, path=False):
+
+    print("get av. degree")
+
+    # initialisation
+    df_av_degree = pd.DataFrame(
+        index=days,
+        columns=[f"av. degree-{agg_period}" for agg_period in par.agg_periods],
+    )
+
+    # loop over the steps
+    for step, day in enumerate(tqdm(days[1:]), 1):
+        for agg_period in par.agg_periods:
+            df_av_degree.loc[day, f"av. degree-{agg_period}"] = dic_degree[
+                agg_period
+            ][step].mean()
+
+    if path:
+        fct.init_path(path)
+        df_av_degree.to_csv(f"{path}df_av_degree.csv")
 
     return df_av_degree
 
 
-def get_degree_distribution(dic_arr_binary_adj, bank_ids, days):
-
-    print("compute degree")
-
-    # define variables
-    agg_periods = dic_arr_binary_adj.keys()
-
-    # initialisation
-    df_in_degree_distribution = pd.DataFrame(
-        index=days, columns=bank_ids, dtype=float
-    )
-    df_out_degree_distribution = pd.DataFrame(
-        index=days, columns=bank_ids, dtype=float
-    )
-
-    dic_in_degree = {}
-    dic_out_degree = {}
-    for agg_period in agg_periods:
-        dic_in_degree.update({agg_period: df_in_degree_distribution.copy()})
-        dic_out_degree.update({agg_period: df_out_degree_distribution.copy()})
-
-    for step, day in enumerate(days[1:], 1):
-        # Build the degree distribution time series - version aggregated.
-        for agg_period in agg_periods:
-
-            # if is in the end of the period
-            if step % agg_period == agg_period - 1:
-
-                # first define a networkx object.
-                bank_network = nx.from_numpy_array(
-                    dic_arr_binary_adj[agg_period][day],
-                    parallel_edges=False,
-                    create_using=nx.DiGraph,
-                )
-                # build an array of the in_degree per bank
-                ar_in_degree = np.array(bank_network.in_degree(), dtype=float)[
-                    :, 1
-                ]
-                ar_out_degree = np.array(
-                    bank_network.out_degree(), dtype=float
-                )[:, 1]
-
-                dic_in_degree[agg_period].loc[day] = ar_in_degree
-                dic_out_degree[agg_period].loc[day] = ar_out_degree
-
-            # otherwise, just extend the time series
-            else:
-                dic_in_degree[agg_period].loc[day] = dic_in_degree[
-                    agg_period
-                ].loc[days[step - 1]]
-                dic_out_degree[agg_period].loc[day] = dic_out_degree[
-                    agg_period
-                ].loc[days[step - 1]]
-
-    return dic_in_degree, dic_out_degree
-
-
-def build_df_banks_emp(df_finrep, dic_in_degree, dic_out_degree, path):
-    # select the final day (common between the 2 lists)
-    mmsr_days = list(list(dic_in_degree.values())[0].index)
-    finrep_days = list(df_finrep["date"])
-    day = fct.last_common_element(mmsr_days, finrep_days)
-
-    # build the degree per bank
-    bank_ids = list(list(dic_in_degree.values())[0].columns)
-    agg_periods = list(dic_in_degree.keys())
-    df_banks_emp = pd.DataFrame(index=bank_ids)
-    for agg_period in agg_periods:
-        df_banks_emp[f"degree_{agg_period}"] = (
-            dic_in_degree[agg_period].loc[day]
-            + dic_out_degree[agg_period].loc[day]
-        )
+def build_df_banks_emp(df_finrep, day, path):
 
     # build the total asset per bank
-    df_finrep = df_finrep[df_finrep["date"] == day]
-    df_banks_emp = df_banks_emp.merge(
-        df_finrep[["lei", "total assets"]], right_on="lei", left_index=True
-    )
-    df_banks_emp.set_index("lei", inplace=True)
+    df_banks = df_finrep[df_finrep["date"] == day][["lei", "total assets"]]
+    df_banks.set_index("lei", inplace=True)
 
     # save the results to csv
-    df_banks_emp.to_csv(f"{path}df_banks.csv")
+    df_banks.to_csv(f"{path}df_banks.csv")
 
-    return df_banks_emp
+    return df_banks

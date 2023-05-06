@@ -22,7 +22,6 @@ class ClassDynamics:
         Network,
         nb_steps,
         path_results,
-        agg_periods,
         dump_period,
         plot_period,
         cp_option=False,
@@ -31,7 +30,6 @@ class ClassDynamics:
         self.Network = Network
         self.nb_steps = nb_steps
         self.path_results = path_results
-        self.agg_periods = agg_periods
         self.dump_period = dump_period
         self.cp_option = cp_option
 
@@ -55,7 +53,7 @@ class ClassDynamics:
 
         # initialisation of an dic of array of binary adj matrices
         self.dic_arr_binary_adj = {}
-        for agg_period in self.agg_periods:
+        for agg_period in par.agg_periods:
             self.dic_arr_binary_adj.update(
                 {
                     agg_period: np.zeros(
@@ -71,7 +69,7 @@ class ClassDynamics:
         self.dic_agg_binary_adj = (
             {}
         )  # dictionary of the aggregated ajency matrix over a given period
-        for agg_period in self.agg_periods:
+        for agg_period in par.agg_periods:
             self.dic_agg_binary_adj.update(
                 {
                     agg_period: np.zeros(
@@ -83,7 +81,7 @@ class ClassDynamics:
         self.dic_prev_agg_binary_adj = (
             {}
         )  # dictionary of the previous aggregated binary adjency matrices for different aggregation periods
-        for agg_period in self.agg_periods:
+        for agg_period in par.agg_periods:
             self.dic_prev_agg_binary_adj.update(
                 {
                     agg_period: np.zeros(
@@ -95,7 +93,7 @@ class ClassDynamics:
         self.prev_binary_adj_dic = (
             {}
         )  # dictionary of the previous adjacency matrix, used for the computation of the jaccard index (stable trading relationships) of different time length
-        for agg_period in agg_periods:
+        for agg_period in par.agg_periods:
             self.prev_binary_adj_dic.update(
                 {
                     agg_period: np.zeros(
@@ -139,7 +137,7 @@ class ClassDynamics:
 
         # update agg adjancency matrix
         if self.Network.step > 0:
-            for agg_period in self.agg_periods:
+            for agg_period in par.agg_periods:
                 if self.Network.step % agg_period > 0:
                     self.dic_agg_binary_adj.update(
                         {
@@ -180,23 +178,6 @@ class ClassDynamics:
                 self.Network.step, "repo exposures av. network"
             ] = np.mean(self.Network.dic_matrices["non-zero_adjency"])
 
-    def expost_fill_df_banks(self):
-
-        # degree distribution
-        for agg_period in self.agg_periods:
-
-            # define the matrix
-            bank_network = nx.from_numpy_array(
-                self.dic_agg_binary_adj[agg_period],
-                parallel_edges=False,
-                create_using=nx.DiGraph,
-            )
-
-            # fill df_banks
-            self.Network.df_banks[f"degree-{agg_period}"] = np.array(
-                bank_network.degree()
-            )[:, 1]
-
     def fill_df_bank_trajectory(self):
 
         # Build the time series of the accounting items
@@ -226,9 +207,6 @@ class ClassDynamics:
         # build adj matrices from df_reverse repos
         self.build_adj_matrices()
 
-        # specific case fill df_banks expost at some specific step
-        self.expost_fill_df_banks()
-
         # fill step df_network_trajectory & df_bank_trajectory from the df_reverse_repos data
         print("expost fill step df network trajectory")
         for step in tqdm(
@@ -238,6 +216,7 @@ class ClassDynamics:
             self.expost_fill_step_df_bank_trajectory(step)
 
         # fill df_network_trajectory & df_bank_trajectory from the adj matrices
+        self.expost_fill_dic_degree()
         self.expost_fill_df_network_trajectory()
 
         # save the data frame results
@@ -250,6 +229,8 @@ class ClassDynamics:
         self.Network.store_network(self.path_results)
 
     def expost_fill_step_df_network_trajectory(self, step):
+
+        # very slow, parcours de df
 
         df = self.Network.df_reverse_repos
 
@@ -289,7 +270,7 @@ class ClassDynamics:
             self.dic_arr_binary_adj, range(self.Network.step)
         )
         self.df_network_trajectory[
-            [f"jaccard index-{agg_period}" for agg_period in self.agg_periods]
+            [f"jaccard index-{agg_period}" for agg_period in par.agg_periods]
         ] = df_jaccard
 
         # expost density
@@ -297,19 +278,28 @@ class ClassDynamics:
             self.dic_arr_binary_adj, range(self.Network.step)
         )
         self.df_network_trajectory[
-            [
-                f"network density-{agg_period}"
-                for agg_period in self.agg_periods
-            ]
+            [f"network density-{agg_period}" for agg_period in par.agg_periods]
         ] = df_density
 
         # expost av. degree
         df_av_degree = em.get_av_degree(
-            self.dic_arr_binary_adj, range(self.Network.step)
+            self.dic_degree, range(self.Network.step)
         )
         self.df_network_trajectory[
-            [f"av. degree-{agg_period}" for agg_period in self.agg_periods]
+            [f"av. degree-{agg_period}" for agg_period in par.agg_periods]
         ] = df_av_degree
+
+    def expost_fill_dic_degree(self):
+
+        # degree distribution
+        (
+            self.dic_in_degree,
+            self.dic_out_degree,
+            self.dic_degree,
+        ) = em.get_degree_distribution(
+            self.dic_arr_binary_adj,
+            path=f"{self.path_results}degree_distribution/",
+        )
 
     def expost_fill_step_df_bank_trajectory(self, step):
 
@@ -359,7 +349,7 @@ class ClassDynamics:
     def build_arr_matrix_reverse_repo_from_df_reverse_repos(self):
 
         # print
-        print("build arr_matrix_reverse_repo")
+        print("build arr_matrix_reverse_repo from df_reverse_repos")
 
         # loop over the rows of df_reverse_repos transactions
         for index, row in tqdm(self.Network.df_reverse_repos.iterrows()):
@@ -386,7 +376,7 @@ class ClassDynamics:
 
         # save last step to csv
         fct.init_path(f"{self.path_results}matrices/")
-        fct.save_np_array(
+        fct.dump_np_array(
             self.arr_matrix_reverse_repo[self.Network.step],
             f"{self.path_results}matrices/arr_matrix_reverse_repo_{self.Network.step}.csv",
         )
@@ -397,7 +387,7 @@ class ClassDynamics:
         print("build arr_binary_adj (compiled)")
 
         # convert list to array
-        arr_agg_period = np.array(self.agg_periods)
+        arr_agg_period = np.array(par.agg_periods)
 
         # build arr of results with numba
         arr_binary_adj = ep.fast_build_arr_binary_adj(
@@ -405,14 +395,14 @@ class ClassDynamics:
         )
 
         # loop over agg periods
-        for period_nb, agg_period in enumerate(self.agg_periods):
+        for period_nb, agg_period in enumerate(par.agg_periods):
 
             # convert array results to dictionaries
             self.dic_arr_binary_adj[agg_period] = arr_binary_adj[period_nb]
 
             # save last step to csv
             fct.init_path(f"{self.path_results}matrices/{agg_period}/")
-            fct.save_np_array(
+            fct.dump_np_array(
                 arr_binary_adj[period_nb][self.Network.step],
                 f"{self.path_results}matrices/{agg_period}/arr_binary_adj_{self.Network.step}.csv",
             )
@@ -502,7 +492,7 @@ class ClassDynamics:
                     self.Network.min_repo_size,
                     self.nb_steps,
                     self.dump_period,
-                    self.agg_periods,
+                    par.agg_periods,
                     self.Network.LCR_mgt_opt,
                 )
             )
@@ -545,7 +535,6 @@ def single_run(
     nb_steps,
     dump_period,
     plot_period,
-    agg_periods,
     cp_option,
     LCR_mgt_opt,
     output_keys,
@@ -573,7 +562,6 @@ def single_run(
         Network,
         nb_steps=nb_steps,
         path_results=result_location,
-        agg_periods=agg_periods,
         dump_period=dump_period,
         plot_period=plot_period,
         cp_option=cp_option,

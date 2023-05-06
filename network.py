@@ -283,7 +283,7 @@ class ClassNetwork:
         print("build df_reverse_repos")
 
         dfs = []
-        for Bank in self.banks:
+        for Bank in tqdm(self.banks):
             dfs.append(Bank.df_reverse_repos)
         self.df_reverse_repos = pd.concat(
             dfs,

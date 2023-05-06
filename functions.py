@@ -8,6 +8,7 @@ import os
 import shutil
 import pandas as pd
 from scipy import stats
+import sys
 
 
 def gini(x):
@@ -442,9 +443,9 @@ def init_path(path):
         os.makedirs(path)
 
 
-def save_np_array(array, name):
+def dump_np_array(array, name):
     df = pd.DataFrame(array)
-    df.to_csv(name + ".csv")
+    df.to_csv(name)
 
 
 def get_trunc_lognorm(mu, sigma, lower_bound, upper_bound=np.inf, size=10000):
@@ -505,3 +506,19 @@ def get_size(obj, seen=None):
     ):
         size += sum(get_size(i, seen) for i in obj)
     return size
+
+
+def check_memory():
+    for name, size in sorted(
+        ((name, size(value)) for name, value in locals().items()),
+        key=lambda x: -x[1],
+    )[:50]:
+        print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+
+
+def sizeof_fmt(num, suffix="B"):
+    for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
+        if abs(num) < 1024.0:
+            return "%3.1f %s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f %s%s" % (num, "Yi", suffix)
