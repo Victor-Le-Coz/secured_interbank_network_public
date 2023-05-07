@@ -1,13 +1,11 @@
 import numpy as np
 import networkx as nx
-import graphics as gx
 import functions as fct
 import pandas as pd
 from tqdm import tqdm
-import dask
-import pickle
 from tqdm import tqdm
 import parameters as par
+import cpnet
 
 
 def get_jaccard(dic_arr_binary_adj, days, path=False):
@@ -171,3 +169,58 @@ def build_df_banks_emp(df_finrep, day, path):
     df_banks.to_csv(f"{path}df_banks.csv")
 
     return df_banks
+
+
+def cpnet_test(bank_network, algo="BE"):
+    if algo == "KM_ER":
+        alg = cpnet.KM_ER()
+    elif algo == "KM_config":
+        alg = cpnet.KM_config()
+    elif algo == "Divisive":
+        alg = cpnet.Divisive()
+    elif algo == "Rombach":
+        alg = cpnet.Rombach()
+    elif algo == "Rossa":
+        alg = cpnet.Rossa()
+    elif algo == "LapCore":
+        alg = cpnet.LapCore()
+    elif algo == "LapSgnCore":
+        alg = cpnet.LapSgnCore()
+    elif algo == "LowRankCore":
+        alg = cpnet.LowRankCore()
+    elif algo == "MINRES":
+        alg = cpnet.MINRES()
+    elif algo == "Surprise":
+        alg = cpnet.Surprise()
+    elif algo == "Lip":
+        alg = cpnet.Lip()
+    elif algo == "BE":
+        alg = cpnet.BE()
+
+    alg.detect(bank_network)  # Feed the network as an input
+    x = alg.get_coreness()  # Get the coreness of nodes
+    c = alg.get_pair_id()  # Get the group membership of nodes
+
+    # Statistical significance test
+    sig_c, sig_x, significant, p_value = cpnet.qstest(
+        c,
+        x,
+        bank_network,
+        alg,
+        significance_level=0.05,
+        # num_of_thread=1,
+    )
+
+    return sig_c, sig_x, significant, p_value
+
+
+def gini(x):
+    """
+    This function computes the gini coeficient of a numpy arary.
+    param: x: a numpy array
+    return: the gini coeficient
+    """
+    total = 0
+    for i, xi in enumerate(x):
+        total += np.sum(np.abs(xi - x[i:]))
+    return total / (len(x) ** 2 * np.mean(x))

@@ -1,26 +1,13 @@
 import os
 
-os.environ["OMP_NUM_THREADS"] = "1"
+# os.environ["OMP_NUM_THREADS"] = "1"
 
 import numpy as np
-import cpnet  # Librairy for the estimation of core-periphery structures
 import os
 import shutil
 import pandas as pd
 from scipy import stats
 import sys
-
-
-def gini(x):
-    """
-    This function computes the gini coeficient of a numpy arary.
-    param: x: a numpy array
-    return: the gini coeficient
-    """
-    total = 0
-    for i, xi in enumerate(x):
-        total += np.sum(np.abs(xi - x[i:]))
-    return total / (len(x) ** 2 * np.mean(x))
 
 
 def get_param_values(input_param):
@@ -373,61 +360,11 @@ def reformat_output(output):
         return output_rf
 
 
-def cpnet_test(bank_network, algo="BE"):
-    if algo == "KM_ER":  # divide by zero error
-        alg = cpnet.KM_ER()
-    elif algo == "KM_config":  # divide by zero error
-        alg = cpnet.KM_config()
-    elif algo == "Divisive":  # divide by zero error
-        alg = cpnet.Divisive()
-    elif algo == "Rombach":
-        alg = cpnet.Rombach()
-    elif algo == "Rossa":
-        alg = cpnet.Rossa()
-    elif algo == "LapCore":
-        alg = cpnet.LapCore()
-    elif algo == "LapSgnCore":
-        alg = cpnet.LapSgnCore()
-    elif algo == "LowRankCore":
-        alg = cpnet.LowRankCore()
-    elif algo == "MINRES":  # do not take weights into acount
-        alg = cpnet.MINRES()
-    elif algo == "Surprise":  # do not take weights into acount
-        alg = cpnet.Surprise()
-    elif algo == "Lip":  # do not take weights into acount
-        alg = cpnet.Lip()
-    elif algo == "BE":  # do not take weights into acount
-        alg = cpnet.BE()
-
-    alg.detect(bank_network)  # Feed the network as an input
-    x = alg.get_coreness()  # Get the coreness of nodes
-    c = alg.get_pair_id()  # Get the group membership of nodes
-
-    # Statistical significance test
-    sig_c, sig_x, significant, p_value = cpnet.qstest(
-        c,
-        x,
-        bank_network,
-        alg,
-        significance_level=0.05,
-        num_of_thread=1,
-    )
-
-    # print(
-    #     "{} core-periphery structure(s) detected, but {} significant, "
-    #     "p-values are {} "
-    #     "".format(len(significant), np.sum(significant), p_value)
-    # )
-
-    return sig_c, sig_x, significant, p_value
-
-
 def init_results_path(path):
     if os.path.exists(path):  # Delete all previous figures
         shutil.rmtree(path)
     os.makedirs(os.path.join(path, "repo_networks"))
     os.makedirs(os.path.join(path, "trust_networks"))
-    os.makedirs(os.path.join(path, "core-periphery_structure"))
     os.makedirs(os.path.join(path, "deposits"))
     os.makedirs(os.path.join(path, "balance_Sheets"))
 

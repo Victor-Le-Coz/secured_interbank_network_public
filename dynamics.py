@@ -1,6 +1,6 @@
 import os
 
-os.environ["OMP_NUM_THREADS"] = "1"
+# os.environ["OMP_NUM_THREADS"] = "1"
 
 import networkx as nx
 import numpy as np
@@ -12,7 +12,6 @@ import pandas as pd
 import parameters as par
 import emp_preprocessing as ep
 import emp_metrics as em
-import emp_graphics as eg
 from graphics import ClassGraphics
 
 
@@ -117,7 +116,7 @@ class ClassDynamics:
             ] = self.Network.df_banks[item].sum()
 
         # gini
-        self.df_network_trajectory.loc[self.Network.step, "gini"] = fct.gini(
+        self.df_network_trajectory.loc[self.Network.step, "gini"] = em.gini(
             self.Network.df_banks["total assets"]
         )
 
@@ -434,8 +433,9 @@ class ClassDynamics:
                 self.Graphics.plot()
 
         # store the final step (if not already done)
-        self.expost_record_trajectories()
-        self.Graphics.plot()
+        if self.Network.step % self.dump_period != 0:
+            self.expost_record_trajectories()
+            self.Graphics.plot()
 
         # final print
         self.print_summary()

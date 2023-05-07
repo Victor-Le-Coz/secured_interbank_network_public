@@ -3,7 +3,6 @@ agg_periods = [1, 50, 100, 250]
 # The parameter sets the limit to the float precision when running the algorithm, a value lower than this amount is considered as negligible.
 float_limit = 1e-10  # required to model a 1000 bilion euros balance sheet
 
-
 # define default figure size (but can always be updated for single charts)
 small_figsize = (6, 3)  # default one
 slide_figsize = (12, 6)  # for the single trajectories
@@ -59,8 +58,21 @@ matrices = ["adjency", "trust", "binary_adjency", "non-zero_adjency"]
 # reverse repos
 reverse_repos = ["amount", "start_step", "tenor", "status"]
 
-# metrics
-metrics = ["degree"]
+# core-periphery algorithms
+cp_algos = [
+    # "KM_ER", # divide by zero error
+    # "KM_config", # divide by zero error
+    # "Divisive", # divide by zero error
+    "Rombach",
+    "Rossa",
+    "LapCore",
+    "LapSgnCore",
+    # "LowRankCore", # generates bug (eigen value error)
+    "MINRES",  # do not take weights into acount
+    # "Surprise",  # do not take weights into acount & too slow
+    "Lip",  # do not take weights into acount
+    "BE",  # do not take weights into acount
+]
 
 
 # output metrics
@@ -111,17 +123,4 @@ link_network_metrics = [
     "network density",
     "jaccard index",
     "raw jaccard index",
-]
-
-
-cp_algos = [
-    "Rombach",
-    "Rossa",
-    "LapCore",
-    "LapSgnCore",
-    "LowRankCore",
-    "MINRES",  # do not take weights into acount
-    "Surprise",  # do not take weights into acount
-    "Lip",  # do not take weights into acount
-    "BE",  # do not take weights into acount
 ]

@@ -1,14 +1,11 @@
 import os
 
-os.environ["OMP_NUM_THREADS"] = "1"
+# os.environ["OMP_NUM_THREADS"] = "1"
 
-import networkx as nx
 import numpy as np
 from scipy.stats import pareto
 from tqdm import tqdm
-import graphics as gx
 from bank import ClassBank
-import functions as fct
 import pandas as pd
 import parameters as par
 from scipy import stats

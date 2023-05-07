@@ -1,7 +1,5 @@
 import numpy as np
 import numpy.ma as ma
-from copy import deepcopy
-from scipy.stats import norm
 from scipy.stats.mstats import skew
 import pandas as pd
 from workalendar.europe import EuropeanCentralBank

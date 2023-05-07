@@ -1,6 +1,6 @@
 import os
 
-os.environ["OMP_NUM_THREADS"] = "1"
+# os.environ["OMP_NUM_THREADS"] = "1"
 import numpy as np
 import pandas as pd
 import parameters as par
@@ -467,7 +467,7 @@ class ClassBank:
                 protocol=pickle.HIGHEST_PROTOCOL,
             )
             print(
-                "WARNING: df_reverse_repo and on_balance_repos / off_balance_repos do not match !"
+                "WARNING: df_reverse_repo and on_balance_repo/off_balance_repos do not match !"
             )
 
         if len(trans_ids) > 0:
