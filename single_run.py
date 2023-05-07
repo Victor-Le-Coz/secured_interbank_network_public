@@ -1,4 +1,3 @@
-import parameters as par
 import dynamics as dyn
 
 if __name__ == "__main__":
@@ -18,9 +17,9 @@ if __name__ == "__main__":
         shocks_vol=0.05,
         result_location="./results/single_run/",
         min_repo_size=1e-8,
-        nb_steps=int(1e2),
-        dump_period=50,
-        plot_period=25,
+        nb_steps=int(1e3),
+        dump_period=100,
+        plot_period=20,
         cp_option=False,
         LCR_mgt_opt=False,
         output_keys=False,

@@ -25,8 +25,7 @@ def get_jaccard(dic_arr_binary_adj, days, path=False):
     # loop over the steps
     for step, day in enumerate(tqdm(days[1:]), 1):
         for agg_period in par.agg_periods:
-            # if it is in the end of the period, do:
-            if step % agg_period == agg_period - 1:
+            if step > agg_period:
                 df_jaccard.loc[day, f"jaccard index-{agg_period}"] = (
                     np.logical_and(
                         dic_arr_binary_adj[agg_period][step],
@@ -37,13 +36,6 @@ def get_jaccard(dic_arr_binary_adj, days, path=False):
                         dic_arr_binary_adj[agg_period][step - agg_period],
                     ).sum()
                 )
-            # otherwise, just extend the time series
-            else:
-                df_jaccard.loc[
-                    day, f"jaccard index-{agg_period}"
-                ] = df_jaccard.loc[
-                    days[step - 1], f"jaccard index-{agg_period}"
-                ]
 
     if path:
         fct.init_path(path)
@@ -70,20 +62,11 @@ def get_density(dic_arr_binary_adj, days, path=False):
     # loop over the steps
     for step, day in enumerate(tqdm(days[1:]), 1):
         for agg_period in par.agg_periods:
-            # if is in the end of the period
-            if step % agg_period == agg_period - 1:
-                df_density.loc[
-                    day, f"network density-{agg_period}"
-                ] = dic_arr_binary_adj[agg_period][step].sum() / (
-                    nb_banks * (nb_banks - 1.0)
-                )  # for a directed graph
-            # otherwise, just extend the time series
-            else:
-                df_density.loc[
-                    day, f"network density-{agg_period}"
-                ] = df_density.loc[
-                    days[step - 1], f"network density-{agg_period}"
-                ]
+            df_density.loc[
+                day, f"network density-{agg_period}"
+            ] = dic_arr_binary_adj[agg_period][step].sum() / (
+                nb_banks * (nb_banks - 1.0)
+            )  # for a directed graph
 
     if path:
         fct.init_path(path)
