@@ -18,9 +18,9 @@ if __name__ == "__main__":
         result_location="./results/single_run/",
         min_repo_size=1e-8,
         nb_steps=int(2e2),
-        dump_period=100,
+        dump_period=30,
         plot_period=50,
-        cp_option=True,
+        cp_option=False,
         LCR_mgt_opt=False,
         output_keys=False,
     )

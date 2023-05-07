@@ -96,13 +96,21 @@ class ClassGraphics:
             self.Dynamics.Network.step + 1
         )  # to cover all steps up to now
 
+        # plot the reverse repo network
+        self.plot_weighted_adj_network(
+            self.Dynamics.arr_reverse_repo_adj,
+            self.Dynamics.arr_total_assets,
+            days,
+            f"{path_results}weighted_adj_network/",
+            "reverse repo",
+        )
+
         # plot degree distribution
         self.plot_degree_distribution(
             self.Dynamics.dic_in_degree,
             self.Dynamics.dic_out_degree,
             days,
             f"{path_results}degree_distribution/",
-            self.plot_period,
         )
 
         # Plot the time series of the network average degree
@@ -112,12 +120,11 @@ class ClassGraphics:
         )
 
         # Plot degree per asset
-        self.plot_step_degree_per_asset(
-            self.Dynamics.Network.df_banks,
+        self.plot_degree_per_asset(
+            self.Dynamics.arr_total_assets,
             self.Dynamics.dic_degree,
             range(self.Dynamics.Network.nb_banks),
             days,
-            self.Dynamics.Network.step,
             f"{path_results}degree_per_asset/",
         )
 
@@ -131,7 +138,7 @@ class ClassGraphics:
                 opt_agg=True,
             )
             self.mlt_run_n_plot_cp_test(
-                dic=self.Dynamics.arr_matrix_reverse_repo,
+                dic=self.Dynamics.arr_reverse_repo_adj,
                 algos=par.cp_algos,
                 days=days,
                 path_results=path_results,
@@ -162,138 +169,6 @@ class ClassGraphics:
         plt.title("Total assets, loans, and central bank funding")
         fig.tight_layout()
         plt.savefig(path + "Assets_loans_mros.pdf", bbox_inches="tight")
-        plt.close()
-
-    def plot_network_density(
-        self, df_network_trajectory, path, figsize=par.small_figsize
-    ):
-
-        fct.init_path(path)
-
-        fig = plt.figure(figsize=figsize)
-
-        for column in [
-            f"network density-{agg_period}" for agg_period in par.agg_periods
-        ]:
-            plt.plot(
-                df_network_trajectory.index,
-                df_network_trajectory[column],
-            )
-
-        plt.xlabel("Steps")
-        plt.ylabel("network density")
-        plt.title("network density")
-        plt.legend(
-            [
-                str(agg_period) + " time steps"
-                for agg_period in par.agg_periods
-            ],
-            loc="upper left",
-        )
-        plt.grid()
-        fig.tight_layout()
-        plt.savefig(path + "network_density.pdf", bbox_inches="tight")
-        plt.close()
-
-    def plot_gini(
-        self, df_network_trajectory, path, figsize=par.small_figsize
-    ):
-        fig = plt.figure(figsize=figsize)
-        plt.plot(df_network_trajectory.index, df_network_trajectory["gini"])
-        plt.xlabel("Steps")
-        plt.ylabel("Gini coefficient")
-        plt.title("Gini of banks' assets")
-        fig.tight_layout()
-        plt.savefig(path + "gini.pdf", bbox_inches="tight")
-        plt.close()
-
-    def plot_reverse_repo_size_stats(
-        self, df_network_trajectory, path, figsize=par.small_figsize
-    ):
-        fig = plt.figure(figsize=figsize)
-        plt.plot(
-            df_network_trajectory.index,
-            df_network_trajectory["repo exposures min network"],
-        )
-        plt.plot(
-            df_network_trajectory.index,
-            df_network_trajectory["repo exposures max network"],
-        )
-        plt.plot(
-            df_network_trajectory.index,
-            df_network_trajectory["repo exposures av. network"],
-        )
-        plt.xlabel("Steps")
-        plt.ylabel("Monetary units")
-        plt.legend(
-            [
-                "min",
-                "max",
-                "mean",
-            ],
-            loc="upper left",
-        )
-
-        plt.title("Repo amount stats")
-        fig.tight_layout()
-        plt.savefig(path + "reverse_repo_stats.pdf", bbox_inches="tight")
-        plt.close()
-
-    def plot_collateral_reuse(
-        self, df_network_trajectory, path, figsize=par.small_figsize
-    ):
-        fig = plt.figure(figsize=figsize)
-        plt.plot(
-            df_network_trajectory.index,
-            df_network_trajectory["collateral reuse"],
-        )
-        plt.xlabel("Steps")
-        plt.ylabel("Ratio")
-        plt.title("collateral reuse")
-        fig.tight_layout()
-        plt.savefig(path + "collateral_reuse.pdf", bbox_inches="tight")
-        plt.close()
-
-    def plot_repos(
-        self, df_network_trajectory, path, figsize=par.small_figsize
-    ):
-        fig = plt.figure(figsize=figsize)
-        plt.plot(
-            df_network_trajectory.index,
-            df_network_trajectory["repo exposures tot. network"],
-        )
-        plt.xlabel("Steps")
-        plt.ylabel("Monetary units")
-        plt.title("Total repo amount")
-        fig.tight_layout()
-        plt.savefig(path + "Repos_market_size.pdf", bbox_inches="tight")
-        plt.close()
-
-    def plot_jaccard(
-        self, df_network_trajectory, path, figsize=par.small_figsize
-    ):
-        fct.init_path(path)
-        fig = plt.figure(figsize=figsize)
-        for column in [
-            f"jaccard index-{agg_period}" for agg_period in par.agg_periods
-        ]:
-            plt.plot(
-                df_network_trajectory.index,
-                df_network_trajectory[column],
-            )
-        plt.xlabel("Steps")
-        plt.ylabel("jaccard index")
-        plt.title("Jaccard index aggregated")
-        plt.legend(
-            [
-                str(agg_period) + " time steps"
-                for agg_period in par.agg_periods
-            ],
-            loc="upper left",
-        )
-        plt.grid()
-        fig.tight_layout()
-        plt.savefig(path + "jaccard_index_agg.pdf", bbox_inches="tight")
         plt.close()
 
     def plot_excess_liquidity_and_deposits(
@@ -346,6 +221,217 @@ class ClassGraphics:
         fig.tight_layout()
         plt.savefig(path + "collateral.pdf", bbox_inches="tight")
         plt.close()
+
+    def plot_collateral_reuse(
+        self, df_network_trajectory, path, figsize=par.small_figsize
+    ):
+        fig = plt.figure(figsize=figsize)
+        plt.plot(
+            df_network_trajectory.index,
+            df_network_trajectory["collateral reuse"],
+        )
+        plt.xlabel("Steps")
+        plt.ylabel("Ratio")
+        plt.title("collateral reuse")
+        fig.tight_layout()
+        plt.savefig(path + "collateral_reuse.pdf", bbox_inches="tight")
+        plt.close()
+
+    def plot_gini(
+        self, df_network_trajectory, path, figsize=par.small_figsize
+    ):
+        fig = plt.figure(figsize=figsize)
+        plt.plot(df_network_trajectory.index, df_network_trajectory["gini"])
+        plt.xlabel("Steps")
+        plt.ylabel("Gini coefficient")
+        plt.title("Gini of banks' assets")
+        fig.tight_layout()
+        plt.savefig(path + "gini.pdf", bbox_inches="tight")
+        plt.close()
+
+    def plot_reverse_repo_size_stats(
+        self, df_network_trajectory, path, figsize=par.small_figsize
+    ):
+        fig = plt.figure(figsize=figsize)
+        plt.plot(
+            df_network_trajectory.index,
+            df_network_trajectory["repo exposures min network"],
+        )
+        plt.plot(
+            df_network_trajectory.index,
+            df_network_trajectory["repo exposures max network"],
+        )
+        plt.plot(
+            df_network_trajectory.index,
+            df_network_trajectory["repo exposures av. network"],
+        )
+        plt.xlabel("Steps")
+        plt.ylabel("Monetary units")
+        plt.legend(
+            [
+                "min",
+                "max",
+                "mean",
+            ],
+            loc="upper left",
+        )
+
+        plt.title("Repo amount stats")
+        fig.tight_layout()
+        plt.savefig(path + "reverse_repo_stats.pdf", bbox_inches="tight")
+        plt.close()
+
+    def plot_repos(
+        self, df_network_trajectory, path, figsize=par.small_figsize
+    ):
+        fig = plt.figure(figsize=figsize)
+        plt.plot(
+            df_network_trajectory.index,
+            df_network_trajectory["repo exposures tot. network"],
+        )
+        plt.xlabel("Steps")
+        plt.ylabel("Monetary units")
+        plt.title("Total repo amount")
+        fig.tight_layout()
+        plt.savefig(path + "Repos_market_size.pdf", bbox_inches="tight")
+        plt.close()
+
+    def plot_jaccard(
+        self, df_network_trajectory, path, figsize=par.small_figsize
+    ):
+        fct.init_path(path)
+        fig = plt.figure(figsize=figsize)
+        for column in [
+            f"jaccard index-{agg_period}" for agg_period in par.agg_periods
+        ]:
+            plt.plot(
+                df_network_trajectory.index,
+                df_network_trajectory[column],
+            )
+        plt.xlabel("Steps")
+        plt.ylabel("jaccard index")
+        plt.title("Jaccard index aggregated")
+        plt.legend(
+            [
+                str(agg_period) + " time steps"
+                for agg_period in par.agg_periods
+            ],
+            loc="upper left",
+        )
+        plt.grid()
+        fig.tight_layout()
+        plt.savefig(path + "jaccard_index_agg.pdf", bbox_inches="tight")
+        plt.close()
+
+    def plot_network_density(
+        self, df_network_trajectory, path, figsize=par.small_figsize
+    ):
+
+        fct.init_path(path)
+
+        fig = plt.figure(figsize=figsize)
+
+        for column in [
+            f"network density-{agg_period}" for agg_period in par.agg_periods
+        ]:
+            plt.plot(
+                df_network_trajectory.index,
+                df_network_trajectory[column],
+            )
+
+        plt.xlabel("Steps")
+        plt.ylabel("network density")
+        plt.title("network density")
+        plt.legend(
+            [
+                str(agg_period) + " time steps"
+                for agg_period in par.agg_periods
+            ],
+            loc="upper left",
+        )
+        plt.grid()
+        fig.tight_layout()
+        plt.savefig(path + "network_density.pdf", bbox_inches="tight")
+        plt.close()
+
+    def plot_step_weighted_adj_network(
+        self,
+        adj,
+        ar_total_assets,
+        days,
+        step,
+        path,
+        name,
+        figsize=par.small_figsize,
+    ):
+        # build a network from an adjacency matrix
+        bank_network = nx.from_numpy_array(
+            adj, parallel_edges=False, create_using=nx.DiGraph
+        )
+
+        # define the weight list from the weight information
+        weights = [
+            bank_network[node1][node2]["weight"]
+            for node1, node2 in bank_network.edges()
+        ]
+
+        # log scale the big values in the repo network
+        log_weights = [1 if i <= 1 else np.log(i) + 1 for i in weights]
+
+        # define the size of the nodes a a function of the total deposits
+        log_node_sizes = [
+            0 if i <= 1 else np.log(i) + 1 for i in ar_total_assets
+        ]
+
+        # define the position of the nodes
+        pos = nx.spring_layout(bank_network)
+
+        # draw the network
+        plt.figure(figsize=figsize)
+        nx.draw_networkx(
+            bank_network,
+            pos,
+            width=log_weights,
+            with_labels=True,
+            node_size=log_node_sizes,
+        )
+
+        # show the plot
+        if isinstance(days[step], pd.Timestamp):
+            day_print = days[step].strftime("%Y-%m-%d")
+        else:
+            day_print = days[step]
+        plt.title(f"{name} network on day {day_print}")
+        plt.savefig(
+            f"{path}weighted_adj_network_on_day_{day_print}.pdf",
+            bbox_inches="tight",
+        )
+        plt.close()
+
+    def plot_weighted_adj_network(
+        self,
+        arr_adj,
+        arr_total_assets,
+        days,
+        path,
+        name,
+        figsize=par.small_figsize,
+    ):
+
+        fct.init_path(path)
+
+        plot_steps = fct.get_plot_steps_from_period(days, self.plot_period)
+
+        for step in plot_steps:
+            self.plot_step_weighted_adj_network(
+                arr_adj[step],
+                arr_total_assets[step],
+                days,
+                step,
+                path,
+                name=name,
+                figsize=figsize,
+            )
 
     def plot_step_degree_distribution(
         self,
@@ -405,7 +491,8 @@ class ClassGraphics:
         else:
             day_print = days[step]
         plt.savefig(
-            f"{path}degree_distribution_{day_print}.pdf", bbox_inches="tight"
+            f"{path}degree_distribution_on_day_{day_print}.pdf",
+            bbox_inches="tight",
         )
         plt.close()
 
@@ -415,20 +502,22 @@ class ClassGraphics:
         dic_out_degree,
         days,
         path,
-        plot_period,
         figsize=par.small_figsize,
     ):
 
-        for step, day in enumerate(days):
-            if step % plot_period == 0 or day == days[-1]:
-                self.plot_step_degree_distribution(
-                    dic_in_degree,
-                    dic_out_degree,
-                    days,
-                    step,
-                    path,
-                    figsize=figsize,
-                )
+        fct.init_path(path)
+
+        plot_steps = fct.get_plot_steps_from_period(days, self.plot_period)
+
+        for step in plot_steps:
+            self.plot_step_degree_distribution(
+                dic_in_degree,
+                dic_out_degree,
+                days,
+                step,
+                path,
+                figsize=figsize,
+            )
 
     def plot_av_degre(
         self,
@@ -457,19 +546,29 @@ class ClassGraphics:
         plt.close()
 
     def plot_step_degree_per_asset(
-        self, df_banks, dic_degree, bank_ids, days, step, path, figsize=(6, 3)
+        self,
+        ar_total_assets,
+        dic_degree,
+        bank_ids,
+        days,
+        step,
+        path,
+        figsize=(6, 3),
     ):
-
-        fct.init_path(path)
 
         # build the degree per bank on the date step
         df_degree = pd.DataFrame(index=bank_ids)
         for agg_period in par.agg_periods:
             df_degree[f"degree-{agg_period}"] = dic_degree[agg_period][step]
 
+        # build the asset per bank from the ar_total assets
+        df_total_assets = pd.DataFrame(
+            ar_total_assets, index=bank_ids, columns=["total assets"]
+        )
+
         # merge the 2 df
         df = pd.merge(
-            df_banks,
+            df_total_assets,
             df_degree,
             right_index=True,
             left_index=True,
@@ -497,9 +596,45 @@ class ClassGraphics:
 
         plt.title(f"degree verus total assets at step {day_print}")
         plt.savefig(
-            f"{path}degree_per_asset_step_{day_print}.pdf", bbox_inches="tight"
+            f"{path}degree_per_asset_on_day_{day_print}.pdf",
+            bbox_inches="tight",
         )
         plt.close()
+
+    def plot_degree_per_asset(
+        self,
+        arr_total_assets,
+        dic_degree,
+        bank_ids,
+        days,
+        path,
+        figsize=(6, 3),
+        plot_days=False,
+        finrep_days=False,
+    ):
+
+        fct.init_path(path)
+
+        if plot_days:
+            plot_steps = fct.get_plot_steps_from_days(days, plot_days)
+            finrep_plot_steps = fct.get_plot_steps_from_days(
+                finrep_days, plot_days
+            )
+
+        else:
+            plot_steps = fct.get_plot_steps_from_period(days, self.plot_period)
+            finrep_plot_steps = plot_steps
+
+        for step, finrep_step in zip(plot_steps, finrep_plot_steps):
+            self.plot_step_degree_per_asset(
+                arr_total_assets[finrep_step],
+                dic_degree,
+                bank_ids,
+                days,
+                step,
+                path,
+                figsize=figsize,
+            )
 
     def plot_core_periphery(
         self,
@@ -534,7 +669,7 @@ class ClassGraphics:
 
     def run_n_plot_cp_test(
         self,
-        arr_matrix_reverse_repo,
+        arr_reverse_repo_adj,
         algo,
         days,
         path_results,
@@ -547,43 +682,44 @@ class ClassGraphics:
         sr_pvalue = pd.Series(dtype=float)
         fct.delete_n_init_path(path_results)
 
-        for step, day in enumerate(days[1:], 1):
+        plot_steps = fct.get_plot_steps_from_period(days, self.plot_period)
 
-            # we run the analyis every x days + for the last day
-            if step % self.plot_period == 0 or day == days[-1]:
+        for step in plot_steps:
 
-                print(f"test at step {step}")
+            day = days[step]
 
-                # build nx object
-                bank_network = nx.from_numpy_array(
-                    arr_matrix_reverse_repo[step],
-                    parallel_edges=False,
-                    create_using=nx.DiGraph,
-                )
+            print(f"test on day {day}")
 
-                # run cpnet test
-                sig_c, sig_x, significant, p_values = em.cpnet_test(
-                    bank_network, algo=algo
-                )
+            # build nx object
+            bank_network = nx.from_numpy_array(
+                arr_reverse_repo_adj[step],
+                parallel_edges=False,
+                create_using=nx.DiGraph,
+            )
 
-                # store the p_value (only the first one)
-                sr_pvalue.loc[day] = p_values[0]
+            # run cpnet test
+            sig_c, sig_x, significant, p_values = em.cpnet_test(
+                bank_network, algo=algo
+            )
 
-                # plot
-                if isinstance(day, pd.Timestamp):
-                    day_print = day.strftime("%Y-%m-%d")
-                else:
-                    day_print = day
+            # store the p_value (only the first one)
+            sr_pvalue.loc[day] = p_values[0]
 
-                self.plot_core_periphery(
-                    bank_network=bank_network,
-                    sig_c=sig_c,
-                    sig_x=sig_x,
-                    path=f"{path_results}",
-                    step=day_print,
-                    name_in_title="reverse repo",
-                    figsize=figsize,
-                )
+            # plot
+            if isinstance(day, pd.Timestamp):
+                day_print = day.strftime("%Y-%m-%d")
+            else:
+                day_print = day
+
+            self.plot_core_periphery(
+                bank_network=bank_network,
+                sig_c=sig_c,
+                sig_x=sig_x,
+                path=f"{path_results}",
+                step=day_print,
+                name_in_title="reverse repo",
+                figsize=figsize,
+            )
 
         sr_pvalue.to_csv(f"{path_results}sr_pvalue.csv")
 
@@ -784,33 +920,6 @@ class ClassGraphics:
         self,
     ):  # to be deleted ultimately all charts are computed expost
 
-        # plot reverse repo network
-        self.plot_step_network(
-            adj=self.Dynamics.Network.dic_matrices["adjency"],
-            network_total_assets=self.Dynamics.Network.df_banks[
-                "total assets"
-            ],
-            path=self.Dynamics.path_results + "repo_networks/",
-            step=self.Dynamics.Network.step,
-            name_in_title="reverse repo",
-        )
-
-        # Plot the trust network
-        self.plot_step_network(
-            adj=self.Dynamics.Network.dic_matrices["trust"].T
-            / (self.Dynamics.Network.dic_matrices["trust"].std() + 1e-8),
-            network_total_assets=self.Dynamics.Network.df_banks[
-                "total assets"
-            ],
-            path=self.Dynamics.path_results + "trust_networks/",
-            step=self.Dynamics.Network.step,
-            name_in_title="trust",
-        )
-        fct.dump_np_array(
-            self.Dynamics.Network.dic_matrices["trust"],
-            self.Dynamics.path_results + "trust_networks/trust.csv",
-        )
-
         # Plot the break-down of the balance per bank
         self.plot_step_balance_sheet(
             self.Dynamics.Network.df_banks,
@@ -824,55 +933,6 @@ class ClassGraphics:
             self.Dynamics.Network.step,
             self.Dynamics.path_results,
         )
-
-    def plot_step_network(
-        self,
-        adj,
-        network_total_assets,
-        path,
-        step,
-        name_in_title,
-        figsize=par.small_figsize,
-    ):
-        # build a network from an adjacency matrix
-        bank_network = nx.from_numpy_array(
-            adj, parallel_edges=False, create_using=nx.DiGraph
-        )
-        # define the weight list from the weight information
-        weights = [
-            bank_network[node1][node2]["weight"]
-            for node1, node2 in bank_network.edges()
-        ]
-        # log scale the big values in the repo network
-        log_weights = [1 if i <= 1 else np.log(i) + 1 for i in weights]
-
-        # define the size of the nodes a a function of the total deposits
-        log_node_sizes = [
-            0 if i <= 1 else np.log(i) + 1 for i in network_total_assets
-        ]
-
-        # define the position of the nodes
-        pos = nx.spring_layout(bank_network)
-        # pos = nx.circular_layout(bank_network)
-
-        # draw the network
-        fig = plt.figure(figsize=figsize)
-        nx.draw_networkx(
-            bank_network,
-            pos,
-            width=log_weights,
-            with_labels=True,
-            node_size=log_node_sizes,
-        )
-
-        # show the plot
-        plt.title("{} network at the step {}".format(name_in_title, int(step)))
-        fig.tight_layout()
-        plt.savefig(
-            path + "step_{}_network.pdf".format(step),
-            bbox_inches="tight",
-        )
-        plt.close()
 
     def plot_step_deposits(
         self, df_banks, step, path, figsize=par.small_figsize

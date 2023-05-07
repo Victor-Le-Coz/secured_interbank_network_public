@@ -363,8 +363,6 @@ def reformat_output(output):
 def init_results_path(path):
     if os.path.exists(path):  # Delete all previous figures
         shutil.rmtree(path)
-    os.makedirs(os.path.join(path, "repo_networks"))
-    os.makedirs(os.path.join(path, "trust_networks"))
     os.makedirs(os.path.join(path, "deposits"))
     os.makedirs(os.path.join(path, "balance_Sheets"))
 
@@ -459,3 +457,23 @@ def sizeof_fmt(num, suffix="B"):
             return "%3.1f %s%s" % (num, unit, suffix)
         num /= 1024.0
     return "%.1f %s%s" % (num, "Yi", suffix)
+
+
+def list_intersection(list1, list2):
+    return [x for x in list1 if x in set(list2)]
+
+
+def get_plot_steps_from_days(days, plot_days):
+    nb_days = len(days)
+    plot_steps = [step for step in range(len(days)) if days[step] in plot_days]
+    return plot_steps
+
+
+def get_plot_steps_from_period(days, plot_period):
+    nb_days = len(days)
+    plot_steps = [
+        step
+        for step in range(len(days))
+        if step % plot_period == 0 or step == nb_days - 1
+    ]
+    return plot_steps

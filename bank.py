@@ -21,9 +21,9 @@ class ClassBank:
         beta_star,
         gamma,
         nb_banks,
-        collateral_value=1.0,
-        conservative_shock=True,
-        LCR_mgt_opt=True,
+        collateral_value,
+        conservative_shock,
+        LCR_mgt_opt,
     ):
         # Initialisation of the class parameters.
         self.Network = Network

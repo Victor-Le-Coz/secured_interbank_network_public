@@ -28,7 +28,7 @@ class ClassNetwork:
         shocks_law,
         shocks_vol,
         min_repo_size,
-        LCR_mgt_opt=True,
+        LCR_mgt_opt,
     ):
 
         # adequacy tests

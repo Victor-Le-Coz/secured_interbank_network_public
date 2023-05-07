@@ -23,7 +23,7 @@ class ClassDynamics:
         path_results,
         dump_period,
         plot_period,
-        cp_option=False,
+        cp_option,
     ):
         # initialization of the class parameters.
         self.Network = Network
@@ -35,22 +35,25 @@ class ClassDynamics:
         # Create the required path to store the results
         fct.init_results_path(self.path_results)
 
-        # individual trajectory
-        self.df_bank_trajectory = pd.DataFrame(index=range(self.nb_steps))
-        self.single_bank_id = 0  # the selected single bank id
-
-        # total network trajectories
+        # network trajectories
         self.df_network_trajectory = pd.DataFrame(index=range(self.nb_steps))
 
-        # definition of the p-value parameter of the core-perihpery structure dected by the cpnet algo
-        self.p_value = 1  # initialization at 1 (non significant test)
+        # individual trajectory
+        self.single_bank_id = 0  # the selected single bank id
+        self.df_bank_trajectory = pd.DataFrame(index=range(self.nb_steps))
 
-        # initialisation of an array of size nb_steps * nb_banks * nb_banks
-        self.arr_matrix_reverse_repo = np.zeros(
-            (self.nb_steps, self.Network.nb_banks, self.Network.nb_banks)
-        )  # for the reverse repo exposures
+        # total assets of each bank
+        self.arr_total_assets = np.zeros(
+            (self.nb_steps, self.Network.nb_banks), dtype=np.float32
+        )
 
-        # initialisation of an dic of array of binary adj matrices
+        # reverse repo adj exposure: array (nb_steps * nb_banks * nb_banks)
+        self.arr_reverse_repo_adj = np.zeros(
+            (self.nb_steps, self.Network.nb_banks, self.Network.nb_banks),
+            dtype=np.float32,
+        )
+
+        # binary adj exposure: dic of array of binary adj matrices
         self.dic_arr_binary_adj = {}
         for agg_period in par.agg_periods:
             self.dic_arr_binary_adj.update(
@@ -65,48 +68,13 @@ class ClassDynamics:
                 }
             )
 
-        self.dic_agg_binary_adj = (
-            {}
-        )  # dictionary of the aggregated ajency matrix over a given period
-        for agg_period in par.agg_periods:
-            self.dic_agg_binary_adj.update(
-                {
-                    agg_period: np.zeros(
-                        (self.Network.nb_banks, self.Network.nb_banks)
-                    )
-                }
-            )
-
-        self.dic_prev_agg_binary_adj = (
-            {}
-        )  # dictionary of the previous aggregated binary adjency matrices for different aggregation periods
-        for agg_period in par.agg_periods:
-            self.dic_prev_agg_binary_adj.update(
-                {
-                    agg_period: np.zeros(
-                        (self.Network.nb_banks, self.Network.nb_banks)
-                    )
-                }
-            )
-
-        self.prev_binary_adj_dic = (
-            {}
-        )  # dictionary of the previous adjacency matrix, used for the computation of the jaccard index (stable trading relationships) of different time length
-        for agg_period in par.agg_periods:
-            self.prev_binary_adj_dic.update(
-                {
-                    agg_period: np.zeros(
-                        (self.Network.nb_banks, self.Network.nb_banks)
-                    )
-                }
-            )
-
         # initialise the class graphics
         self.Graphics = ClassGraphics(Dynamics=self, plot_period=plot_period)
 
     def step_record_trajectories(self):
         self.fill_df_network_trajectory()
         self.fill_df_bank_trajectory()
+        self.fill_arr_total_assets()
 
     def fill_df_network_trajectory(self):
         # accounting items
@@ -133,27 +101,6 @@ class ClassDynamics:
             ]
             + 1e-10
         )
-
-        # update agg adjancency matrix
-        if self.Network.step > 0:
-            for agg_period in par.agg_periods:
-                if self.Network.step % agg_period > 0:
-                    self.dic_agg_binary_adj.update(
-                        {
-                            agg_period: np.logical_or(
-                                self.Network.dic_matrices["binary_adjency"],
-                                self.dic_agg_binary_adj[agg_period],
-                            )
-                        }
-                    )
-                elif self.Network.step % agg_period == 0:
-                    self.dic_agg_binary_adj.update(
-                        {
-                            agg_period: self.Network.dic_matrices[
-                                "binary_adjency"
-                            ]
-                        }
-                    )
 
         # repo exposures
         if len(self.Network.dic_matrices["non-zero_adjency"]) == 0:
@@ -197,6 +144,11 @@ class ClassDynamics:
         self.df_bank_trajectory.loc[
             self.Network.step, "av. out-degree"
         ] = bank_network.out_degree(self.single_bank_id)
+
+    def fill_arr_total_assets(self):
+        self.arr_total_assets[self.Network.step] = np.array(
+            self.Network.df_banks["total assets"]
+        )
 
     def expost_record_trajectories(self):
 
@@ -345,10 +297,10 @@ class ClassDynamics:
             "nb_ending_starting",
         ] = nb_trans
 
-    def build_arr_matrix_reverse_repo_from_df_reverse_repos(self):
+    def build_arr_reverse_repo_adj_from_df_reverse_repos(self):
 
         # print
-        print("build arr_matrix_reverse_repo from df_reverse_repos")
+        print("build arr_reverse_repo_adj from df_reverse_repos")
 
         # loop over the rows of df_reverse_repos transactions
         for index, row in tqdm(self.Network.df_reverse_repos.iterrows()):
@@ -363,21 +315,21 @@ class ClassDynamics:
             for step in range(
                 row["start_step"], row["start_step"] + tenor + 1
             ):
-                self.arr_matrix_reverse_repo[step, index[0], index[1]] += row[
+                self.arr_reverse_repo_adj[step, index[0], index[1]] += row[
                     "amount"
                 ]
 
         # loop over the steps to clean values close to zero
         for step in range(self.Network.step + 1):
-            self.arr_matrix_reverse_repo[step][
-                self.arr_matrix_reverse_repo[step] < self.Network.min_repo_size
+            self.arr_reverse_repo_adj[step][
+                self.arr_reverse_repo_adj[step] < self.Network.min_repo_size
             ] = 0
 
         # save last step to csv
         fct.init_path(f"{self.path_results}matrices/")
         fct.dump_np_array(
-            self.arr_matrix_reverse_repo[self.Network.step],
-            f"{self.path_results}matrices/arr_matrix_reverse_repo_{self.Network.step}.csv",
+            self.arr_reverse_repo_adj[self.Network.step],
+            f"{self.path_results}matrices/arr_reverse_repo_adj_{self.Network.step}.csv",
         )
 
     def build_arr_binary_adj(self):
@@ -390,7 +342,7 @@ class ClassDynamics:
 
         # build arr of results with numba
         arr_binary_adj = ep.fast_build_arr_binary_adj(
-            self.arr_matrix_reverse_repo, arr_agg_period, self.Network.step
+            self.arr_reverse_repo_adj, arr_agg_period, self.Network.step
         )
 
         # loop over agg periods
@@ -403,11 +355,11 @@ class ClassDynamics:
             fct.init_path(f"{self.path_results}matrices/{agg_period}/")
             fct.dump_np_array(
                 arr_binary_adj[period_nb][self.Network.step],
-                f"{self.path_results}matrices/{agg_period}/arr_binary_adj_{self.Network.step}.csv",
+                f"{self.path_results}matrices/{agg_period}/arr_binary_adj_on_day_{self.Network.step}.csv",
             )
 
     def build_adj_matrices(self):
-        self.build_arr_matrix_reverse_repo_from_df_reverse_repos()
+        self.build_arr_reverse_repo_adj_from_df_reverse_repos()
         self.build_arr_binary_adj()
 
     def simulate(self, output_keys=False):

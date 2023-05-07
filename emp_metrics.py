@@ -122,14 +122,15 @@ def get_degree_distribution(dic_arr_binary_adj, path=False):
         for agg_period in par.agg_periods:
             fct.dump_np_array(
                 dic_in_degree[agg_period],
-                f"{path}arr_in_degree_{agg_period}.csv",
+                f"{path}arr_in_degree_agg_{agg_period}.csv",
             )
             fct.dump_np_array(
                 dic_out_degree[agg_period],
-                f"{path}arr_out_degree_{agg_period}.csv",
+                f"{path}arr_out_degree_agg_{agg_period}.csv",
             )
             fct.dump_np_array(
-                dic_degree[agg_period], f"{path}arr_degree_{agg_period}.csv"
+                dic_degree[agg_period],
+                f"{path}arr_degree_agg_{agg_period}.csv",
             )
 
     return dic_in_degree, dic_out_degree, dic_degree
@@ -159,16 +160,19 @@ def get_av_degree(dic_degree, days, path=False):
     return df_av_degree
 
 
-def build_df_banks_emp(df_finrep, day, path):
+def build_arr_total_assets(df_finrep, bank_ids_int, path):
 
     # build the total asset per bank
-    df_banks = df_finrep[df_finrep["date"] == day][["lei", "total assets"]]
-    df_banks.set_index("lei", inplace=True)
+    df_total_assets = (
+        df_finrep[df_finrep["lei"].isin(bank_ids_int)]
+        .set_index(["date", "lei"])
+        .unstack()
+    )
+    arr_total_assets = np.array(df_total_assets)
 
-    # save the results to csv
-    df_banks.to_csv(f"{path}df_banks.csv")
+    df_total_assets.to_csv(f"{path}df_total_assets.csv")
 
-    return df_banks
+    return arr_total_assets
 
 
 def cpnet_test(bank_network, algo="BE"):
