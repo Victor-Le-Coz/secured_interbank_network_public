@@ -64,7 +64,7 @@ def load_dic_obs_matrix_reverse_repo():
     )
 
 
-def build_from_exposures(df_exposures):
+def build_from_exposures(df_exposures, path):
 
     # create an Numpy array of the unique LEI of the entities from either report agent or counterparties
     leis = pd.unique(df_exposures[["borr_lei", "lend_lei"]].values.ravel("K"))
@@ -95,7 +95,7 @@ def build_from_exposures(df_exposures):
     fct.init_path("./support")
     pickle.dump(
         dic_obs_matrix_reverse_repo,
-        open("./support/dic_obs_matrix_reverse_repo.pickle", "wb"),
+        open(f"{path}dic_obs_matrix_reverse_repo.pickle", "wb"),
         protocol=pickle.HIGHEST_PROTOCOL,
     )
 
@@ -161,7 +161,7 @@ def convert_dic_to_array(dic_obs_matrix_reverse_repo):
     return arr_obs_matrix_reverse_repo
 
 
-def build_rolling_binary_adj(dic_obs_matrix_reverse_repo):
+def build_rolling_binary_adj(dic_obs_matrix_reverse_repo, path):
 
     # convert dic to array
     bank_ids = list(list(dic_obs_matrix_reverse_repo.values())[0].index)
@@ -188,7 +188,7 @@ def build_rolling_binary_adj(dic_obs_matrix_reverse_repo):
     # dump results
     pickle.dump(
         dic_arr_binary_adj,
-        open("./support/dic_arr_binary_adj.pickle", "wb"),
+        open(f"{path}dic_arr_binary_adj.pickle", "wb"),
         protocol=pickle.HIGHEST_PROTOCOL,
     )
 

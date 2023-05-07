@@ -132,19 +132,6 @@ class ClassDynamics:
                 self.Network.step, item
             ] = self.Network.df_banks.loc[self.single_bank_id, item]
 
-        # In and Out-degree
-        bank_network = nx.from_numpy_array(
-            self.Network.dic_matrices["binary_adjency"],
-            parallel_edges=False,
-            create_using=nx.DiGraph,
-        )
-        self.df_bank_trajectory.loc[
-            self.Network.step, "av. in-degree"
-        ] = bank_network.in_degree(self.single_bank_id)
-        self.df_bank_trajectory.loc[
-            self.Network.step, "av. out-degree"
-        ] = bank_network.out_degree(self.single_bank_id)
-
     def fill_arr_total_assets(self):
         self.arr_total_assets[self.Network.step] = np.array(
             self.Network.df_banks["total assets"]
@@ -169,6 +156,7 @@ class ClassDynamics:
         # fill df_network_trajectory & df_bank_trajectory from the adj matrices
         self.expost_fill_dic_degree()
         self.expost_fill_df_network_trajectory()
+        self.expost_fill_df_bank_trajectory()
 
         # save the data frame results
         self.df_bank_trajectory.to_csv(
@@ -233,12 +221,35 @@ class ClassDynamics:
         ] = df_density
 
         # expost av. degree
-        df_av_degree = em.get_av_degree(
-            self.dic_degree, range(self.Network.step)
+        df_degree = em.get_av_degree(
+            self.dic_degree,
+            range(self.Network.step),
         )
         self.df_network_trajectory[
             [f"av. degree-{agg_period}" for agg_period in par.agg_periods]
-        ] = df_av_degree
+        ] = df_degree
+
+    def expost_fill_df_bank_trajectory(self):
+
+        # expost in-degree
+        df_in_degree = pd.DataFrame()
+        for agg_period in par.agg_periods:
+            df_in_degree[f"av. in-degree-{agg_period}"] = self.dic_in_degree[
+                agg_period
+            ][:, self.single_bank_id]
+        self.df_bank_trajectory[
+            [f"av. in-degree-{agg_period}" for agg_period in par.agg_periods]
+        ] = df_in_degree
+
+        # expost out-degree
+        df_out_degree = pd.DataFrame()
+        for agg_period in par.agg_periods:
+            df_out_degree[
+                f"av. out-degree-{agg_period}"
+            ] = self.dic_out_degree[agg_period][:, self.single_bank_id]
+        self.df_bank_trajectory[
+            [f"av. out-degree-{agg_period}" for agg_period in par.agg_periods]
+        ] = df_out_degree
 
     def expost_fill_dic_degree(self):
 
@@ -382,14 +393,15 @@ class ClassDynamics:
             # compute and dump expost trajectories every dump period
             if self.Network.step % self.dump_period == 0:
                 self.expost_record_trajectories()
-                self.Graphics.plot()
+                self.Graphics.plot_all_trajectories()
 
         # store the final step (if not already done)
         if self.Network.step % self.dump_period != 0:
             self.expost_record_trajectories()
-            self.Graphics.plot()
+            self.Graphics.plot_all_trajectories()
 
         # final print
+        self.Graphics.plot_final_step()
         self.print_summary()
 
         if output_keys:

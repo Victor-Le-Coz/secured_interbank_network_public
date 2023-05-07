@@ -140,10 +140,12 @@ def get_av_degree(dic_degree, days, path=False):
 
     print("get av. degree")
 
+    cols = [f"av. degree-{agg_period}" for agg_period in par.agg_periods]
+
     # initialisation
     df_av_degree = pd.DataFrame(
         index=days,
-        columns=[f"av. degree-{agg_period}" for agg_period in par.agg_periods],
+        columns=cols,
     )
 
     # loop over the steps

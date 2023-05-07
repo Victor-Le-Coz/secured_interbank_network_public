@@ -8,6 +8,8 @@ import cpnet
 import networkx as nx
 from matplotlib import pyplot as plt
 import pandas as pd
+import seaborn as sns
+from matplotlib.colors import ListedColormap
 
 # import modules
 import functions as fct
@@ -24,70 +26,130 @@ class ClassGraphics:
         self.Dynamics = Dynamics
         self.plot_period = plot_period
 
-    def plot(self):
-        self.plot_step()
-        self.plot_trajectory()
-
-    def plot_trajectory(self):
+    def plot_all_trajectories(self):
 
         df_network_trajectory = self.Dynamics.df_network_trajectory
         df_bank_trajectory = self.Dynamics.df_bank_trajectory
         path_results = self.Dynamics.path_results
 
-        # Plot the time series of the total repos in the network
-        self.plot_repos(
-            df_network_trajectory,
-            path_results,
+        # Plot aggregates
+        items = [
+            "loans",
+            "central bank funding",
+            "total assets",
+            "deposits",
+            "excess liquidity",
+        ]
+        self.plot_trajectory(
+            df=df_network_trajectory,
+            cols=[f"{item} tot. network" for item in items],
+            title="Macro-economic aggregates",
+            file_name=f"{path_results}Macro-economic_aggregates.pdf",
         )
 
-        # Plot the time series of the total MROS and loans in the network
-        self.plot_assets_loans_mros(
-            df_network_trajectory,
-            path_results,
+        # Plot collateral
+        items = (
+            [
+                "securities usable",
+                "securities encumbered",
+            ]
+            + par.off_bs_items
+            + ["repo exposures"]
+        )
+        self.plot_trajectory(
+            df=df_network_trajectory,
+            cols=[f"{item} tot. network" for item in items],
+            title="Collateral aggregates",
+            file_name=f"{path_results}collateral_aggregates.pdf",
         )
 
-        # Plot the time series of the total excess liquidity and deposits in
-        # the network
-        self.plot_excess_liquidity_and_deposits(
-            df_network_trajectory, path_results
+        # Plot the rate of collateral reuse in the network
+        self.plot_trajectory(
+            df=df_network_trajectory,
+            cols=["collateral reuse"],
+            title="Collateral reuse",
+            ylabel="number of reuse",
+            file_name=f"{path_results}collateral_reuse.pdf",
         )
 
-        # Plot the time series of the securities usable, encumbered and
-        # re-used in the network
-        self.plot_collateral(df_network_trajectory, path_results)
-
-        # Plot the time series of the weighted average number of time the
-        # collateral is reused in the network
-        self.plot_collateral_reuse(
-            df_network_trajectory,
-            path_results,
+        # Plot gini
+        self.plot_trajectory(
+            df=df_network_trajectory,
+            cols=["gini"],
+            title="Gini coefficient",
+            ylabel="percentage",
+            file_name=f"{path_results}gini.pdf",
         )
+
+        # Plot reverse repo exposures statistics
+        self.plot_trajectory(
+            df=df_network_trajectory,
+            cols=[
+                "repo exposures min network",
+                "repo exposures max network",
+                "repo exposures av. network",
+            ],
+            title="Repo exposures statistics",
+            file_name=f"{path_results}repo_exposure_stats.pdf",
+        )
+
+        # Plot the average maturity of reverse repos transactions
+        self.plot_trajectory(
+            df=df_network_trajectory,
+            cols=["repos maturity av. network"],
+            title="Repos maturity av. network",
+            file_name=f"{path_results}average_maturity_repo_transactions.pdf",
+        )
+
+        # Plot average size of reverse repos transactions
+        self.plot_trajectory(
+            df=df_network_trajectory,
+            cols=["amount_ending_starting av. network"],
+            title="Amount ending starting av. network",
+            file_name=f"{path_results}average_size_repo_transactions.pdf",
+        )
+
+        # # plot average number of reverse repos transactions
+        # self.plot_df_trajectory(
+        #     df=df_network_trajectory,
+        #     cols=["nb_ending_starting av. network"],
+        #     title="Nb of repo transactions starting av. network",
+        #     file_name=f"{path_results}average_nb_repo_transactions.pdf",
+        # )
 
         # Plot the time series of the jaccard index
-        self.plot_jaccard(
-            df_network_trajectory,
-            path_results,
+        self.plot_trajectory(
+            df=df_network_trajectory,
+            cols=[
+                f"jaccard index-{agg_period}" for agg_period in par.agg_periods
+            ],
+            title="Jaccard index",
+            ylabel="percentage",
+            file_name=f"{path_results}jaccard_index.pdf",
         )
 
         # Plot the time series of the network density
-        self.plot_network_density(
-            df_network_trajectory,
-            path_results,
+        self.plot_trajectory(
+            df=df_network_trajectory,
+            cols=[
+                f"network density-{agg_period}"
+                for agg_period in par.agg_periods
+            ],
+            title="Network density",
+            ylabel="percentage",
+            file_name=f"{path_results}network_density.pdf",
         )
 
-        # Plot the time series of the gini coefficients
-        self.plot_gini(df_network_trajectory, path_results)
-
-        # Plot the time series of the statistics of the size of reverse repo
-        self.plot_reverse_repo_size_stats(df_network_trajectory, path_results)
-
-        # Plot average size of transactions
-        self.plot_average_size_transactions(
-            df_network_trajectory, path_results
+        # Plot the time series of the network average degree
+        self.plot_trajectory(
+            df=df_network_trajectory,
+            cols=[
+                f"av. degree-{agg_period}" for agg_period in par.agg_periods
+            ],
+            title="Av. degree",
+            ylabel="degree",
+            file_name=f"{path_results}average_degree.pdf",
         )
-
-        # Plot the average maturity of repos transactions
-        self.plot_average_maturity_repo(df_network_trajectory, path_results)
 
         # Plot the single bank trajectory time series.
         self.plot_df_bank_trajectory(df_bank_trajectory, path_results)
@@ -113,12 +175,6 @@ class ClassGraphics:
             f"{path_results}degree_distribution/",
         )
 
-        # Plot the time series of the network average degree
-        self.plot_av_degre(
-            df_network_trajectory,
-            path_results,
-        )
-
         # Plot degree per asset
         self.plot_degree_per_asset(
             self.Dynamics.arr_total_assets,
@@ -130,14 +186,14 @@ class ClassGraphics:
 
         # Plot the core-periphery detection and assessment
         if self.Dynamics.cp_option:
-            self.mlt_run_n_plot_cp_test(
+            self.plot_cp_test(
                 dic=self.Dynamics.dic_arr_binary_adj,
                 algos=par.cp_algos,
                 days=days,
                 path_results=path_results,
                 opt_agg=True,
             )
-            self.mlt_run_n_plot_cp_test(
+            self.plot_cp_test(
                 dic=self.Dynamics.arr_reverse_repo_adj,
                 algos=par.cp_algos,
                 days=days,
@@ -146,212 +202,29 @@ class ClassGraphics:
             )
             self.Dynamics.p_value = 0  # to be modified
 
-    def plot_assets_loans_mros(
-        self, df_network_trajectory, path, figsize=par.small_figsize
+    def plot_trajectory(
+        self,
+        df,
+        cols,
+        title,
+        file_name,
+        ylabel="monetary units",
+        figsize=par.small_figsize,
     ):
         fig = plt.figure(figsize=figsize)
-        plt.plot(
-            df_network_trajectory.index,
-            df_network_trajectory["loans tot. network"],
-        )
-        plt.plot(
-            df_network_trajectory.index,
-            df_network_trajectory["central bank funding tot. network"],
-        )
-        plt.plot(
-            df_network_trajectory.index,
-            df_network_trajectory["total assets tot. network"],
-        )
-        # plt.plot(df_network_trajectory.index, df_network_trajectory["deposits"])
-        plt.legend(["loans", "central bank funding", "total assets"])
-        plt.xlabel("Steps")
-        plt.ylabel("Monetary units")
-        plt.title("Total assets, loans, and central bank funding")
-        fig.tight_layout()
-        plt.savefig(path + "Assets_loans_mros.pdf", bbox_inches="tight")
-        plt.close()
-
-    def plot_excess_liquidity_and_deposits(
-        self, df_network_trajectory, path, figsize=par.small_figsize
-    ):
-        fig = plt.figure(figsize=figsize)
-        plt.plot(
-            df_network_trajectory.index,
-            df_network_trajectory["excess liquidity tot. network"],
-        )
-        plt.plot(
-            df_network_trajectory.index,
-            df_network_trajectory["deposits tot. network"],
-        )
-        plt.legend(["excess liquidity", "deposits"], loc="upper left")
-        plt.xlabel("Steps")
-        plt.ylabel("Monetary units")
-        plt.title("Total excess liquidity & deposits")
-        fig.tight_layout()
-        plt.savefig(
-            path + "excess_liquidity_and_deposits.pdf",
-            bbox_inches="tight",
-        )
-        plt.close()
-
-    def plot_collateral(
-        self, df_network_trajectory, path, figsize=par.small_figsize
-    ):
-
-        securities = [
-            "securities usable",
-            "securities encumbered",
-        ] + par.off_bs_items
-        keys = [f"{item} tot. network" for item in securities]
-
-        fig = plt.figure(figsize=figsize)
-        for key in keys:
+        colors = sns.color_palette("flare", n_colors=len(cols))
+        for i, col in enumerate(cols):
             plt.plot(
-                df_network_trajectory.index,
-                df_network_trajectory[key],
+                df.index,
+                df[col],
+                color=colors[i],
             )
-
-        plt.legend(
-            securities,
-            loc="upper left",
-        )
+        plt.legend(cols)
         plt.xlabel("Steps")
-        plt.ylabel("Monetary units")
-        plt.title("Total collateral")
-        fig.tight_layout()
-        plt.savefig(path + "collateral.pdf", bbox_inches="tight")
-        plt.close()
-
-    def plot_collateral_reuse(
-        self, df_network_trajectory, path, figsize=par.small_figsize
-    ):
-        fig = plt.figure(figsize=figsize)
-        plt.plot(
-            df_network_trajectory.index,
-            df_network_trajectory["collateral reuse"],
-        )
-        plt.xlabel("Steps")
-        plt.ylabel("Ratio")
-        plt.title("collateral reuse")
-        fig.tight_layout()
-        plt.savefig(path + "collateral_reuse.pdf", bbox_inches="tight")
-        plt.close()
-
-    def plot_gini(
-        self, df_network_trajectory, path, figsize=par.small_figsize
-    ):
-        fig = plt.figure(figsize=figsize)
-        plt.plot(df_network_trajectory.index, df_network_trajectory["gini"])
-        plt.xlabel("Steps")
-        plt.ylabel("Gini coefficient")
-        plt.title("Gini of banks' assets")
-        fig.tight_layout()
-        plt.savefig(path + "gini.pdf", bbox_inches="tight")
-        plt.close()
-
-    def plot_reverse_repo_size_stats(
-        self, df_network_trajectory, path, figsize=par.small_figsize
-    ):
-        fig = plt.figure(figsize=figsize)
-        plt.plot(
-            df_network_trajectory.index,
-            df_network_trajectory["repo exposures min network"],
-        )
-        plt.plot(
-            df_network_trajectory.index,
-            df_network_trajectory["repo exposures max network"],
-        )
-        plt.plot(
-            df_network_trajectory.index,
-            df_network_trajectory["repo exposures av. network"],
-        )
-        plt.xlabel("Steps")
-        plt.ylabel("Monetary units")
-        plt.legend(
-            [
-                "min",
-                "max",
-                "mean",
-            ],
-            loc="upper left",
-        )
-
-        plt.title("Repo amount stats")
-        fig.tight_layout()
-        plt.savefig(path + "reverse_repo_stats.pdf", bbox_inches="tight")
-        plt.close()
-
-    def plot_repos(
-        self, df_network_trajectory, path, figsize=par.small_figsize
-    ):
-        fig = plt.figure(figsize=figsize)
-        plt.plot(
-            df_network_trajectory.index,
-            df_network_trajectory["repo exposures tot. network"],
-        )
-        plt.xlabel("Steps")
-        plt.ylabel("Monetary units")
-        plt.title("Total repo amount")
-        fig.tight_layout()
-        plt.savefig(path + "Repos_market_size.pdf", bbox_inches="tight")
-        plt.close()
-
-    def plot_jaccard(
-        self, df_network_trajectory, path, figsize=par.small_figsize
-    ):
-        fct.init_path(path)
-        fig = plt.figure(figsize=figsize)
-        for column in [
-            f"jaccard index-{agg_period}" for agg_period in par.agg_periods
-        ]:
-            plt.plot(
-                df_network_trajectory.index,
-                df_network_trajectory[column],
-            )
-        plt.xlabel("Steps")
-        plt.ylabel("jaccard index")
-        plt.title("Jaccard index aggregated")
-        plt.legend(
-            [
-                str(agg_period) + " time steps"
-                for agg_period in par.agg_periods
-            ],
-            loc="upper left",
-        )
+        plt.ylabel(ylabel)
+        plt.title(title)
         plt.grid()
-        fig.tight_layout()
-        plt.savefig(path + "jaccard_index_agg.pdf", bbox_inches="tight")
-        plt.close()
-
-    def plot_network_density(
-        self, df_network_trajectory, path, figsize=par.small_figsize
-    ):
-
-        fct.init_path(path)
-
-        fig = plt.figure(figsize=figsize)
-
-        for column in [
-            f"network density-{agg_period}" for agg_period in par.agg_periods
-        ]:
-            plt.plot(
-                df_network_trajectory.index,
-                df_network_trajectory[column],
-            )
-
-        plt.xlabel("Steps")
-        plt.ylabel("network density")
-        plt.title("network density")
-        plt.legend(
-            [
-                str(agg_period) + " time steps"
-                for agg_period in par.agg_periods
-            ],
-            loc="upper left",
-        )
-        plt.grid()
-        fig.tight_layout()
-        plt.savefig(path + "network_density.pdf", bbox_inches="tight")
+        plt.savefig(f"{file_name}", bbox_inches="tight")
         plt.close()
 
     def plot_step_weighted_adj_network(
@@ -448,21 +321,23 @@ class ClassGraphics:
         space = 0.05
         pos = 0
 
-        for agg_period in par.agg_periods:
+        colors = sns.color_palette("flare", n_colors=len(par.agg_periods))
+
+        for i, agg_period in enumerate(par.agg_periods):
 
             # in degree plot
             hist = np.unique(
                 dic_in_degree[agg_period][step],
                 return_counts=True,
             )
-            ax1.bar(hist[0] + pos, hist[1], width=width)
+            ax1.bar(hist[0] + pos, hist[1], width=width, color=colors[i])
 
             # out degree plot
             hist = np.unique(
                 dic_out_degree[agg_period][step],
                 return_counts=True,
             )
-            ax2.bar(hist[0] + pos, hist[1], width=width)
+            ax2.bar(hist[0] + pos, hist[1], width=width, color=colors[i])
             pos = pos + width + space
 
         ax1.set_xlabel("degree")
@@ -519,32 +394,6 @@ class ClassGraphics:
                 figsize=figsize,
             )
 
-    def plot_av_degre(
-        self,
-        df_network_trajectory,
-        path,
-        figsize=par.small_figsize,
-    ):
-        fig = plt.figure()
-        fig = plt.figure(figsize=figsize)
-        for column in [
-            f"av. degree-{agg_period}" for agg_period in par.agg_periods
-        ]:
-            plt.plot(
-                df_network_trajectory.index,
-                df_network_trajectory[column],
-            )
-        plt.xlabel("Steps")
-        plt.ylabel("av. degree")
-        plt.title("av. degree")
-        plt.legend(
-            [f"av. degree-{agg_period}" for agg_period in par.agg_periods],
-            loc="upper left",
-        )
-        fig.tight_layout()
-        plt.savefig(path + "average_degree.pdf", bbox_inches="tight")
-        plt.close()
-
     def plot_step_degree_per_asset(
         self,
         ar_total_assets,
@@ -580,7 +429,11 @@ class ClassGraphics:
             y=[f"degree-{agg_period}" for agg_period in par.agg_periods],
             figsize=figsize,
             style=".",
+            colormap=ListedColormap(
+                sns.color_palette("flare", n_colors=len(par.agg_periods))
+            ),
         )
+
         plt.legend(
             loc="upper left",
             bbox_to_anchor=(1, 1),
@@ -636,7 +489,7 @@ class ClassGraphics:
                 figsize=figsize,
             )
 
-    def plot_core_periphery(
+    def plot_step_cp_test(
         self,
         bank_network,
         sig_c,
@@ -667,7 +520,7 @@ class ClassGraphics:
         )
         plt.close()
 
-    def run_n_plot_cp_test(
+    def run_step_cp_test(
         self,
         arr_reverse_repo_adj,
         algo,
@@ -711,7 +564,7 @@ class ClassGraphics:
             else:
                 day_print = day
 
-            self.plot_core_periphery(
+            self.plot_step_cp_test(
                 bank_network=bank_network,
                 sig_c=sig_c,
                 sig_x=sig_x,
@@ -725,7 +578,7 @@ class ClassGraphics:
 
         return sr_pvalue
 
-    def mlt_run_n_plot_cp_test(
+    def plot_cp_test(
         self,
         dic,
         algos,
@@ -756,7 +609,7 @@ class ClassGraphics:
 
             df_pvalue = pd.DataFrame(columns=algos)
             for algo in algos:
-                df_pvalue[algo] = self.run_n_plot_cp_test(
+                df_pvalue[algo] = self.run_step_cp_test(
                     dic_adj,
                     algo=algo,
                     days=days,
@@ -774,72 +627,20 @@ class ClassGraphics:
             )
             plt.close()
 
-    def plot_average_nb_transactions(
-        self, df_network_trajectory, path, figsize=par.small_figsize
-    ):
-        fig = plt.figure(figsize=figsize)
-        plt.plot(
-            df_network_trajectory.index,
-            df_network_trajectory["nb_ending_starting av. network"],
-        )
-        plt.xlabel("Steps")
-        plt.ylabel("Number of transactions")
-        plt.title("nb_ending_starting av. network")
-        fig.tight_layout()
-        plt.savefig(
-            path + "Average_nb_repo_transactions_ended.pdf",
-            bbox_inches="tight",
-        )
-        plt.close()
-
-    def plot_average_size_transactions(
-        self, df_network_trajectory, path, figsize=par.small_figsize
-    ):
-        fig = plt.figure(figsize=figsize)
-        plt.plot(
-            df_network_trajectory.index,
-            df_network_trajectory["amount_ending_starting av. network"],
-        )
-        plt.xlabel("Steps")
-        plt.ylabel("Monetary units")
-        plt.title("amount_ending_starting av. network")
-        fig.tight_layout()
-        plt.savefig(
-            path + "Average_size_repo_transactions_ended.pdf",
-            bbox_inches="tight",
-        )
-        plt.close()
-
-    def plot_average_maturity_repo(
-        self, df_network_trajectory, path, figsize=par.small_figsize
-    ):
-        fig = plt.figure(figsize=figsize)
-        plt.plot(
-            df_network_trajectory.index,
-            df_network_trajectory["repos maturity av. network"],
-        )
-        plt.xlabel("Steps")
-        plt.ylabel("Maturity")
-        plt.title("repos maturity av. network")
-        fig.tight_layout()
-        plt.savefig(path + "Average_maturity_repo.pdf", bbox_inches="tight")
-        plt.close()
-
     def plot_df_bank_trajectory(
-        self, df_bank_trajectory, path, figsize=par.small_figsize
+        self, df_bank_trajectory, path, figsize=par.slide_figsize
     ):
 
-        plt.figure(figsize=par.small_figsize)
-        fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=par.slide_figsize)
+        fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=figsize)
 
         # Plot the accounting items (big)
-        keys_s = [
+        keys = [
             "loans",
             "deposits",
             "central bank funding",
         ]
 
-        for key in keys_s:
+        for key in keys:
             ax1.plot(
                 df_bank_trajectory.index,
                 df_bank_trajectory[key],
@@ -859,7 +660,7 @@ class ClassGraphics:
         ax1.set_title("Single bank trajectory of (large) accounting items")
 
         # Plot the accounting items (small)
-        keys_s = [
+        keys = [
             "cash",
             "securities usable",
             "securities encumbered",
@@ -870,7 +671,7 @@ class ClassGraphics:
             "securities reused",
         ]
 
-        for key in keys_s:
+        for key in keys:
             ax2.plot(
                 df_bank_trajectory.index,
                 df_bank_trajectory[key],
@@ -890,13 +691,28 @@ class ClassGraphics:
         ax2.set_title("Single bank trajectory of (small) accounting items")
 
         # Plot the other indicators
-        keys_s = [
-            "av. in-degree",
-            "av. out-degree",
+        in_colors = sns.color_palette("flare", n_colors=len(par.agg_periods))
+        out_colors = sns.color_palette("crest", n_colors=len(par.agg_periods))
+        for i, agg_period in enumerate(par.agg_periods):
+            ax3.plot(
+                df_bank_trajectory.index,
+                df_bank_trajectory[f"av. in-degree-{agg_period}"],
+                label=f"in-degree-{agg_period}",
+                color=in_colors[i],
+            )
+        for i, agg_period in enumerate(par.agg_periods):
+            ax3.plot(
+                df_bank_trajectory.index,
+                df_bank_trajectory[f"av. out-degree-{agg_period}"],
+                label=f"out-degree-{agg_period}",
+                color=out_colors[i],
+            )
+
+        keys = [
             "nb_ending_starting",
             "repos maturity av. bank",
         ]
-        for key in keys_s:
+        for key in keys:
             ax3.plot(
                 df_bank_trajectory.index,
                 df_bank_trajectory[key],
@@ -916,50 +732,16 @@ class ClassGraphics:
         )
         plt.close()
 
-    def plot_step(
+    def plot_final_step(
         self,
-    ):  # to be deleted ultimately all charts are computed expost
+    ):
 
         # Plot the break-down of the balance per bank
         self.plot_step_balance_sheet(
             self.Dynamics.Network.df_banks,
-            self.Dynamics.path_results + "balance_Sheets/",
-            self.Dynamics.Network.step,
-        )
-
-        # Plot the break-down of the deposits per bank in relative shares
-        self.plot_step_deposits(
-            self.Dynamics.Network.df_banks,
-            self.Dynamics.Network.step,
             self.Dynamics.path_results,
+            self.Dynamics.Network.step,
         )
-
-    def plot_step_deposits(
-        self, df_banks, step, path, figsize=par.small_figsize
-    ):
-        fig = plt.figure(figsize=figsize)
-        banks_sorted = ["Bank {}".format(str(b)) for b in range(len(df_banks))]
-        barWidth = 0.75
-        br = np.arange(len(banks_sorted))
-        plt.bar(
-            br,
-            height=df_banks["deposits"],
-            color="b",
-            width=barWidth,
-            edgecolor="grey",
-            label="deposits",
-        )
-        plt.ylabel("deposits", fontweight="bold", fontsize=15)
-        plt.xticks([r for r in range(len(banks_sorted))], banks_sorted)
-        plt.tick_params(axis="x", labelrotation=90, labelsize="small")
-        plt.legend(loc="upper left")
-        plt.title(f"Deposits of Banks at step {step}".format(int(step)))
-        fig.tight_layout()
-        plt.savefig(
-            f"{path}deposits/_step_{step}_deposits.pdf".format(),
-            bbox_inches="tight",
-        )
-        plt.close()
 
     def plot_step_balance_sheet(
         self,
@@ -971,159 +753,73 @@ class ClassGraphics:
         fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=par.halfslide_figsize)
 
         ix_sorted = np.argsort(np.asarray(df_banks["total assets"]))
-        banks_sorted = ["Bank {}".format(str(b)) for b in ix_sorted]
+        banks_sorted = ["bank {}".format(str(b)) for b in ix_sorted]
 
-        a1 = df_banks.loc[ix_sorted, "cash"]
-        a2 = a1 + df_banks.loc[ix_sorted, "securities usable"]
-        a3 = a2 + df_banks.loc[ix_sorted, "securities encumbered"]
-        a4 = a3 + df_banks.loc[ix_sorted, "loans"]
-        a5 = a4 + df_banks.loc[ix_sorted, "reverse repo exposures"]
-
-        b1 = df_banks.loc[ix_sorted, "own funds"]
-        b2 = b1 + df_banks.loc[ix_sorted, "deposits"]
-        b3 = b2 + df_banks.loc[ix_sorted, "repo exposures"]
-        b4 = b3 + df_banks.loc[ix_sorted, "central bank funding"]
+        asset_bottoms = [np.zeros(len(banks_sorted))]
+        for col in par.assets[:-1]:
+            asset_bottoms.append(
+                asset_bottoms[-1] + df_banks.loc[ix_sorted, col]
+            )
+        liability_bottoms = [np.zeros(len(banks_sorted))]
+        for col in par.liabilities[:-1]:
+            liability_bottoms.append(
+                liability_bottoms[-1] + df_banks.loc[ix_sorted, col]
+            )
+        off_bottoms = [np.zeros(len(banks_sorted))]
+        for col in par.off_bs_items[:-1]:
+            off_bottoms.append(off_bottoms[-1] + df_banks.loc[ix_sorted, col])
 
         barWidth = 0.75
 
-        ax1.bar(
-            banks_sorted,
-            height=a1,
-            color="cyan",
-            width=barWidth,
-            label="cash",
+        asset_colors = sns.color_palette("flare", n_colors=len(par.assets))
+        liabilities_colors = sns.color_palette(
+            "crest", n_colors=len(par.liabilities)
         )
-        ax1.bar(
-            banks_sorted,
-            height=df_banks.loc[ix_sorted, "securities usable"],
-            bottom=a1,
-            color="green",
-            width=barWidth,
-            label="securities usable",
-        )
-        ax1.bar(
-            banks_sorted,
-            height=df_banks.loc[ix_sorted, "securities encumbered"],
-            bottom=a2,
-            color="red",
-            width=barWidth,
-            label="securities encumbered",
-        )
-        ax1.bar(
-            banks_sorted,
-            height=df_banks.loc[ix_sorted, "loans"],
-            bottom=a3,
-            color="blue",
-            width=barWidth,
-            label="loans",
-        )
-        ax1.bar(
-            banks_sorted,
-            height=df_banks.loc[ix_sorted, "reverse repo exposures"],
-            bottom=a4,
-            color="yellow",
-            width=barWidth,
-            label="reverse repo exposures",
-        )
-        ax1.legend(
-            [
-                "cash",
-                "securities usable",
-                "securities encumbered",
-                "loans",
-                "reverse repo exposures",
-            ],
-            loc="upper left",
-        )
-        ax1.tick_params(
-            axis="x",
-            labelrotation=90,
-            labelsize="small",
-            bottom=False,
-            top=False,
-            labelbottom=False,
-            which="both",
-        )
-        ax1.set_title("Assets of Banks at step {}".format(int(step)))
+        off_colors = sns.color_palette("Blues", n_colors=len(par.off_bs_items))
 
-        ax2.bar(
-            banks_sorted,
-            height=b1,
-            color="cyan",
-            width=barWidth,
-            label="own funds",
-        )
-        ax2.bar(
-            banks_sorted,
-            height=df_banks.loc[ix_sorted, "deposits"],
-            bottom=b1,
-            color="green",
-            width=barWidth,
-            label="deposits",
-        )
-        ax2.bar(
-            banks_sorted,
-            height=df_banks.loc[ix_sorted, "repo exposures"],
-            bottom=b2,
-            color="red",
-            width=barWidth,
-            label="repo exposures",
-        )
-        ax2.bar(
-            banks_sorted,
-            height=df_banks.loc[ix_sorted, "central bank funding"],
-            bottom=b3,
-            color="blue",
-            width=barWidth,
-            label="central bank funding",
-        )
-        ax2.legend(
-            [
-                "own funds",
-                "deposits",
-                "repo exposures",
-                "central bank funding",
-            ],
-            loc="upper left",
-        )
-        ax2.tick_params(
-            axis="x",
-            labelrotation=90,
-            labelsize="small",
-            bottom=False,
-            top=False,
-            labelbottom=False,
-            which="both",
-        )
-        ax2.set_title("Liabilities of Banks at step {}".format(int(step)))
+        for i, col in enumerate(par.assets):
+            ax1.bar(
+                banks_sorted,
+                height=df_banks.loc[ix_sorted, col],
+                bottom=asset_bottoms[i],
+                color=asset_colors[i],
+                width=barWidth,
+                label=col,
+            )
+        ax1.legend(par.assets)
+        ax1.tick_params(axis="x", labelrotation=90, labelsize="small")
+        ax1.set_title(f"Assets on day {step}")
 
-        ax3.bar(
-            banks_sorted,
-            height=df_banks.loc[ix_sorted, "securities collateral"],
-            color="green",
-            width=barWidth,
-            label="own funds",
-        )
-        ax3.bar(
-            banks_sorted,
-            height=df_banks.loc[ix_sorted, "securities reused"],
-            bottom=df_banks.loc[ix_sorted, "securities collateral"],
-            color="red",
-            width=barWidth,
-            label="own funds",
-        )
-        ax3.legend(
-            ["securities collateral", "securities reused"], loc="upper left"
-        )
+        for i, col in enumerate(par.liabilities):
+            ax2.bar(
+                banks_sorted,
+                height=df_banks.loc[ix_sorted, col],
+                bottom=liability_bottoms[i],
+                color=liabilities_colors[i],
+                width=barWidth,
+                label=col,
+            )
+        ax2.legend(par.liabilities)
+        ax2.tick_params(axis="x", labelrotation=90, labelsize="small")
+        ax2.set_title(f"Liabilities on day {step}")
+
+        for i, col in enumerate(par.off_bs_items):
+            ax3.bar(
+                banks_sorted,
+                height=df_banks.loc[ix_sorted, col],
+                bottom=off_bottoms[i],
+                color=off_colors[i],
+                width=barWidth,
+                label=col,
+            )
+        ax3.legend(par.off_bs_items)
         ax3.tick_params(axis="x", labelrotation=90, labelsize="small")
-        ax3.set_title(
-            "Off Balance Sheets of Banks at step {}".format(int(step))
-        )
+        ax3.set_title(f"Off-balance sheet items on day {step}")
 
         # plt.subplots_adjust(hspace=0.3)
         fig.tight_layout()
         plt.savefig(
-            path + "step_{}_balance_sheets.pdf".format(step),
+            f"{path}balance_sheets_on_day_{step}.pdf",
             bbox_inches="tight",
         )
         plt.close()
