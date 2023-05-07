@@ -403,6 +403,7 @@ class ClassGraphics:
         step,
         path,
         figsize=(6, 3),
+        finrep_bank_ids=False,
     ):
 
         # build the degree per bank on the date step
@@ -412,7 +413,7 @@ class ClassGraphics:
 
         # build the asset per bank from the ar_total assets
         df_total_assets = pd.DataFrame(
-            ar_total_assets, index=bank_ids, columns=["total assets"]
+            ar_total_assets, index=finrep_bank_ids, columns=["total assets"]
         )
 
         # merge the 2 df
@@ -464,6 +465,7 @@ class ClassGraphics:
         figsize=(6, 3),
         plot_days=False,
         finrep_days=False,
+        finrep_bank_ids=False,
     ):
 
         fct.init_path(path)
@@ -487,6 +489,7 @@ class ClassGraphics:
                 step,
                 path,
                 figsize=figsize,
+                finrep_bank_ids=finrep_bank_ids,
             )
 
     def plot_step_cp_test(

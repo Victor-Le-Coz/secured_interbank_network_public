@@ -229,6 +229,8 @@ class ClassDynamics:
             [f"av. degree-{agg_period}" for agg_period in par.agg_periods]
         ] = df_degree
 
+        # expost
+
     def expost_fill_df_bank_trajectory(self):
 
         # expost in-degree

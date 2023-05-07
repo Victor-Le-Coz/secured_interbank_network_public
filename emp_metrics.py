@@ -172,6 +172,7 @@ def build_arr_total_assets(df_finrep, bank_ids_int, path):
     )
     arr_total_assets = np.array(df_total_assets)
 
+    fct.init_path(path)
     df_total_assets.to_csv(f"{path}df_total_assets.csv")
 
     return arr_total_assets

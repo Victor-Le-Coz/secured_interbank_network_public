@@ -58,10 +58,8 @@ def build_from_mmsr(df_mmsr):
     return dic_obs_matrix_reverse_repo
 
 
-def load_dic_obs_matrix_reverse_repo():
-    return pickle.load(
-        open("./support/dic_obs_matrix_reverse_repo.pickle", "rb")
-    )
+def load_dic_obs_matrix_reverse_repo(path):
+    return pickle.load(open(f"{path}dic_obs_matrix_reverse_repo.pickle", "rb"))
 
 
 def build_from_exposures(df_exposures, path):
@@ -92,7 +90,7 @@ def build_from_exposures(df_exposures, path):
             df_exposures.loc[index, "borr_lei"],
         ] = df_exposures.loc[index, "exposure"]
 
-    fct.init_path("./support")
+    fct.init_path(path)
     pickle.dump(
         dic_obs_matrix_reverse_repo,
         open(f"{path}dic_obs_matrix_reverse_repo.pickle", "wb"),
@@ -186,6 +184,7 @@ def build_rolling_binary_adj(dic_obs_matrix_reverse_repo, path):
         dic_arr_binary_adj.update({agg_period: arr_binary_adj[period_nb]})
 
     # dump results
+    fct.init_path(path)
     pickle.dump(
         dic_arr_binary_adj,
         open(f"{path}dic_arr_binary_adj.pickle", "wb"),
@@ -195,5 +194,5 @@ def build_rolling_binary_adj(dic_obs_matrix_reverse_repo, path):
     return dic_arr_binary_adj
 
 
-def load_dic_arr_binary_adj():
-    return pickle.load(open("./support/dic_arr_binary_adj.pickle", "rb"))
+def load_dic_arr_binary_adj(path):
+    return pickle.load(open(f"{path}dic_arr_binary_adj.pickle", "rb"))
