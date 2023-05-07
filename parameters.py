@@ -65,9 +65,9 @@ cp_algos = [
     # "Divisive", # divide by zero error
     "Rombach",
     "Rossa",
-    "LapCore",
+    # "LapCore",  # generates bug (scipy.sparse.linalg._eigen.arpack.arpack.ArpackError: ARPACK error 3: No shifts could be applied during a cycle of the Implicitly restarted Arnoldi iteration. One possibility is to increase the size of NCV relative to NEV.)
     "LapSgnCore",
-    # "LowRankCore", # generates bug (eigen value error)
+    # "LowRankCore", # generates bug (scipy.sparse.linalg._eigen.arpack.arpack.ArpackError: ARPACK error 3: No shifts could be applied during a cycle of the Implicitly restarted Arnoldi iteration. One possibility is to increase the size of NCV relative to NEV.)
     "MINRES",  # do not take weights into acount
     # "Surprise",  # do not take weights into acount & too slow
     "Lip",  # do not take weights into acount
