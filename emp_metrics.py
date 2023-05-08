@@ -217,41 +217,65 @@ def gini(x):
     return total / (len(x) ** 2 * np.mean(x))
 
 
-def get_step_transaction_stats(df_trans, df_traj, name, step):
+def get_transaction_stats(df_trans, name, days, path=False):
 
-    # --------------
-    # transaction view
+    print(f"get transaction stats {name}")
 
-    # repo transactions maturity av. network
-    df_ending = df_trans[
-        df_trans["tenor"] + df_trans["start_step"] == step - 1
-    ]
-    if df_ending["amount"].sum() > 0:
-        df_traj.loc[step, f"repo transactions maturity {name}"] = (
-            df_ending["amount"] @ df_ending["tenor"]
-        ) / df_ending["amount"].sum()
-    else:
-        df_traj.loc[step, f"repo transactions maturity {name}"] = 0
-
-    # repo transactions notional av. network
-    df_starting = df_trans[df_trans["start_step"] == step - 1]
-    nb_trans = len(df_starting)
-    if nb_trans > 0:
-        df_traj.loc[
-            step,
-            f"repo transactions notional {name}",
-        ] = (df_starting["amount"].sum()) / nb_trans
-    else:
-        df_traj.loc[
-            step,
-            f"repo transactions notional {name}",
-        ] = 0
-
-    # number repo transactions av. network
-    df_traj.loc[
-        step,
+    cols = [
+        f"repo transactions maturity {name}",
+        f"repo transactions notional {name}",
         f"number repo transactions {name}",
-    ] = nb_trans
+    ]
+
+    # initialisation
+    df_transaction_stats = pd.DataFrame(
+        index=days,
+        columns=cols,
+    )
+
+    # loop over the steps
+    for step, day in enumerate(tqdm(days[1:]), 1):
+
+        # repo transactions maturity av. network
+        df_ending = df_trans[
+            df_trans["tenor"] + df_trans["start_step"] == step - 1
+        ]
+        if df_ending["amount"].sum() > 0:
+            df_transaction_stats.loc[
+                day, f"repo transactions maturity {name}"
+            ] = (df_ending["amount"] @ df_ending["tenor"]) / df_ending[
+                "amount"
+            ].sum()
+        else:
+            df_transaction_stats.loc[
+                day, f"repo transactions maturity {name}"
+            ] = 0
+
+        # repo transactions notional av. network
+        df_starting = df_trans[df_trans["start_step"] == step - 1]
+        nb_trans = len(df_starting)
+        if nb_trans > 0:
+            df_transaction_stats.loc[
+                day,
+                f"repo transactions notional {name}",
+            ] = (df_starting["amount"].sum()) / nb_trans
+        else:
+            df_transaction_stats.loc[
+                day,
+                f"repo transactions notional {name}",
+            ] = 0
+
+        # number repo transactions av. network
+        df_transaction_stats.loc[
+            day,
+            f"number repo transactions {name}",
+        ] = nb_trans
+
+    if path:
+        fct.init_path(path)
+        df_transaction_stats.to_csv(f"{path}df_transaction_stats.csv")
+
+    return df_transaction_stats
 
 
 def get_exposure_stats(arr_rev_repo_exp_adj, days, path=False):
@@ -269,7 +293,7 @@ def get_exposure_stats(arr_rev_repo_exp_adj, days, path=False):
     )
 
     # loop over the steps
-    for step, day in enumerate(days):
+    for step, day in enumerate(tqdm(days)):
         ar_rev_repo_exp_adj_non_zero = arr_rev_repo_exp_adj[step][
             np.nonzero(arr_rev_repo_exp_adj[step])
         ]

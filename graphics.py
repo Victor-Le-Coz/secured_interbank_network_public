@@ -235,7 +235,7 @@ class ClassGraphics:
                 color=colors[i],
             )
         plt.legend(cols)
-        plt.xlabel("Steps")
+        plt.xlabel("time (days)")
         plt.ylabel(ylabel)
         plt.title(title)
         plt.grid()

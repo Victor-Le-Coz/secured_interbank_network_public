@@ -27,7 +27,7 @@ class ClassNetwork:
         shocks_method,
         shocks_law,
         shocks_vol,
-        min_repo_size,
+        min_repo_trans_size,
         LCR_mgt_opt,
     ):
 
@@ -51,7 +51,7 @@ class ClassNetwork:
         self.shocks_method = shocks_method
         self.shocks_law = shocks_law
         self.shocks_vol = shocks_vol
-        self.min_repo_size = min_repo_size
+        self.min_repo_trans_size = min_repo_trans_size
         self.LCR_mgt_opt = LCR_mgt_opt
 
         # (Re)set the network
@@ -107,7 +107,7 @@ class ClassNetwork:
             Bank.initialize_banks(self.banks)
 
         # fill the recording data objects at step 0
-        self.step_fill_df_banks_n_dic_matrices()
+        self.fill_step_df_banks()
 
     def initialize_deposits(self):
         if self.initialization_method == "pareto":
@@ -156,7 +156,7 @@ class ClassNetwork:
                 self.banks[bank_id].step_central_bank_funding()
 
         # # loop 4: fill df_banks and dic matrices
-        self.step_fill_df_banks_n_dic_matrices()
+        self.fill_step_df_banks()
 
         # assert constraints (matricial)
         self.check_constraints()
@@ -223,19 +223,17 @@ class ClassNetwork:
             self.df_banks.to_csv(f"{self.path_results}./errors/df_banks.csv")
             exit()
 
-    def step_fill_single_bank(self, bank_id):
+    def fill_step_df_banks(self):
 
-        # fill df_banks
-        Bank = self.banks[bank_id]
-        for key in par.accounting_items:
-            self.df_banks.loc[bank_id, key] = Bank.dic_balance_sheet[key]
+        # -----------
+        # accounting view
 
-    def step_fill_df_banks_n_dic_matrices(self):
+        # loop over the banks and accounting items
+        for bank_id, Bank in enumerate(self.banks):
+            for key in par.accounting_items:
+                self.df_banks.loc[bank_id, key] = Bank.dic_balance_sheet[key]
 
-        for bank_id in range(self.nb_banks):
-            self.step_fill_single_bank(bank_id)
-
-        # fill df_banks
+        # matricial computation items used to check constraints
         self.df_banks["total assets"] = self.df_banks[par.assets].sum(axis=1)
         self.df_banks["total liabilities"] = self.df_banks[
             par.liabilities
@@ -244,14 +242,14 @@ class ClassNetwork:
             self.df_banks["cash"] - self.alpha * self.df_banks["deposits"]
         )
 
-    def store_network(self, path):
+    def dump_step(self, path):
         self.df_banks.to_csv(f"{path}df_banks.csv")
         self.df_rev_repo_trans.to_csv(f"{path}df_reverse_repos.csv")
 
-    def build_df_reverse_repos(self):
+    def get_df_rev_repo_trans(self):
 
         # print
-        print("build df_reverse_repos")
+        print("get df_rev_repo_trans")
 
         dfs = []
         for Bank in tqdm(self.banks):

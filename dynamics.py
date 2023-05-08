@@ -71,12 +71,16 @@ class ClassDynamics:
         # initialise the class graphics
         self.Graphics = ClassGraphics(Dynamics=self, plot_period=plot_period)
 
-    def step_record_trajectories(self):
-        self.fill_df_network_trajectory()
-        self.fill_df_bank_trajectory()
-        self.fill_arr_total_assets()
+    def fill_step(self):
 
-    def fill_df_network_trajectory(self):
+        # -----------
+        # accounting view
+
+        self.fill_step_df_network_trajectory()
+        self.fill_step_df_bank_trajectory()
+        self.fill_step_arr_total_assets()
+
+    def fill_step_df_network_trajectory(self):
 
         # -----------
         # accounting view
@@ -106,7 +110,10 @@ class ClassDynamics:
             + 1e-10
         )
 
-    def fill_df_bank_trajectory(self):
+    def fill_step_df_bank_trajectory(self):
+
+        # -----------
+        # accounting view
 
         # Build the time series of the accounting items
         for item in par.bank_items:
@@ -114,31 +121,26 @@ class ClassDynamics:
                 self.Network.step, item
             ] = self.Network.df_banks.loc[self.single_bank_id, item]
 
-    def fill_arr_total_assets(self):
+    def fill_step_arr_total_assets(self):
         self.arr_total_assets[self.Network.step] = np.array(
             self.Network.df_banks["total assets"]
         )
 
-    def expost_record_trajectories(self):
+    def fill(self):
 
-        # build the df_reverse_repos history from all banks data
-        self.Network.build_df_reverse_repos()
+        # --------------------------------
+        # exposure view & transaction view
 
-        # build adj matrices from df_reverse repos
+        # build df_rev_repo_trans bank level data
+        self.Network.get_df_rev_repo_trans()
+
+        # build adj matrices from df_rev_repo_trans
         self.build_adj_matrices()
 
-        # fill step df_network_trajectory & df_bank_trajectory from the df_reverse_repos data
-        print("expost fill step df network trajectory")
-        for step in tqdm(
-            range(self.Network.step + 1)
-        ):  # +1 to cover all steps up to now
-            self.expost_fill_step_df_network_trajectory(step)
-            self.expost_fill_step_df_bank_trajectory(step)
-
         # fill df_network_trajectory & df_bank_trajectory from the adj matrices
-        self.expost_fill_dic_degree()
-        self.expost_fill_df_network_trajectory()
-        self.expost_fill_df_bank_trajectory()
+        self.fill_dic_degree()
+        self.fill_df_network_trajectory()
+        self.fill_df_bank_trajectory()
 
         # save the data frame results
         self.df_bank_trajectory.to_csv(
@@ -147,57 +149,9 @@ class ClassDynamics:
         self.df_network_trajectory.to_csv(
             f"{self.path_results}df_network_trajectory.csv"
         )
-        self.Network.store_network(self.path_results)
+        self.Network.dump_step(self.path_results)
 
-    def expost_fill_step_df_network_trajectory(self, step):
-
-        df_trans = self.Network.df_rev_repo_trans
-
-        # --------------
-        # transaction view
-
-        em.get_step_transaction_stats(
-            df_trans=df_trans,
-            df_traj=self.df_network_trajectory,
-            name="av. network",
-            step=step,
-        )
-
-    def expost_fill_step_df_bank_trajectory(self, step):
-
-        # --------------
-        # transaction view
-
-        df_trans = self.Network.df_rev_repo_trans
-
-        # check of the single bank entered into any reverse repos
-        if self.single_bank_id in df_trans.index.get_level_values(0):
-
-            # filter the df on the single bank:
-            df_trans = df_trans.loc[self.single_bank_id]
-
-            em.get_step_transaction_stats(
-                df_trans=df_trans,
-                df_traj=self.df_bank_trajectory,
-                name="av. bank",
-                step=step,
-            )
-
-        # otherwise all the information is step to 0
-        else:
-            self.df_bank_trajectory.loc[
-                step, "repo transactions maturity av. bank"
-            ] = 0
-            self.df_bank_trajectory.loc[
-                step,
-                "repo transactions notional av. bank",
-            ] = 0
-            self.df_bank_trajectory.loc[
-                step,
-                "nb repo transactions",
-            ] = 0
-
-    def expost_fill_df_network_trajectory(self):
+    def fill_df_network_trajectory(self):
 
         # --------------
         # exposure view
@@ -240,7 +194,24 @@ class ClassDynamics:
             ]
         ] = df_exposures_stats
 
-    def expost_fill_df_bank_trajectory(self):
+        # --------------
+        # transaction view
+
+        # expost reverse repo transactions stats network level
+        name = "av. network"
+        cols = [
+            f"repo transactions maturity {name}",
+            f"repo transactions notional {name}",
+            f"number repo transactions {name}",
+        ]
+        df_transaction_stats = em.get_transaction_stats(
+            df_trans=self.Network.df_rev_repo_trans,
+            name=name,
+            days=range(self.Network.step + 1),
+        )
+        self.df_network_trajectory[cols] = df_transaction_stats
+
+    def fill_df_bank_trajectory(self):
 
         # --------------
         # exposure view
@@ -265,7 +236,40 @@ class ClassDynamics:
             [f"av. out-degree-{agg_period}" for agg_period in par.agg_periods]
         ] = df_out_degree
 
-    def expost_fill_dic_degree(self):
+        # --------------
+        # transaction view
+
+        # expost reverse repo transactions stats bank level
+        name = "av. bank"
+        cols = [
+            f"repo transactions maturity {name}",
+            f"repo transactions notional {name}",
+            f"number repo transactions {name}",
+        ]
+        df_trans = self.Network.df_rev_repo_trans
+
+        # check of the single bank entered into any reverse repos
+        if self.single_bank_id in df_trans.index.get_level_values(0):
+
+            # filter the df on the single bank:
+            df_trans = df_trans.loc[self.single_bank_id]
+
+            # get transaction stats
+            df_transaction_stats = em.get_transaction_stats(
+                df_trans=df_trans,
+                name=name,
+                days=range(self.Network.step + 1),
+            )
+
+        # otherwise empty dataframe
+        else:
+            df_transaction_stats = pd.DataFrame(
+                index=range(self.Network.step + 1), columns=cols
+            )
+
+        self.df_bank_trajectory[cols] = df_transaction_stats
+
+    def fill_dic_degree(self):
 
         # --------------
         # exposure view
@@ -280,10 +284,13 @@ class ClassDynamics:
             path=f"{self.path_results}exposure_view/degree_distribution/",
         )
 
-    def build_arr_reverse_repo_adj_from_df_reverse_repos(self):
+    def get_arr_rev_repo_exp_adj(self):
+
+        # ------------
+        # exposure view
 
         # print
-        print("build arr_reverse_repo_adj from df_reverse_repos")
+        print("get arr_rev_repo_exp_adj")
 
         # loop over the rows of df_reverse_repos transactions
         for index, row in tqdm(self.Network.df_rev_repo_trans.iterrows()):
@@ -315,10 +322,13 @@ class ClassDynamics:
             f"{self.path_results}exposure_view/adj_matrices/arr_reverse_repo_adj_{self.Network.step}.csv",
         )
 
-    def build_arr_binary_adj(self):
+    def get_arr_binary_adj(self):
+
+        # ------------
+        # exposure view
 
         # print
-        print("build arr_binary_adj (compiled)")
+        print("get arr_binary_adj (numba)")
 
         # convert list to array
         arr_agg_period = np.array(par.agg_periods)
@@ -344,14 +354,18 @@ class ClassDynamics:
             )
 
     def build_adj_matrices(self):
-        self.build_arr_reverse_repo_adj_from_df_reverse_repos()
-        self.build_arr_binary_adj()
+
+        # ------------
+        # exposure view
+
+        self.get_arr_rev_repo_exp_adj()
+        self.get_arr_binary_adj()
 
     def simulate(self, output_keys=False):
 
         # record and store trajectories & parameters used at step 0
         self.save_param()
-        self.step_record_trajectories()
+        self.fill_step()
 
         print("simulate the repo market")
 
@@ -361,78 +375,43 @@ class ClassDynamics:
             # run one step of the network
             self.Network.step_network()
 
-            # record trajectories
-            self.step_record_trajectories()
+            # record information
+            self.fill_step()
 
-            # compute and dump expost trajectories every dump period
+            # expoxt record, dump, and plot
             if self.Network.step % self.dump_period == 0:
-                self.expost_record_trajectories()
+                self.fill()
                 self.Graphics.plot_all_trajectories()
 
         # store the final step (if not already done)
         if self.Network.step % self.dump_period != 0:
-            self.expost_record_trajectories()
+            self.fill()
             self.Graphics.plot_all_trajectories()
 
         # final print
         self.Graphics.plot_final_step()
-        self.print_summary()
 
         if output_keys:
             output = self.build_output(output_keys)
             return output
 
-    def print_summary(self):
-        for metric in [
-            "repo transactions maturity av. network",
-            "repo exposures av. network",
-        ]:
-            print(
-                f"{metric}:{self.df_network_trajectory.loc[self.Network.step, metric]}"
-            )
-
     def save_param(self):
-        with open(self.path_results + "param.txt", "w") as f:
+        with open(f"{self.path_results}input_parameters.txt", "w") as f:
             f.write(
-                (
-                    "nb_banks={} \n"
-                    "alpha={} \n"
-                    "beta_init={} \n"
-                    "beta_reg={} \n"
-                    "beta_star={} \n"
-                    "gamma={} \n"
-                    "collateral_value={} \n"
-                    "initialization_method={} \n"
-                    "alpha_pareto={} \n"
-                    "shock_method={} \n"
-                    "shocks_law={} \n"
-                    "shocks_vol={} \n"
-                    "result_location={} \n"
-                    "min_repo_size={} \n"
-                    "nb_steps={} \n"
-                    "save_every={} \n"
-                    "jaccard_periods={} \n"
-                    "LCR_mgt_opt={} \n"
-                ).format(
-                    self.Network.nb_banks,
-                    self.Network.alpha,
-                    self.Network.beta_init,
-                    self.Network.beta_reg,
-                    self.Network.beta_star,
-                    self.Network.gamma,
-                    self.Network.collateral_value,
-                    self.Network.initialization_method,
-                    self.Network.alpha_pareto,
-                    self.Network.shocks_method,
-                    self.Network.shocks_law,
-                    self.Network.shocks_vol,
-                    self.path_results,
-                    self.Network.min_repo_size,
-                    self.nb_steps,
-                    self.dump_period,
-                    par.agg_periods,
-                    self.Network.LCR_mgt_opt,
-                )
+                f"nb_banks={self.Network.nb_banks} \n"
+                f"alpha={self.Network.alpha} \n"
+                f"beta_init={self.Network.beta_init} \n"
+                f"beta_reg={self.Network.beta_reg} \n"
+                f"beta_star={self.Network.beta_star} \n"
+                f"gamma={self.Network.gamma} \n"
+                f"initialization_method={self.Network.initialization_method} \n"
+                f"alpha_pareto={self.Network.alpha_pareto} \n"
+                f"shock_method={self.Network.shocks_method} \n"
+                f"shocks_law={self.Network.shocks_law} \n"
+                f"shocks_vol={self.Network.shocks_vol} \n"
+                f"min_repo_trans_size={self.Network.min_repo_trans_size} \n"
+                f"nb_steps={self.nb_steps} \n"
+                f"LCR_mgt_opt={self.Network.LCR_mgt_opt} \n"
             )
 
     def build_output(self):
@@ -469,7 +448,7 @@ def single_run(
     shocks_law,
     shocks_vol,
     result_location,
-    min_repo_size,
+    min_repo_trans_size,
     nb_steps,
     dump_period,
     plot_period,
@@ -492,7 +471,7 @@ def single_run(
         shocks_method=shocks_method,
         shocks_law=shocks_law,
         shocks_vol=shocks_vol,
-        min_repo_size=min_repo_size,
+        min_repo_trans_size=min_repo_trans_size,
         LCR_mgt_opt=LCR_mgt_opt,
     )
 
