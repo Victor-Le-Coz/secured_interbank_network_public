@@ -1,32 +1,0 @@
-2023-05-08 22:47:53,012 - distributed.nanny - INFO -         Start Nanny at: 'tcp://10.67.203.17:38335'
-2023-05-08 22:47:57,304 - distributed.worker - INFO -       Start worker at:   tcp://10.67.203.17:37706
-2023-05-08 22:47:57,304 - distributed.worker - INFO -          Listening to:   tcp://10.67.203.17:37706
-2023-05-08 22:47:57,304 - distributed.worker - INFO -           Worker name:           SLURMCluster-453
-2023-05-08 22:47:57,304 - distributed.worker - INFO -          dashboard at:         10.67.203.17:46338
-2023-05-08 22:47:57,304 - distributed.worker - INFO - Waiting to connect to:    tcp://10.70.211.9:42768
-2023-05-08 22:47:57,304 - distributed.worker - INFO - -------------------------------------------------
-2023-05-08 22:47:57,305 - distributed.worker - INFO -               Threads:                          1
-2023-05-08 22:47:57,305 - distributed.worker - INFO -                Memory:                  17.70 GiB
-2023-05-08 22:47:57,305 - distributed.worker - INFO -       Local Directory: /opt/tmp/tmp/dask-worker-space/worker-c6aqscp9
-2023-05-08 22:47:57,305 - distributed.worker - INFO - -------------------------------------------------
-2023-05-08 22:47:58,337 - distributed.worker - INFO -         Registered to:    tcp://10.70.211.9:42768
-2023-05-08 22:47:58,337 - distributed.worker - INFO - -------------------------------------------------
-2023-05-08 22:47:58,338 - distributed.core - INFO - Starting established connection to tcp://10.70.211.9:42768
-Matplotlib created a temporary config/cache directory at /opt/tmp/tmp/matplotlib-0548277g because the default path (/home/vlecoz/.config/matplotlib) is not a writable directory; it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
-2023-05-08 22:48:08,131 - distributed.core - INFO - Event loop was unresponsive in Worker for 9.79s.  This is often caused by long-running GIL-holding functions or moving large chunks of data. This can cause timeouts and instability.
-  0%|          | 0/9 [00:00<?, ?it/s] 22%|██▏       | 2/9 [00:00<00:00, 12.29it/s] 44%|████▍     | 4/9 [00:00<00:00, 11.95it/s] 67%|██████▋   | 6/9 [00:00<00:00, 11.75it/s] 89%|████████▉ | 8/9 [00:00<00:00, 11.68it/s]100%|██████████| 9/9 [00:00<00:00, 11.76it/s]
-  0%|          | 0/50 [00:00<?, ?it/s]100%|██████████| 50/50 [00:00<00:00, 809711.20it/s]
-0it [00:00, ?it/s]24it [00:00, 12844.62it/s]
-  0%|          | 0/9 [00:00<?, ?it/s]100%|██████████| 9/9 [00:00<00:00, 1433.73it/s]
-  0%|          | 0/8 [00:00<?, ?it/s]100%|██████████| 8/8 [00:00<00:00, 11196.01it/s]
-  0%|          | 0/8 [00:00<?, ?it/s]100%|██████████| 8/8 [00:00<00:00, 3994.10it/s]
-  0%|          | 0/8 [00:00<?, ?it/s]100%|██████████| 8/8 [00:00<00:00, 3941.55it/s]
-  0%|          | 0/10 [00:00<?, ?it/s]  0%|          | 0/10 [00:00<?, ?it/s]
-2023-05-08 22:48:12,066 - distributed.worker - WARNING - Compute Failed
-Key:       single_run-8c98aa79-3c23-4356-8a51-af3ce7bc4512
-Function:  execute_task
-args:      ((<function apply at 0x7f2e47653040>, <function single_run at 0x7f2e29603310>, [], (<class 'dict'>, [['nb_banks', 50], ['alpha_init', 0.19], ['alpha', 0.01], ['beta_init', 0.5], ['beta_reg', 0.5], ['beta_star', 0.5], ['gamma', 0.03], ['collateral_value', 1.0], ['initialization_method', 'pareto'], ['alpha_pareto', 1.3], ['shocks_method', 'non-conservative'], ['shocks_law', 'normal-mean-reverting'], ['shocks_vol', 0.05], ['result_location', './results/multiple_run/alpha_init/0.19/'], ['min_repo_trans_size', 1e-08], ['nb_steps', 10], ['dump_period', 10], ['plot_period', 10], ['cp_option', False], ['LCR_mgt_opt', False]])))
-kwargs:    {}
-Exception: "ValueError('zero-size array to reduction operation minimum which has no identity')"
-
-slurmstepd: error: *** JOB 16609225 ON srv007078 CANCELLED AT 2023-05-08T22:48:15 ***

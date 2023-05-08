@@ -1,26 +1,0 @@
-2023-05-08 22:47:54,943 - distributed.nanny - INFO -         Start Nanny at: 'tcp://10.70.213.26:45041'
-2023-05-08 22:47:57,801 - distributed.worker - INFO -       Start worker at:   tcp://10.70.213.26:40470
-2023-05-08 22:47:57,801 - distributed.worker - INFO -          Listening to:   tcp://10.70.213.26:40470
-2023-05-08 22:47:57,801 - distributed.worker - INFO -           Worker name:           SLURMCluster-487
-2023-05-08 22:47:57,801 - distributed.worker - INFO -          dashboard at:         10.70.213.26:44898
-2023-05-08 22:47:57,801 - distributed.worker - INFO - Waiting to connect to:    tcp://10.70.211.9:42768
-2023-05-08 22:47:57,801 - distributed.worker - INFO - -------------------------------------------------
-2023-05-08 22:47:57,801 - distributed.worker - INFO -               Threads:                          1
-2023-05-08 22:47:57,801 - distributed.worker - INFO -                Memory:                  17.70 GiB
-2023-05-08 22:47:57,801 - distributed.worker - INFO -       Local Directory: /opt/tmp/tmp/dask-worker-space/worker-byn3gt6t
-2023-05-08 22:47:57,801 - distributed.worker - INFO - -------------------------------------------------
-2023-05-08 22:47:59,313 - distributed.worker - INFO -         Registered to:    tcp://10.70.211.9:42768
-2023-05-08 22:47:59,314 - distributed.worker - INFO - -------------------------------------------------
-2023-05-08 22:47:59,314 - distributed.core - INFO - Starting established connection to tcp://10.70.211.9:42768
-Matplotlib created a temporary config/cache directory at /opt/tmp/tmp/matplotlib-ypk7ci9m because the default path (/home/vlecoz/.config/matplotlib) is not a writable directory; it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
-2023-05-08 22:48:06,381 - distributed.core - INFO - Event loop was unresponsive in Worker for 7.05s.  This is often caused by long-running GIL-holding functions or moving large chunks of data. This can cause timeouts and instability.
-  0%|          | 0/9 [00:00<?, ?it/s] 22%|██▏       | 2/9 [00:00<00:00, 12.65it/s] 44%|████▍     | 4/9 [00:00<00:00, 12.22it/s] 67%|██████▋   | 6/9 [00:00<00:00, 12.43it/s] 89%|████████▉ | 8/9 [00:00<00:00, 12.47it/s]100%|██████████| 9/9 [00:00<00:00, 12.48it/s]
-  0%|          | 0/50 [00:00<?, ?it/s]100%|██████████| 50/50 [00:00<00:00, 884874.26it/s]
-0it [00:00, ?it/s]4it [00:00, 4788.02it/s]
-  0%|          | 0/9 [00:00<?, ?it/s]100%|██████████| 9/9 [00:00<00:00, 899.49it/s]
-  0%|          | 0/8 [00:00<?, ?it/s]/mnt/live/user/vlecoz/Secured_interbank_network/emp_metrics.py:28: RuntimeWarning: invalid value encountered in long_scalars
-  np.logical_and(
-100%|██████████| 8/8 [00:00<00:00, 9500.12it/s]
-  0%|          | 0/8 [00:00<?, ?it/s]100%|██████████| 8/8 [00:00<00:00, 3087.17it/s]
-  0%|          | 0/8 [00:00<?, ?it/s]100%|██████████| 8/8 [00:00<00:00, 3222.05it/s]
-  0%|          | 0/10 [00:00<?, ?it/s]  0%|          | 0/10 [00:00<?, ?it/s]slurmstepd: error: *** JOB 16609339 ON srv006955 CANCELLED AT 2023-05-08T22:48:09 ***

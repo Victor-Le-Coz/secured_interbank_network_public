@@ -1,17 +1,0 @@
-2023-05-08 22:47:51,390 - distributed.nanny - INFO -         Start Nanny at: 'tcp://10.67.203.17:41775'
-2023-05-08 22:47:54,734 - distributed.worker - INFO -       Start worker at:   tcp://10.67.203.17:44095
-2023-05-08 22:47:54,734 - distributed.worker - INFO -          Listening to:   tcp://10.67.203.17:44095
-2023-05-08 22:47:54,734 - distributed.worker - INFO -           Worker name:           SLURMCluster-334
-2023-05-08 22:47:54,734 - distributed.worker - INFO -          dashboard at:         10.67.203.17:44741
-2023-05-08 22:47:54,734 - distributed.worker - INFO - Waiting to connect to:    tcp://10.70.211.9:42768
-2023-05-08 22:47:54,734 - distributed.worker - INFO - -------------------------------------------------
-2023-05-08 22:47:54,734 - distributed.worker - INFO -               Threads:                          1
-2023-05-08 22:47:54,734 - distributed.worker - INFO -                Memory:                  17.70 GiB
-2023-05-08 22:47:54,734 - distributed.worker - INFO -       Local Directory: /opt/tmp/tmp/dask-worker-space/worker-cbjwd2ua
-2023-05-08 22:47:54,735 - distributed.worker - INFO - -------------------------------------------------
-2023-05-08 22:47:58,200 - distributed.worker - INFO -         Registered to:    tcp://10.70.211.9:42768
-2023-05-08 22:47:58,201 - distributed.worker - INFO - -------------------------------------------------
-2023-05-08 22:47:58,201 - distributed.core - INFO - Starting established connection to tcp://10.70.211.9:42768
-Matplotlib created a temporary config/cache directory at /opt/tmp/tmp/matplotlib-rvaiuckj because the default path (/home/vlecoz/.config/matplotlib) is not a writable directory; it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
-2023-05-08 22:48:08,125 - distributed.core - INFO - Event loop was unresponsive in Worker for 9.78s.  This is often caused by long-running GIL-holding functions or moving large chunks of data. This can cause timeouts and instability.
-  0%|          | 0/9 [00:00<?, ?it/s] 11%|█         | 1/9 [00:00<00:06,  1.18it/s] 22%|██▏       | 2/9 [00:01<00:06,  1.08it/s] 33%|███▎      | 3/9 [00:03<00:06,  1.04s/it] 44%|████▍     | 4/9 [00:04<00:05,  1.13s/it] 56%|█████▌    | 5/9 [00:05<00:04,  1.17s/it] 67%|██████▋   | 6/9 [00:06<00:03,  1.22s/it]slurmstepd: error: *** JOB 16609233 ON srv007078 CANCELLED AT 2023-05-08T22:48:15 ***
