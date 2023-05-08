@@ -76,13 +76,6 @@ class ClassNetwork:
             index=range(self.nb_banks), columns=par.bank_items
         )
 
-        # initialize the matrices dictionary (exposures)
-        self.dic_matrices = dict.fromkeys(par.matrices)
-        for key in self.dic_matrices.keys():
-            self.dic_matrices[key] = np.zeros(
-                (self.nb_banks, self.nb_banks)
-            ).copy()
-
         # Definition of the value of the collateral
         self.collateral_value = 1.0
 
@@ -237,14 +230,6 @@ class ClassNetwork:
         for key in par.accounting_items:
             self.df_banks.loc[bank_id, key] = Bank.dic_balance_sheet[key]
 
-        # fill dic_matrices
-        self.dic_matrices["adjency"][bank_id, :] = np.array(
-            list(self.banks[bank_id].reverse_repos.values())
-        )
-        trusts = list(self.banks[bank_id].trust.values())  # nb_banks-1 items
-        self.dic_matrices["trust"][bank_id, :bank_id] = trusts[:bank_id]
-        self.dic_matrices["trust"][bank_id, bank_id + 1 :] = trusts[bank_id:]
-
     def step_fill_df_banks_n_dic_matrices(self):
 
         for bank_id in range(self.nb_banks):
@@ -259,20 +244,9 @@ class ClassNetwork:
             self.df_banks["cash"] - self.alpha * self.df_banks["deposits"]
         )
 
-        # fill dic_matrices
-        self.dic_matrices["adjency"][
-            self.dic_matrices["adjency"] < self.min_repo_size
-        ] = 0
-        self.dic_matrices["non-zero_adjency"] = self.dic_matrices["adjency"][
-            np.nonzero(self.dic_matrices["adjency"])
-        ]
-        self.dic_matrices["binary_adjency"] = np.where(
-            self.dic_matrices["adjency"] > self.min_repo_size, True, False
-        )
-
     def store_network(self, path):
         self.df_banks.to_csv(f"{path}df_banks.csv")
-        self.df_reverse_repos.to_csv(f"{path}df_reverse_repos.csv")
+        self.df_rev_repo_trans.to_csv(f"{path}df_reverse_repos.csv")
 
     def build_df_reverse_repos(self):
 
@@ -281,8 +255,8 @@ class ClassNetwork:
 
         dfs = []
         for Bank in tqdm(self.banks):
-            dfs.append(Bank.df_reverse_repos)
-        self.df_reverse_repos = pd.concat(
+            dfs.append(Bank.df_rev_repo_trans)
+        self.df_rev_repo_trans = pd.concat(
             dfs,
             keys=range(self.nb_banks),
             names=["owner_bank_id", "bank_id", "trans_id"],

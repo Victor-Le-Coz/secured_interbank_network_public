@@ -74,9 +74,9 @@ def build_from_exposures(df_exposures, path):
     )
 
     # initialisation of a dictionary of the observed paths
-    dic_obs_matrix_reverse_repo = {}  # for the exposures
+    dic_rev_repo_exp_adj = {}  # for the exposures
     for mmsr_trade_date in mmsr_trade_dates:
-        dic_obs_matrix_reverse_repo.update(
+        dic_rev_repo_exp_adj.update(
             {mmsr_trade_date: pd.DataFrame(columns=leis, index=leis, data=0)}
         )
 
@@ -85,19 +85,19 @@ def build_from_exposures(df_exposures, path):
         ts_trade = pd.to_datetime(
             df_exposures.loc[index, "Setdate"].strftime("%Y-%m-%d")
         )
-        dic_obs_matrix_reverse_repo[ts_trade].loc[
+        dic_rev_repo_exp_adj[ts_trade].loc[
             df_exposures.loc[index, "lend_lei"],
             df_exposures.loc[index, "borr_lei"],
         ] = df_exposures.loc[index, "exposure"]
 
     fct.init_path(path)
     pickle.dump(
-        dic_obs_matrix_reverse_repo,
+        dic_rev_repo_exp_adj,
         open(f"{path}dic_obs_matrix_reverse_repo.pickle", "wb"),
         protocol=pickle.HIGHEST_PROTOCOL,
     )
 
-    return dic_obs_matrix_reverse_repo
+    return dic_rev_repo_exp_adj
 
 
 @jit(nopython=True)
@@ -159,14 +159,14 @@ def convert_dic_to_array(dic_obs_matrix_reverse_repo):
     return arr_obs_matrix_reverse_repo
 
 
-def build_rolling_binary_adj(dic_obs_matrix_reverse_repo, path):
+def build_rolling_binary_adj(dic_rev_repo_exp_adj, path):
 
     # convert dic to array
-    bank_ids = list(list(dic_obs_matrix_reverse_repo.values())[0].index)
+    bank_ids = list(list(dic_rev_repo_exp_adj.values())[0].index)
     nb_banks = len(bank_ids)
-    days = list(dic_obs_matrix_reverse_repo.keys())
+    days = list(dic_rev_repo_exp_adj.keys())
     arr_obs_matrix_reverse_repo = np.fromiter(
-        dic_obs_matrix_reverse_repo.values(),
+        dic_rev_repo_exp_adj.values(),
         np.dtype((float, [nb_banks, nb_banks])),
     )
 
@@ -196,3 +196,19 @@ def build_rolling_binary_adj(dic_obs_matrix_reverse_repo, path):
 
 def load_dic_arr_binary_adj(path):
     return pickle.load(open(f"{path}dic_arr_binary_adj.pickle", "rb"))
+
+
+def build_arr_total_assets(df_finrep, bank_ids_int, path):
+
+    # build the total asset per bank
+    df_total_assets = (
+        df_finrep[df_finrep["lei"].isin(bank_ids_int)]
+        .set_index(["date", "lei"])
+        .unstack()
+    )
+    arr_total_assets = np.array(df_total_assets)
+
+    fct.init_path(path)
+    df_total_assets.to_csv(f"{path}df_total_assets.csv")
+
+    return arr_total_assets

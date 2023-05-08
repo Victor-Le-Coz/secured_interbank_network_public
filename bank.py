@@ -44,12 +44,12 @@ class ClassBank:
         self.dic_balance_sheet = dict.fromkeys(par.accounting_items, 0)
 
         # definition of the df for storing all reverse repo transactions
-        self.df_reverse_repos = pd.DataFrame(
+        self.df_rev_repo_trans = pd.DataFrame(
             index=pd.MultiIndex.from_tuples(
                 [],
                 names=["bank_id", "trans_id"],
             ),
-            columns=par.reverse_repos,
+            columns=par.transaction_cols,
         )
 
         # Other parameters initialization
@@ -66,13 +66,13 @@ class ClassBank:
         )  # Dictionary of the trust coefficients with the other banks.
 
         # Dictionaries & lists related to the other bank agents
-        self.on_balance_repos = (
+        self.on_repo_exp = (
             {}
         )  # Dictionary of the repo exposures  received from each of the other banks using securities.
-        self.off_balance_repos = (
+        self.off_repo_exp = (
             {}
         )  # Dictionary of the repo exposures received from each of the other banks, re-using collateral.
-        self.reverse_repos = (
+        self.rev_repo_exp = (
             {}
         )  # Dictionary of the reverse repo exposures provided to each of the other banks.
         self.banks = (
@@ -124,11 +124,11 @@ class ClassBank:
         :return:
         """
         for bank in banks:
-            self.reverse_repos[bank.id] = 0.0
+            self.rev_repo_exp[bank.id] = 0.0
             if bank.id != self.id:
                 self.trust[bank.id] = 0.0
-                self.on_balance_repos[bank.id] = 0.0
-                self.off_balance_repos[bank.id] = 0.0
+                self.on_repo_exp[bank.id] = 0.0
+                self.off_repo_exp[bank.id] = 0.0
                 self.banks[bank.id] = bank
 
     def step_set_shock(self, shock):
@@ -214,24 +214,24 @@ class ClassBank:
         ):
             # Definition of the target amount of off-balance repos to close
             # with a given bank b
-            end = min(self.off_balance_repos[b], target_repo_amount_to_close)
+            end = min(self.off_repo_exp[b], target_repo_amount_to_close)
 
-            if self.off_balance_repos[b] - end < -par.float_limit:
-                print(self.off_balance_repos[b])
+            if self.off_repo_exp[b] - end < -par.float_limit:
+                print(self.off_repo_exp[b])
 
             if (
-                self.off_balance_repos[b]
+                self.off_repo_exp[b]
                 - self.dic_balance_sheet["securities reused"]
                 > par.float_limit
             ):
                 print(
-                    f"The end repo amount of bank {self.id} with bank {b} is {end} while the off_balance_repo is {self.off_balance_repos[b]} and the securities reused is {self.dic_balance_sheet['securities reused']}"
+                    f"The end repo amount of bank {self.id} with bank {b} is {end} while the off_balance_repo is {self.off_repo_exp[b]} and the securities reused is {self.dic_balance_sheet['securities reused']}"
                 )
 
             # test the accuracy of self.on_balance repos:
             assert (
                 abs(
-                    sum(self.off_balance_repos.values())
+                    sum(self.off_repo_exp.values())
                     - self.dic_balance_sheet["securities reused"]
                 )
                 < par.float_limit
@@ -240,7 +240,7 @@ class ClassBank:
                 "off-balance repos {}, "
                 "is not equal to the "
                 "Securities Reused {}".format(
-                    sum(self.off_balance_repos.values()),
+                    sum(self.off_repo_exp.values()),
                     self.dic_balance_sheet["securities reused"],
                 )
             )
@@ -254,7 +254,7 @@ class ClassBank:
 
                 # Update all the balance sheet items related to the closure of the repo
                 self.dic_balance_sheet["cash"] -= end
-                self.dic_balance_sheet["repo exposures"] -= end
+                self.dic_balance_sheet["repo balance"] -= end
                 self.dic_balance_sheet["securities collateral"] += (
                     end / self.collateral_value
                 )
@@ -262,11 +262,11 @@ class ClassBank:
                     end / self.collateral_value
                 )
 
-                self.off_balance_repos[b] -= end
+                self.off_repo_exp[b] -= end
 
                 # # when the off balance repo is below some limit, we set the value of the exposure to 0
-                # if self.off_balance_repos[b] < par.float_limit:
-                #     self.off_balance_repos[b] = 0
+                # if self.off_repo_exp[b] < par.float_limit:
+                #     self.off_repo_exp[b] = 0
 
                 target_repo_amount_to_close -= end
 
@@ -298,16 +298,16 @@ class ClassBank:
         for b, t in sorted(
             trust.items(), key=lambda item: item[1], reverse=True
         ):
-            end = min(self.on_balance_repos[b], target_repo_amount_to_close)
+            end = min(self.on_repo_exp[b], target_repo_amount_to_close)
 
             # test the accuracy of self.on_balance repos:
             assert (
                 abs(
-                    sum(self.on_balance_repos.values())
+                    sum(self.on_repo_exp.values())
                     - self.dic_balance_sheet["securities encumbered"]
                 )
                 < par.float_limit
-            ), f"the sum of the on-balance repos {sum(self.on_balance_repos.values())} are not equal to the Securities Encumbered {self.dic_balance_sheet['securities encumbered']}"
+            ), f"the sum of the on-balance repos {sum(self.on_repo_exp.values())} are not equal to the Securities Encumbered {self.dic_balance_sheet['securities encumbered']}"
 
             if end > 0.0:
 
@@ -319,18 +319,18 @@ class ClassBank:
                 self.banks[b].end_reverse_repo(self.id, end)
 
                 self.dic_balance_sheet["cash"] -= end
-                self.dic_balance_sheet["repo exposures"] -= end
+                self.dic_balance_sheet["repo balance"] -= end
                 self.dic_balance_sheet["securities usable"] += (
                     end / self.collateral_value
                 )
                 self.dic_balance_sheet["securities encumbered"] -= (
                     end / self.collateral_value
                 )
-                self.on_balance_repos[b] -= end
+                self.on_repo_exp[b] -= end
 
                 # # when the on balance repo is below some limit, we set the value of the exposure to 0
-                # if self.on_balance_repos[b] < par.float_limit:
-                #     self.on_balance_repos[b] = 0
+                # if self.on_repo_exp[b] < par.float_limit:
+                #     self.on_repo_exp[b] = 0
 
                 # fix, it seems the previous version was an error
                 target_repo_amount_to_close -= end
@@ -414,7 +414,7 @@ class ClassBank:
             abs(
                 self.dic_balance_sheet["securities collateral"]
                 + self.dic_balance_sheet["securities reused"]
-                - self.dic_balance_sheet["reverse repo exposures"]
+                - self.dic_balance_sheet["reverse repo balance"]
             )
             < par.float_limit
         ), (
@@ -430,8 +430,8 @@ class ClassBank:
             "".format(
                 self.dic_balance_sheet["securities collateral"],
                 self.dic_balance_sheet["securities reused"],
-                self.dic_balance_sheet["reverse repo exposures"],
-                self.dic_balance_sheet["reverse repo exposures"]
+                self.dic_balance_sheet["reverse repo balance"],
+                self.dic_balance_sheet["reverse repo balance"]
                 - self.dic_balance_sheet["securities collateral"]
                 - self.dic_balance_sheet["securities reused"],
             )
@@ -439,30 +439,30 @@ class ClassBank:
 
         # Update of the balance sheet items
         self.dic_balance_sheet["cash"] += amount
-        self.dic_balance_sheet["reverse repo exposures"] -= amount
-        self.reverse_repos[bank_id] -= amount
+        self.dic_balance_sheet["reverse repo balance"] -= amount
+        self.rev_repo_exp[bank_id] -= amount
         self.dic_balance_sheet["securities collateral"] -= (
             amount / self.collateral_value
         )
 
         # update df_reverse_repos
         # initialize the list of trans_ids with status == True
-        trans_ids = self.df_reverse_repos.loc[bank_id][
-            self.df_reverse_repos.loc[bank_id]["status"]
+        trans_ids = self.df_rev_repo_trans.loc[bank_id][
+            self.df_rev_repo_trans.loc[bank_id]["status"]
         ].index
 
         # case with an issue (no solution yet, just print the issue and a warning)
         if len(trans_ids) == 0:
-            self.df_reverse_repos.to_csv(
+            self.df_rev_repo_trans.to_csv(
                 f"./support/{self.id}_df_reverse_repo_err.csv"
             )
             pickle.dump(
-                self.banks[bank_id].on_balance_repos,
+                self.banks[bank_id].on_repo_exp,
                 open(f"./support/{bank_id}_on_balance_repos.pickle", "wb"),
                 protocol=pickle.HIGHEST_PROTOCOL,
             )
             pickle.dump(
-                self.banks[bank_id].off_balance_repos,
+                self.banks[bank_id].off_repo_exp,
                 open(f"./support/{bank_id}_off_balance_repos.pickle", "wb"),
                 protocol=pickle.HIGHEST_PROTOCOL,
             )
@@ -477,23 +477,23 @@ class ClassBank:
             i = 0
             while (
                 remaining_amount
-                >= self.df_reverse_repos.loc[(bank_id, trans_id), "amount"]
+                >= self.df_rev_repo_trans.loc[(bank_id, trans_id), "amount"]
             ):
                 # close the transaction
-                self.df_reverse_repos.loc[
+                self.df_rev_repo_trans.loc[
                     (bank_id, trans_id), "status"
                 ] = False
 
                 # record the maturity of the closed transaction
-                self.df_reverse_repos.loc[(bank_id, trans_id), "tenor"] = (
+                self.df_rev_repo_trans.loc[(bank_id, trans_id), "tenor"] = (
                     self.Network.step
-                    - self.df_reverse_repos.loc[
+                    - self.df_rev_repo_trans.loc[
                         (bank_id, trans_id), "start_step"
                     ]
                 )
 
                 # decrease the remaining amount
-                remaining_amount -= self.df_reverse_repos.loc[
+                remaining_amount -= self.df_rev_repo_trans.loc[
                     (bank_id, trans_id), "amount"
                 ]
 
@@ -505,14 +505,14 @@ class ClassBank:
             # specific case if the remaining amount is smaller than the transaction size: need to create and close a special transaction
             if (
                 remaining_amount
-                < self.df_reverse_repos.loc[(bank_id, trans_id), "amount"]
+                < self.df_rev_repo_trans.loc[(bank_id, trans_id), "amount"]
             ):
 
                 # create a new transaction with the status closed
-                start_step = self.df_reverse_repos.loc[
+                start_step = self.df_rev_repo_trans.loc[
                     (bank_id, trans_id), "start_step"
                 ]
-                self.df_reverse_repos.loc[(bank_id, last_trans_id + 1), :] = [
+                self.df_rev_repo_trans.loc[(bank_id, last_trans_id + 1), :] = [
                     remaining_amount,
                     start_step,
                     self.Network.step - start_step,
@@ -520,7 +520,7 @@ class ClassBank:
                 ]
 
                 # update the amount of the transaction
-                self.df_reverse_repos.loc[
+                self.df_rev_repo_trans.loc[
                     (bank_id, trans_id), "amount"
                 ] -= remaining_amount
 
@@ -593,21 +593,21 @@ class ClassBank:
 
             # Update of the balance sheet items
             self.dic_balance_sheet["cash"] += repo_ask - rest
-            self.on_balance_repos[b] += securities_usable_decrease
+            self.on_repo_exp[b] += securities_usable_decrease
             self.dic_balance_sheet["securities usable"] -= (
                 securities_usable_decrease / self.collateral_value
             )
             self.dic_balance_sheet["securities encumbered"] += (
                 securities_usable_decrease / self.collateral_value
             )
-            self.off_balance_repos[b] += securities_collateral_decrease
+            self.off_repo_exp[b] += securities_collateral_decrease
             self.dic_balance_sheet["securities collateral"] -= (
                 securities_collateral_decrease / self.collateral_value
             )
             self.dic_balance_sheet["securities reused"] += (
                 securities_collateral_decrease / self.collateral_value
             )
-            self.dic_balance_sheet["repo exposures"] += repo_ask - rest
+            self.dic_balance_sheet["repo balance"] += repo_ask - rest
 
             assert not (
                 self.dic_balance_sheet["securities reused"] > par.float_limit
@@ -687,8 +687,7 @@ class ClassBank:
         #  A bank does not accept to enter into a reverse repo if
         # it has still repos, it means it is not in excess of cash.
         if (
-            sum(self.on_balance_repos.values())
-            + sum(self.off_balance_repos.values())
+            sum(self.on_repo_exp.values()) + sum(self.off_repo_exp.values())
             > 0.0
         ):
             return amount
@@ -716,15 +715,15 @@ class ClassBank:
             reverse_repo / self.collateral_value
         )
         self.dic_balance_sheet["cash"] -= reverse_repo
-        self.dic_balance_sheet["reverse repo exposures"] += reverse_repo
-        self.reverse_repos[bank_id] += reverse_repo
+        self.dic_balance_sheet["reverse repo balance"] += reverse_repo
+        self.rev_repo_exp[bank_id] += reverse_repo
 
         # fill df_reverse_repos
-        if bank_id in self.df_reverse_repos.index.get_level_values("bank_id"):
-            trans_id = self.df_reverse_repos.loc[bank_id].index[-1] + 1
+        if bank_id in self.df_rev_repo_trans.index.get_level_values("bank_id"):
+            trans_id = self.df_rev_repo_trans.loc[bank_id].index[-1] + 1
         else:
             trans_id = 0
-        self.df_reverse_repos.loc[(bank_id, trans_id), :] = [
+        self.df_rev_repo_trans.loc[(bank_id, trans_id), :] = [
             reverse_repo,
             self.Network.step,
             np.NaN,
@@ -795,12 +794,12 @@ class ClassBank:
                 * self.collateral_value,
                 2,
             ),
-            round(self.dic_balance_sheet["reverse repo exposures"], 2),
+            round(self.dic_balance_sheet["reverse repo balance"], 2),
             round(self.dic_balance_sheet["loans"], 2),
             round(self.total_liabilities(), 2),
             round(self.dic_balance_sheet["own funds"], 2),
             round(self.dic_balance_sheet["deposits"], 2),
-            round(self.dic_balance_sheet["repo exposures"], 2),
+            round(self.dic_balance_sheet["repo balance"], 2),
             round(self.dic_balance_sheet["central bank funding"], 2),
             round(
                 self.dic_balance_sheet["securities collateral"]
@@ -864,11 +863,11 @@ class ClassBank:
             + self.dic_balance_sheet["securities encumbered"]
             * self.collateral_value
             + self.dic_balance_sheet["loans"]
-            + self.dic_balance_sheet["reverse repo exposures"]
+            + self.dic_balance_sheet["reverse repo balance"]
             # counterparty credit risk exposure, non zero only if the
             # collateral value is dynamic
             + (
-                self.dic_balance_sheet["reverse repo exposures"]
+                self.dic_balance_sheet["reverse repo balance"]
                 - self.dic_balance_sheet["securities collateral"]
                 * self.collateral_value
                 - self.dic_balance_sheet["securities reused"]
@@ -917,7 +916,7 @@ class ClassBank:
         ):
             for bank in self.banks.values():
                 print(bank)
-                print(bank.reverse_repos)
+                print(bank.reverse_repo_exposures)
 
         assert (
             self.dic_balance_sheet["cash"]
@@ -927,7 +926,7 @@ class ClassBank:
             self.__str__() + "\nMinimum reserves not respected for bank {} at"
             " "
             "step {} \n The reverse repos provided to the rest of the network are {}".format(
-                self.id, self.Network.step, self.reverse_repos
+                self.id, self.Network.step, self.rev_repo_exp
             )
         )
 
@@ -968,4 +967,4 @@ class ClassBank:
         )
 
     def store_df_reverse_repos(self, path):
-        self.df_reverse_repos.to_csv(f"{path}df_reverse_repos.csv")
+        self.df_rev_repo_trans.to_csv(f"{path}df_reverse_repos.csv")

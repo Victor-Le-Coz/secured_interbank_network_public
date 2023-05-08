@@ -360,13 +360,6 @@ def reformat_output(output):
         return output_rf
 
 
-def init_results_path(path):
-    if os.path.exists(path):  # Delete all previous figures
-        shutil.rmtree(path)
-    os.makedirs(os.path.join(path, "deposits"))
-    os.makedirs(os.path.join(path, "balance_Sheets"))
-
-
 def delete_n_init_path(path):
     if os.path.exists(path):  # Delete all previous figures
         shutil.rmtree(path)

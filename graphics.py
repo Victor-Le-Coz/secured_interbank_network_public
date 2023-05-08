@@ -32,6 +32,11 @@ class ClassGraphics:
         df_bank_trajectory = self.Dynamics.df_bank_trajectory
         path_results = self.Dynamics.path_results
 
+        # --------------
+        # accounting view
+
+        fct.init_path(f"{path_results}accounting_view/")
+
         # Plot aggregates
         items = [
             "loans",
@@ -44,7 +49,7 @@ class ClassGraphics:
             df=df_network_trajectory,
             cols=[f"{item} tot. network" for item in items],
             title="Macro-economic aggregates",
-            file_name=f"{path_results}Macro-economic_aggregates.pdf",
+            file_name=f"{path_results}accounting_view/Macro-economic_aggregates.pdf",
         )
 
         # Plot collateral
@@ -54,13 +59,13 @@ class ClassGraphics:
                 "securities encumbered",
             ]
             + par.off_bs_items
-            + ["repo exposures"]
+            + ["repo balance"]
         )
         self.plot_trajectory(
             df=df_network_trajectory,
             cols=[f"{item} tot. network" for item in items],
             title="Collateral aggregates",
-            file_name=f"{path_results}collateral_aggregates.pdf",
+            file_name=f"{path_results}accounting_view/collateral_aggregates.pdf",
         )
 
         # Plot the rate of collateral reuse in the network
@@ -69,7 +74,7 @@ class ClassGraphics:
             cols=["collateral reuse"],
             title="Collateral reuse",
             ylabel="number of reuse",
-            file_name=f"{path_results}collateral_reuse.pdf",
+            file_name=f"{path_results}accounting_view/collateral_reuse.pdf",
         )
 
         # Plot gini
@@ -78,8 +83,40 @@ class ClassGraphics:
             cols=["gini"],
             title="Gini coefficient",
             ylabel="percentage",
-            file_name=f"{path_results}gini.pdf",
+            file_name=f"{path_results}accounting_view/gini.pdf",
         )
+
+        # --------------
+        # transaction view
+        fct.init_path(f"{path_results}transaction_view/")
+
+        # Plot the average maturity of reverse repos transactions
+        self.plot_trajectory(
+            df=df_network_trajectory,
+            cols=["repo transactions maturity av. network"],
+            title="Repos transactions maturity av. network",
+            file_name=f"{path_results}transaction_view/repo_transactions_maturity_av_network.pdf",
+        )
+
+        # Plot average notional of reverse repos transactions
+        self.plot_trajectory(
+            df=df_network_trajectory,
+            cols=["repo transactions notional av. network"],
+            title="Repo transactions notional av. network",
+            file_name=f"{path_results}transaction_view/repo_transactions_notional_av_network.pdf",
+        )
+
+        # plot average number of reverse repos transactions
+        self.plot_trajectory(
+            df=df_network_trajectory,
+            cols=["number repo transactions av. network"],
+            title="Number repo transactions av. network",
+            file_name=f"{path_results}transaction_view/number_repo_transactions_av_network.pdf",
+        )
+
+        # --------------
+        # exposure view
+        fct.init_path(f"{path_results}exposure_view/")
 
         # Plot reverse repo exposures statistics
         self.plot_trajectory(
@@ -90,32 +127,8 @@ class ClassGraphics:
                 "repo exposures av. network",
             ],
             title="Repo exposures statistics",
-            file_name=f"{path_results}repo_exposure_stats.pdf",
+            file_name=f"{path_results}exposure_view/repo_exposure_stats.pdf",
         )
-
-        # Plot the average maturity of reverse repos transactions
-        self.plot_trajectory(
-            df=df_network_trajectory,
-            cols=["repos maturity av. network"],
-            title="Repos maturity av. network",
-            file_name=f"{path_results}average_maturity_repo_transactions.pdf",
-        )
-
-        # Plot average size of reverse repos transactions
-        self.plot_trajectory(
-            df=df_network_trajectory,
-            cols=["amount_ending_starting av. network"],
-            title="Amount ending starting av. network",
-            file_name=f"{path_results}average_size_repo_transactions.pdf",
-        )
-
-        # # plot average number of reverse repos transactions
-        # self.plot_df_trajectory(
-        #     df=df_network_trajectory,
-        #     cols=["nb_ending_starting av. network"],
-        #     title="Nb of repo transactions starting av. network",
-        #     file_name=f"{path_results}average_nb_repo_transactions.pdf",
-        # )
 
         # Plot the time series of the jaccard index
         self.plot_trajectory(
@@ -125,7 +138,7 @@ class ClassGraphics:
             ],
             title="Jaccard index",
             ylabel="percentage",
-            file_name=f"{path_results}jaccard_index.pdf",
+            file_name=f"{path_results}exposure_view/jaccard_index.pdf",
         )
 
         # Plot the time series of the network density
@@ -137,7 +150,7 @@ class ClassGraphics:
             ],
             title="Network density",
             ylabel="percentage",
-            file_name=f"{path_results}network_density.pdf",
+            file_name=f"{path_results}exposure_view/network_density.pdf",
         )
 
         # Plot the time series of the network average degree
@@ -148,11 +161,13 @@ class ClassGraphics:
             ],
             title="Av. degree",
             ylabel="degree",
-            file_name=f"{path_results}average_degree.pdf",
+            file_name=f"{path_results}exposure_view/average_degree.pdf",
         )
 
         # Plot the single bank trajectory time series.
-        self.plot_df_bank_trajectory(df_bank_trajectory, path_results)
+        self.plot_df_bank_trajectory(
+            df_bank_trajectory, f"{path_results}exposure_view/"
+        )
 
         days = range(
             self.Dynamics.Network.step + 1
@@ -160,10 +175,10 @@ class ClassGraphics:
 
         # plot the reverse repo network
         self.plot_weighted_adj_network(
-            self.Dynamics.arr_reverse_repo_adj,
+            self.Dynamics.arr_rev_repo_exp_adj,
             self.Dynamics.arr_total_assets,
             days,
-            f"{path_results}weighted_adj_network/",
+            f"{path_results}exposure_view/weighted_adj_network/",
             "reverse repo",
         )
 
@@ -172,7 +187,7 @@ class ClassGraphics:
             self.Dynamics.dic_in_degree,
             self.Dynamics.dic_out_degree,
             days,
-            f"{path_results}degree_distribution/",
+            f"{path_results}exposure_view/degree_distribution/",
         )
 
         # Plot degree per asset
@@ -181,7 +196,7 @@ class ClassGraphics:
             self.Dynamics.dic_degree,
             range(self.Dynamics.Network.nb_banks),
             days,
-            f"{path_results}degree_per_asset/",
+            f"{path_results}exposure_view/degree_per_asset/",
         )
 
         # Plot the core-periphery detection and assessment
@@ -190,14 +205,14 @@ class ClassGraphics:
                 dic=self.Dynamics.dic_arr_binary_adj,
                 algos=par.cp_algos,
                 days=days,
-                path_results=path_results,
+                path_results=f"{path_results}exposure_view/",
                 opt_agg=True,
             )
             self.plot_cp_test(
-                dic=self.Dynamics.arr_reverse_repo_adj,
+                dic=self.Dynamics.arr_rev_repo_exp_adj,
                 algos=par.cp_algos,
                 days=days,
-                path_results=path_results,
+                path_results=f"{path_results}exposure_view/",
                 opt_agg=False,
             )
             self.Dynamics.p_value = 0  # to be modified
@@ -410,6 +425,9 @@ class ClassGraphics:
         df_degree = pd.DataFrame(index=bank_ids)
         for agg_period in par.agg_periods:
             df_degree[f"degree-{agg_period}"] = dic_degree[agg_period][step]
+
+        if not (finrep_bank_ids):
+            finrep_bank_ids = bank_ids
 
         # build the asset per bank from the ar_total assets
         df_total_assets = pd.DataFrame(
@@ -667,9 +685,9 @@ class ClassGraphics:
             "cash",
             "securities usable",
             "securities encumbered",
-            # "reverse repo exposures",
+            # "reverse repo balance",
             # "own funds",
-            # "repo exposures",
+            # "repo balance",
             "securities collateral",
             "securities reused",
         ]
@@ -712,8 +730,8 @@ class ClassGraphics:
             )
 
         keys = [
-            "nb_ending_starting",
-            "repos maturity av. bank",
+            "number repo transactions av. bank",
+            "repo transactions maturity av. bank",
         ]
         for key in keys:
             ax3.plot(
@@ -742,7 +760,7 @@ class ClassGraphics:
         # Plot the break-down of the balance per bank
         self.plot_step_balance_sheet(
             self.Dynamics.Network.df_banks,
-            self.Dynamics.path_results,
+            f"{self.Dynamics.path_results}accounting_view/",
             self.Dynamics.Network.step,
         )
 

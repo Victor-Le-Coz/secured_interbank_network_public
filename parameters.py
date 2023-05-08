@@ -14,13 +14,13 @@ assets = [
     "securities usable",
     "securities encumbered",
     "loans",
-    "reverse repo exposures",
+    "reverse repo balance",
 ]
 
 liabilities = [
     "own funds",
     "deposits",
-    "repo exposures",
+    "repo balance",
     "central bank funding",
 ]
 
@@ -56,7 +56,7 @@ initialization_methods = ["constant", "pareto"]
 matrices = ["adjency", "trust", "binary_adjency", "non-zero_adjency"]
 
 # reverse repos
-reverse_repos = ["amount", "start_step", "tenor", "status"]
+transaction_cols = ["amount", "start_step", "tenor", "status"]
 
 # core-periphery algorithms
 cp_algos = [

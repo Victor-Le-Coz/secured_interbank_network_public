@@ -8,7 +8,7 @@ import parameters as par
 import cpnet
 
 
-def get_jaccard(dic_arr_binary_adj, days, path=False):
+def get_rev_repo_exposure_stats(dic_arr_binary_adj, days, path=False):
 
     print("get jaccard")
 
@@ -162,22 +162,6 @@ def get_av_degree(dic_degree, days, path=False):
     return df_av_degree
 
 
-def build_arr_total_assets(df_finrep, bank_ids_int, path):
-
-    # build the total asset per bank
-    df_total_assets = (
-        df_finrep[df_finrep["lei"].isin(bank_ids_int)]
-        .set_index(["date", "lei"])
-        .unstack()
-    )
-    arr_total_assets = np.array(df_total_assets)
-
-    fct.init_path(path)
-    df_total_assets.to_csv(f"{path}df_total_assets.csv")
-
-    return arr_total_assets
-
-
 def cpnet_test(bank_network, algo="BE"):
     if algo == "KM_ER":
         alg = cpnet.KM_ER()
@@ -231,3 +215,76 @@ def gini(x):
     for i, xi in enumerate(x):
         total += np.sum(np.abs(xi - x[i:]))
     return total / (len(x) ** 2 * np.mean(x))
+
+
+def get_step_transaction_stats(df_trans, df_traj, name, step):
+
+    # --------------
+    # transaction view
+
+    # repo transactions maturity av. network
+    df_ending = df_trans[
+        df_trans["tenor"] + df_trans["start_step"] == step - 1
+    ]
+    if df_ending["amount"].sum() > 0:
+        df_traj.loc[step, f"repo transactions maturity {name}"] = (
+            df_ending["amount"] @ df_ending["tenor"]
+        ) / df_ending["amount"].sum()
+    else:
+        df_traj.loc[step, f"repo transactions maturity {name}"] = 0
+
+    # repo transactions notional av. network
+    df_starting = df_trans[df_trans["start_step"] == step - 1]
+    nb_trans = len(df_starting)
+    if nb_trans > 0:
+        df_traj.loc[
+            step,
+            f"repo transactions notional {name}",
+        ] = (df_starting["amount"].sum()) / nb_trans
+    else:
+        df_traj.loc[
+            step,
+            f"repo transactions notional {name}",
+        ] = 0
+
+    # number repo transactions av. network
+    df_traj.loc[
+        step,
+        f"number repo transactions {name}",
+    ] = nb_trans
+
+
+def get_exposure_stats(arr_rev_repo_exp_adj, days, path=False):
+
+    print("get exposure stats")
+
+    # initialisation
+    df_exposures_stats = pd.DataFrame(
+        index=days,
+        columns=[
+            "repo exposures min network",
+            "repo exposures max network",
+            "repo exposures av. network",
+        ],
+    )
+
+    # loop over the steps
+    for step, day in enumerate(days):
+        ar_rev_repo_exp_adj_non_zero = arr_rev_repo_exp_adj[step][
+            np.nonzero(arr_rev_repo_exp_adj[step])
+        ]
+        df_exposures_stats.loc[day, "repo exposures min network"] = np.min(
+            ar_rev_repo_exp_adj_non_zero
+        )
+        df_exposures_stats.loc[day, "repo exposures max network"] = np.max(
+            ar_rev_repo_exp_adj_non_zero
+        )
+        df_exposures_stats.loc[day, "repo exposures av. network"] = np.mean(
+            ar_rev_repo_exp_adj_non_zero
+        )
+
+    if path:
+        fct.init_path(path)
+        df_exposures_stats.to_csv(f"{path}df_exposures_stats.csv")
+
+    return df_exposures_stats

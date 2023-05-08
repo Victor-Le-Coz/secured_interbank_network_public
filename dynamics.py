@@ -33,7 +33,7 @@ class ClassDynamics:
         self.cp_option = cp_option
 
         # Create the required path to store the results
-        fct.init_results_path(self.path_results)
+        fct.delete_n_init_path(self.path_results)
 
         # network trajectories
         self.df_network_trajectory = pd.DataFrame(index=range(self.nb_steps))
@@ -48,7 +48,7 @@ class ClassDynamics:
         )
 
         # reverse repo adj exposure: array (nb_steps * nb_banks * nb_banks)
-        self.arr_reverse_repo_adj = np.zeros(
+        self.arr_rev_repo_exp_adj = np.zeros(
             (self.nb_steps, self.Network.nb_banks, self.Network.nb_banks),
             dtype=np.float32,
         )
@@ -77,6 +77,10 @@ class ClassDynamics:
         self.fill_arr_total_assets()
 
     def fill_df_network_trajectory(self):
+
+        # -----------
+        # accounting view
+
         # accounting items
         for item in par.bank_items:
             self.df_network_trajectory.loc[
@@ -101,28 +105,6 @@ class ClassDynamics:
             ]
             + 1e-10
         )
-
-        # repo exposures
-        if len(self.Network.dic_matrices["non-zero_adjency"]) == 0:
-            self.df_network_trajectory.loc[
-                self.Network.step, "repo exposures min network"
-            ] = 0
-            self.df_network_trajectory.loc[
-                self.Network.step, "repo exposures max network"
-            ] = 0
-            self.df_network_trajectory.loc[
-                self.Network.step, "repo exposures av. network"
-            ] = 0
-        else:
-            self.df_network_trajectory.loc[
-                self.Network.step, "repo exposures min network"
-            ] = np.min(self.Network.dic_matrices["non-zero_adjency"])
-            self.df_network_trajectory.loc[
-                self.Network.step, "repo exposures max network"
-            ] = np.max(self.Network.dic_matrices["non-zero_adjency"])
-            self.df_network_trajectory.loc[
-                self.Network.step, "repo exposures av. network"
-            ] = np.mean(self.Network.dic_matrices["non-zero_adjency"])
 
     def fill_df_bank_trajectory(self):
 
@@ -169,43 +151,59 @@ class ClassDynamics:
 
     def expost_fill_step_df_network_trajectory(self, step):
 
-        # very slow, parcours de df
+        df_trans = self.Network.df_rev_repo_trans
 
-        df = self.Network.df_reverse_repos
+        # --------------
+        # transaction view
 
-        # repos maturity av. network
-        df_ending = df[df["tenor"] + df["start_step"] == step - 1]
-        if df_ending["amount"].sum() > 0:
-            self.df_network_trajectory.loc[
-                step, "repos maturity av. network"
-            ] = (df_ending["amount"] @ df_ending["tenor"]) / df_ending[
-                "amount"
-            ].sum()
+        em.get_step_transaction_stats(
+            df_trans=df_trans,
+            df_traj=self.df_network_trajectory,
+            name="av. network",
+            step=step,
+        )
+
+    def expost_fill_step_df_bank_trajectory(self, step):
+
+        # --------------
+        # transaction view
+
+        df_trans = self.Network.df_rev_repo_trans
+
+        # check of the single bank entered into any reverse repos
+        if self.single_bank_id in df_trans.index.get_level_values(0):
+
+            # filter the df on the single bank:
+            df_trans = df_trans.loc[self.single_bank_id]
+
+            em.get_step_transaction_stats(
+                df_trans=df_trans,
+                df_traj=self.df_bank_trajectory,
+                name="av. bank",
+                step=step,
+            )
+
+        # otherwise all the information is step to 0
         else:
-            self.df_network_trajectory.loc[
-                step, "repos maturity av. network"
+            self.df_bank_trajectory.loc[
+                step, "repo transactions maturity av. bank"
             ] = 0
-
-        # amount_ending_starting av. network
-        df_starting = df[df["start_step"] == step - 1]
-        nb_trans = len(df_ending) + len(df_starting)
-        if nb_trans > 0:
-            self.df_network_trajectory.loc[
+            self.df_bank_trajectory.loc[
                 step,
-                "amount_ending_starting av. network",
-            ] = (
-                df_ending["amount"].sum() + df_starting["amount"].sum()
-            ) / nb_trans
-        else:
-            self.df_network_trajectory.loc[
+                "repo transactions notional av. bank",
+            ] = 0
+            self.df_bank_trajectory.loc[
                 step,
-                "amount_ending_starting av. network",
+                "nb repo transactions",
             ] = 0
 
     def expost_fill_df_network_trajectory(self):
 
+        # --------------
+        # exposure view
+
         # expost jaccard
-        df_jaccard = em.get_jaccard(
+        df_jaccard = em.get_rev_repo_exposure_stats(
             self.dic_arr_binary_adj, range(self.Network.step)
         )
         self.df_network_trajectory[
@@ -229,9 +227,23 @@ class ClassDynamics:
             [f"av. degree-{agg_period}" for agg_period in par.agg_periods]
         ] = df_degree
 
-        # expost
+        # expost repo exposures stats
+        df_exposures_stats = em.get_exposure_stats(
+            self.arr_rev_repo_exp_adj,
+            range(self.Network.step + 1),
+        )
+        self.df_network_trajectory[
+            [
+                "repo exposures min network",
+                "repo exposures max network",
+                "repo exposures av. network",
+            ]
+        ] = df_exposures_stats
 
     def expost_fill_df_bank_trajectory(self):
+
+        # --------------
+        # exposure view
 
         # expost in-degree
         df_in_degree = pd.DataFrame()
@@ -255,6 +267,9 @@ class ClassDynamics:
 
     def expost_fill_dic_degree(self):
 
+        # --------------
+        # exposure view
+
         # degree distribution
         (
             self.dic_in_degree,
@@ -262,53 +277,8 @@ class ClassDynamics:
             self.dic_degree,
         ) = em.get_degree_distribution(
             self.dic_arr_binary_adj,
-            path=f"{self.path_results}degree_distribution/",
+            path=f"{self.path_results}exposure_view/degree_distribution/",
         )
-
-    def expost_fill_step_df_bank_trajectory(self, step):
-
-        df = self.Network.df_reverse_repos
-
-        # check of the single bank entered into any reverse repos
-        if self.single_bank_id in df.index.get_level_values(0):
-            df = df.loc[self.single_bank_id]
-        else:
-            self.df_bank_trajectory.loc[step, "repos maturity av. bank"] = 0
-            self.df_bank_trajectory.loc[
-                step,
-                "amount_ending_starting av. bank",
-            ] = 0
-
-        # repos maturity av. network
-        df_ending = df[df["tenor"] + df["start_step"] == step - 1]
-        if df_ending["amount"].sum() > 0:
-            self.df_bank_trajectory.loc[step, "repos maturity av. bank"] = (
-                df_ending["amount"] @ df_ending["tenor"]
-            ) / df_ending["amount"].sum()
-        else:
-            self.df_bank_trajectory.loc[step, "repos maturity av. bank"] = 0
-
-        # amount_ending_starting av. network
-        df_starting = df[df["start_step"] == step - 1]
-        nb_trans = len(df_ending) + len(df_starting)
-        if nb_trans > 0:
-            self.df_bank_trajectory.loc[
-                step,
-                "amount_ending_starting av. bank",
-            ] = (
-                df_ending["amount"].sum() + df_starting["amount"].sum()
-            ) / nb_trans
-        else:
-            self.df_bank_trajectory.loc[
-                step,
-                "amount_ending_starting av. bank",
-            ] = 0
-
-        # nb_ending starting per signle bank
-        self.df_bank_trajectory.loc[
-            step,
-            "nb_ending_starting",
-        ] = nb_trans
 
     def build_arr_reverse_repo_adj_from_df_reverse_repos(self):
 
@@ -316,7 +286,7 @@ class ClassDynamics:
         print("build arr_reverse_repo_adj from df_reverse_repos")
 
         # loop over the rows of df_reverse_repos transactions
-        for index, row in tqdm(self.Network.df_reverse_repos.iterrows()):
+        for index, row in tqdm(self.Network.df_rev_repo_trans.iterrows()):
 
             # get the tenor (fill by current step if tenor is empty)
             if np.isnan(row["tenor"]):
@@ -328,21 +298,21 @@ class ClassDynamics:
             for step in range(
                 row["start_step"], row["start_step"] + tenor + 1
             ):
-                self.arr_reverse_repo_adj[step, index[0], index[1]] += row[
+                self.arr_rev_repo_exp_adj[step, index[0], index[1]] += row[
                     "amount"
                 ]
 
-        # loop over the steps to clean values close to zero
+        # loop over the steps to clean values close to zero (or negative)
         for step in range(self.Network.step + 1):
-            self.arr_reverse_repo_adj[step][
-                self.arr_reverse_repo_adj[step] < self.Network.min_repo_size
+            self.arr_rev_repo_exp_adj[step][
+                self.arr_rev_repo_exp_adj[step] < 0
             ] = 0
 
         # save last step to csv
-        fct.init_path(f"{self.path_results}matrices/")
+        fct.init_path(f"{self.path_results}exposure_view/adj_matrices/")
         fct.dump_np_array(
-            self.arr_reverse_repo_adj[self.Network.step],
-            f"{self.path_results}matrices/arr_reverse_repo_adj_{self.Network.step}.csv",
+            self.arr_rev_repo_exp_adj[self.Network.step],
+            f"{self.path_results}exposure_view/adj_matrices/arr_reverse_repo_adj_{self.Network.step}.csv",
         )
 
     def build_arr_binary_adj(self):
@@ -355,7 +325,7 @@ class ClassDynamics:
 
         # build arr of results with numba
         arr_binary_adj = ep.fast_build_arr_binary_adj(
-            self.arr_reverse_repo_adj, arr_agg_period, self.Network.step
+            self.arr_rev_repo_exp_adj, arr_agg_period, self.Network.step
         )
 
         # loop over agg periods
@@ -365,10 +335,12 @@ class ClassDynamics:
             self.dic_arr_binary_adj[agg_period] = arr_binary_adj[period_nb]
 
             # save last step to csv
-            fct.init_path(f"{self.path_results}matrices/{agg_period}/")
+            fct.init_path(
+                f"{self.path_results}exposure_view/adj_matrices/{agg_period}/"
+            )
             fct.dump_np_array(
                 arr_binary_adj[period_nb][self.Network.step],
-                f"{self.path_results}matrices/{agg_period}/arr_binary_adj_on_day_{self.Network.step}.csv",
+                f"{self.path_results}exposure_view/adj_matrices/{agg_period}/arr_binary_adj_on_day_{self.Network.step}.csv",
             )
 
     def build_adj_matrices(self):
@@ -412,7 +384,7 @@ class ClassDynamics:
 
     def print_summary(self):
         for metric in [
-            "repos maturity av. network",
+            "repo transactions maturity av. network",
             "repo exposures av. network",
         ]:
             print(
