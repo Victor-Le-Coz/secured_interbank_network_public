@@ -198,14 +198,10 @@ def load_dic_arr_binary_adj(path):
     return pickle.load(open(f"{path}dic_arr_binary_adj.pickle", "rb"))
 
 
-def build_arr_total_assets(df_finrep, bank_ids_int, path):
+def build_arr_total_assets(df_finrep, path):
 
     # build the total asset per bank
-    df_total_assets = (
-        df_finrep[df_finrep["lei"].isin(bank_ids_int)]
-        .set_index(["date", "lei"])
-        .unstack()
-    )
+    df_total_assets = df_finrep.set_index(["date", "lei"]).unstack()
     arr_total_assets = np.array(df_total_assets)
 
     fct.init_path(path)
