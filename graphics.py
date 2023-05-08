@@ -48,7 +48,6 @@ class ClassGraphics:
         self.plot_trajectory(
             df=df_network_trajectory,
             cols=[f"{item} tot. network" for item in items],
-            title="Macro-economic aggregates",
             file_name=f"{path_results}accounting_view/Macro-economic_aggregates.pdf",
         )
 
@@ -64,7 +63,6 @@ class ClassGraphics:
         self.plot_trajectory(
             df=df_network_trajectory,
             cols=[f"{item} tot. network" for item in items],
-            title="Collateral aggregates",
             file_name=f"{path_results}accounting_view/collateral_aggregates.pdf",
         )
 
@@ -72,17 +70,15 @@ class ClassGraphics:
         self.plot_trajectory(
             df=df_network_trajectory,
             cols=["collateral reuse"],
-            title="Collateral reuse",
-            ylabel="number of reuse",
+            ylabel="number of reuse (#)",
             file_name=f"{path_results}accounting_view/collateral_reuse.pdf",
         )
 
         # Plot gini
         self.plot_trajectory(
-            df=df_network_trajectory,
+            df=df_network_trajectory * 100,
             cols=["gini"],
-            title="Gini coefficient",
-            ylabel="percentage",
+            ylabel="gini (%)",
             file_name=f"{path_results}accounting_view/gini.pdf",
         )
 
@@ -94,7 +90,7 @@ class ClassGraphics:
         self.plot_trajectory(
             df=df_network_trajectory,
             cols=["repo transactions maturity av. network"],
-            title="Repos transactions maturity av. network",
+            ylabel="maturity (days)",
             file_name=f"{path_results}transaction_view/repo_transactions_maturity_av_network.pdf",
         )
 
@@ -102,7 +98,6 @@ class ClassGraphics:
         self.plot_trajectory(
             df=df_network_trajectory,
             cols=["repo transactions notional av. network"],
-            title="Repo transactions notional av. network",
             file_name=f"{path_results}transaction_view/repo_transactions_notional_av_network.pdf",
         )
 
@@ -110,7 +105,7 @@ class ClassGraphics:
         self.plot_trajectory(
             df=df_network_trajectory,
             cols=["number repo transactions av. network"],
-            title="Number repo transactions av. network",
+            ylabel="Nb transactions (#)",
             file_name=f"{path_results}transaction_view/number_repo_transactions_av_network.pdf",
         )
 
@@ -126,30 +121,27 @@ class ClassGraphics:
                 "repo exposures max network",
                 "repo exposures av. network",
             ],
-            title="Repo exposures statistics",
             file_name=f"{path_results}exposure_view/repo_exposure_stats.pdf",
         )
 
         # Plot the time series of the jaccard index
         self.plot_trajectory(
-            df=df_network_trajectory,
+            df=df_network_trajectory * 100,
             cols=[
                 f"jaccard index-{agg_period}" for agg_period in par.agg_periods
             ],
-            title="Jaccard index",
-            ylabel="percentage",
+            ylabel="Jaccard (%)",
             file_name=f"{path_results}exposure_view/jaccard_index.pdf",
         )
 
         # Plot the time series of the network density
         self.plot_trajectory(
-            df=df_network_trajectory,
+            df=df_network_trajectory * 100,
             cols=[
                 f"network density-{agg_period}"
                 for agg_period in par.agg_periods
             ],
-            title="Network density",
-            ylabel="percentage",
+            ylabel="density (%)",
             file_name=f"{path_results}exposure_view/network_density.pdf",
         )
 
@@ -159,8 +151,7 @@ class ClassGraphics:
             cols=[
                 f"av. degree-{agg_period}" for agg_period in par.agg_periods
             ],
-            title="Av. degree",
-            ylabel="degree",
+            ylabel="degree (#)",
             file_name=f"{path_results}exposure_view/average_degree.pdf",
         )
 
@@ -221,13 +212,16 @@ class ClassGraphics:
         self,
         df,
         cols,
-        title,
         file_name,
+        xlabel="time (days)",
         ylabel="monetary units",
+        xscale="linear",
+        yscale="linear",
         figsize=par.small_figsize,
     ):
         fig = plt.figure(figsize=figsize)
         colors = sns.color_palette("flare", n_colors=len(cols))
+
         for i, col in enumerate(cols):
             plt.plot(
                 df.index,
@@ -235,9 +229,10 @@ class ClassGraphics:
                 color=colors[i],
             )
         plt.legend(cols)
-        plt.xlabel("time (days)")
+        plt.xlabel(xlabel)
         plt.ylabel(ylabel)
-        plt.title(title)
+        plt.xscale(xscale)
+        plt.yscale(xscale)
         plt.grid()
         plt.savefig(f"{file_name}", bbox_inches="tight")
         plt.close()
@@ -517,7 +512,6 @@ class ClassGraphics:
         sig_x,
         path,
         step,
-        name_in_title,
         figsize=(6, 3),
     ):
 
@@ -525,15 +519,10 @@ class ClassGraphics:
 
         # Visualization
         fig = plt.figure(figsize=figsize)
-        ax = plt.gca()
+        ax = ax
         ax, pos = cpnet.draw(bank_network, sig_c, sig_x, ax)
 
         # show the plot
-        plt.title(
-            "{} core-periphery structure at the step {}".format(
-                name_in_title, step
-            )
-        )
         fig.tight_layout()
         plt.savefig(
             f"{path}step_core-periphery_structure_{step}.pdf",
@@ -591,7 +580,6 @@ class ClassGraphics:
                 sig_x=sig_x,
                 path=f"{path_results}",
                 step=day_print,
-                name_in_title="reverse repo",
                 figsize=figsize,
             )
 
@@ -855,12 +843,12 @@ def plot_multiple_key(
     nb_char,
     figsize=par.small_figsize,
 ):
-    fig = plt.figure(figsize=figsize)
+    fig, ax = plt.subplots(figsize=figsize)
     for key in output.keys():
         if key[0:nb_char] == short_key:
             plt.plot(param_values, output[key], "-o")
     if input_param in par.log_input_params:
-        plt.gca().set_xscale("log")
+        ax.set_xscale("log")
         plt.xlabel(input_param + " (log-scale)")
     else:
         plt.xlabel(input_param)
@@ -870,7 +858,7 @@ def plot_multiple_key(
         and input_param in par.log_input_params
     ):
         plt.ylabel(short_key + " (log-scale)")
-        plt.gca().set_yscale("log")
+        ax.set_yscale("log")
     else:
         plt.ylabel(short_key)
 
@@ -890,19 +878,17 @@ def plot_multiple_key(
 def plot_single_key(
     key, param_values, input_param, output, path, figsize=par.small_figsize
 ):
-    fig = plt.figure(figsize=figsize)
+    fig, ax = plt.subplots(figsize=figsize)
     plt.plot(param_values, output[key], "-o")
-    if input_param in par.log_input_params:
-        plt.gca().set_xscale("log")
-        plt.xlabel(input_param + " (log-scale)")
-    else:
-        plt.xlabel(input_param)
+    ax.set_xscale(par.df_plt.loc[input_param, "scale"])
+    plt.xlabel(par.df_plt.loc[input_param, "label"])
+
     if (
         key in par.log_output_single_keys
         and input_param in par.log_input_params
     ):
         plt.ylabel(key + " (log-scale)")
-        plt.gca().set_yscale("log")
+        ax.set_yscale("log")
     else:
         plt.ylabel(key)
     plt.title(key + " as a fct. of " + input_param)

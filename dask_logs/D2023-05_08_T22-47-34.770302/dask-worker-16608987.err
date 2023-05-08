@@ -1,0 +1,16 @@
+2023-05-08 22:47:51,344 - distributed.nanny - INFO -         Start Nanny at: 'tcp://10.67.203.5:44371'
+2023-05-08 22:47:58,769 - distributed.worker - INFO -       Start worker at:    tcp://10.67.203.5:38385
+2023-05-08 22:47:58,770 - distributed.worker - INFO -          Listening to:    tcp://10.67.203.5:38385
+2023-05-08 22:47:58,770 - distributed.worker - INFO -           Worker name:           SLURMCluster-457
+2023-05-08 22:47:58,770 - distributed.worker - INFO -          dashboard at:          10.67.203.5:46098
+2023-05-08 22:47:58,770 - distributed.worker - INFO - Waiting to connect to:    tcp://10.70.211.9:42768
+2023-05-08 22:47:58,770 - distributed.worker - INFO - -------------------------------------------------
+2023-05-08 22:47:58,770 - distributed.worker - INFO -               Threads:                          1
+2023-05-08 22:47:58,770 - distributed.worker - INFO -                Memory:                  17.70 GiB
+2023-05-08 22:47:58,770 - distributed.worker - INFO -       Local Directory: /opt/tmp/tmp/dask-worker-space/worker-zbkb6vkf
+2023-05-08 22:47:58,770 - distributed.worker - INFO - -------------------------------------------------
+2023-05-08 22:48:02,608 - distributed.worker - INFO -         Registered to:    tcp://10.70.211.9:42768
+2023-05-08 22:48:02,608 - distributed.worker - INFO - -------------------------------------------------
+2023-05-08 22:48:02,609 - distributed.core - INFO - Starting established connection to tcp://10.70.211.9:42768
+Matplotlib created a temporary config/cache directory at /opt/tmp/tmp/matplotlib-jude0fs7 because the default path (/home/vlecoz/.config/matplotlib) is not a writable directory; it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+slurmstepd: error: *** JOB 16608987 ON srv007066 CANCELLED AT 2023-05-08T22:48:11 ***

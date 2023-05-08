@@ -391,10 +391,6 @@ class ClassDynamics:
         # final print
         self.Graphics.plot_final_step()
 
-        if output_keys:
-            output = self.build_output(output_keys)
-            return output
-
     def save_param(self):
         with open(f"{self.path_results}input_parameters.txt", "w") as f:
             f.write(
@@ -413,24 +409,6 @@ class ClassDynamics:
                 f"nb_steps={self.nb_steps} \n"
                 f"LCR_mgt_opt={self.Network.LCR_mgt_opt} \n"
             )
-
-    def build_output(self):
-        output = {}
-        stat_len_step = 250
-
-        # build the time series metrics outputs
-        for metric in self.df_network_trajectory.columns:
-            output.update(
-                {
-                    metric: self.df_network_trajectory.loc[
-                        -stat_len_step:, metric
-                    ].mean()
-                }
-            )
-
-        output.update({"core-peri. p-val.": self.p_value})
-
-        return output
 
 
 def single_run(
@@ -454,9 +432,9 @@ def single_run(
     plot_period,
     cp_option,
     LCR_mgt_opt,
-    output_keys,
 ):
 
+    # initialize ClassNetwork
     Network = ClassNetwork(
         nb_banks=nb_banks,
         alpha_init=alpha_init,
@@ -475,6 +453,7 @@ def single_run(
         LCR_mgt_opt=LCR_mgt_opt,
     )
 
+    # initialize ClassDynamics
     dynamics = ClassDynamics(
         Network,
         nb_steps=nb_steps,
@@ -484,8 +463,5 @@ def single_run(
         cp_option=cp_option,
     )
 
-    output = dynamics.simulate(
-        output_keys=output_keys,
-    )
-
-    return output
+    # simulate
+    dynamics.simulate()

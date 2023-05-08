@@ -1,3 +1,5 @@
+import pandas as pd
+
 agg_periods = [1, 50, 100, 250]
 
 # The parameter sets the limit to the float precision when running the algorithm, a value lower than this amount is considered as negligible.
@@ -75,7 +77,75 @@ cp_algos = [
 ]
 
 
-# output metrics
+# input params
+input_params = [
+    "cash",
+    "shocks_vol",
+    "alpha_pareto",
+    "beta",
+    "n_banks",
+    "min_repo_size",
+    "collateral",
+]
+
+# ploting conventions
+plt_columns = [
+    "item",
+    "label",
+    "scale",
+    "str_format",
+    "convertion",
+]
+nb_banks = ["nb_banks", r"$N$ (log scale)", "log", "", False]
+alpha_init = [
+    "alpha_init",
+    r"$\alpha_0$ (log scale)",
+    "linear",
+    "",
+    "%",
+]
+alpha = ["alpha", r"$\alpha_0$ (log scale)", "log", "", "%"]
+beta_init = ["beta_init", r"$\beta_0$", "linear", "", "%"]
+beta_reg = ["beta_reg", r"$\beta$", "linear", "", "%"]
+beta_star = ["beta_reg", r"$\beta*$", "linear", "", "%"]
+gamma = ["gamma", r"$\gamma$", "linear", "", "%"]
+alpha_pareto = ["alpha_pareto", r"alpha patero (log scale)", "log", "", "%"]
+shocks_vol = ["shocks_vol", r"$\sigma$ (log scale)", "log", "", "%"]
+min_repo_trans_size = [
+    "min_repo_trans_size",
+    r"min repo trans. size (log scale)",
+    "log",
+    "",
+    False,
+]
+# add here any other metric or item for which a ploting convention must be defined
+
+
+df_plt = pd.DataFrame(
+    [
+        alpha,
+        beta_init,
+        beta_reg,
+        beta_star,
+        gamma,
+        alpha_pareto,
+        shocks_vol,
+        min_repo_trans_size,
+    ],
+    columns=plt_columns,
+)
+df_plt.set_index(["item"], inplace=True)
+
+
+# ---------------------------------
+# to be reviewed:
+log_input_params = [
+    "cash",
+    "alpha_pareto",
+    "min_repo_size",
+    "shocks_vol",
+    "n_banks",
+]
 output_single_keys = [
     "av. in-degree",
     "collateral reuse",
@@ -85,7 +155,6 @@ output_single_keys = [
     "repos tot. network",
     "repos av. volume",
 ]
-
 output_mlt_keys = [
     "jaccard index over ",
     "network density over ",
@@ -98,26 +167,6 @@ log_output_single_keys = [
 log_output_mlt_keys = [
     "network density over ",
 ]
-
-# input parameters
-log_input_params = [
-    "cash",
-    "alpha_pareto",
-    "min_repo_size",
-    "shocks_vol",
-    "n_banks",
-]
-
-input_params = [
-    "cash",
-    "shocks_vol",
-    "alpha_pareto",
-    "beta",
-    "n_banks",
-    "min_repo_size",
-    "collateral",
-]
-
 
 link_network_metrics = [
     "network density",
