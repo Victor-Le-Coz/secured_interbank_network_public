@@ -1,11 +1,13 @@
 import os
-from multiprocessing import Pool
 import functions as fct
 import parameters as par
 import dynamics as dyn
 import numpy as np
 import dask
 from cluster import launch_cluster_mltp
+import graphics as gx
+
+path = "./results/sensitivity/"
 
 dic_default_value = {
     "nb_banks": 50,
@@ -21,16 +23,16 @@ dic_default_value = {
     "shocks_method": "non-conservative",
     "shocks_law": "normal-mean-reverting",
     "shocks_vol": 0.05,
-    "result_location": "./results/multiple_run/",
+    "result_location": f"{path}runs/",
     "min_repo_trans_size": 1e-8,
-    "nb_steps": int(1e3),
-    "dump_period": 200,
-    "plot_period": 20,
+    "nb_steps": int(10e3),
+    "dump_period": 2500,
+    "plot_period": 1000,
     "cp_option": False,
     "LCR_mgt_opt": False,
 }
 
-dic_ranges = {
+dic_range = {
     "nb_banks": np.arange(10, 260, 10),
     "alpha_init": np.arange(0, 0.3, 0.01),
     "beta_init": np.arange(0, 1, 0.05),
@@ -55,27 +57,24 @@ dic_ranges_test = {
 if __name__ == "__main__":
 
     # build list of the dic_args to be tested
-    list_dic_args = fct.build_args(dic_default_value, dic_ranges)
+    list_dic_args = fct.build_args(dic_default_value, dic_range)
 
-    # run the dask cluster o
+    # open a cluster
     client, cluster = launch_cluster_mltp(
-        TASK_MEMORY=19,
-        JOB_WALLTIME="25:00:00",
+        TASK_MEMORY=19, JOB_WALLTIME="30:00:00"
     )
 
-    dld_obj = []
-    for dic_args in list_dic_args:
+    # run with dask distributed
+    dld_obj = [
         dld_obj.append(dask.delayed(dyn.single_run)(**dic_args))
-
+        for dic_args in list_dic_args
+    ]
     dask.compute(dld_obj)
 
-    # # plot the results -> to be re-factored
-    # param_values = fct.get_param_values(input_param)
-    # gx.plot_output_by_param(
-    #     param_values=param_values,
-    #     input_param=input_param,
-    #     output=output,
-    #     jaccard_periods=jaccard_periods,
-    #     agg_periods=agg_periods,
-    #     path=result_location + input_param + "/output_by_args/",
-    # )
+    # collect results into df_network_sensitivity
+    df_network_sensitivity = fct.get_df_network_sensitivity(
+        dic_default_value["result_location"]
+    )
+
+    # plot the sensitivity
+    gx.plot_all_sensitivities(df_network_sensitivity, path=path)

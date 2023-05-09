@@ -1,17 +1,11 @@
-# import librairies
 import os
-
-# os.environ["OMP_NUM_THREADS"] = "1"
 import numpy as np
-from cProfile import label
 import cpnet
 import networkx as nx
 from matplotlib import pyplot as plt
 import pandas as pd
 import seaborn as sns
 from matplotlib.colors import ListedColormap
-
-# import modules
 import functions as fct
 import parameters as par
 import emp_metrics as em
@@ -28,136 +22,33 @@ class ClassGraphics:
 
     def plot_all_trajectories(self):
 
-        df_network_trajectory = self.Dynamics.df_network_trajectory
-        df_bank_trajectory = self.Dynamics.df_bank_trajectory
+        # create paths
         path_results = self.Dynamics.path_results
-
-        # --------------
-        # accounting view
-
         os.makedirs(f"{path_results}accounting_view/", exist_ok=True)
-
-        # Plot aggregates
-        items = [
-            "loans",
-            "central bank funding",
-            "total assets",
-            "deposits",
-            "excess liquidity",
-        ]
-        self.plot_trajectory(
-            df=df_network_trajectory,
-            cols=[f"{item} tot. network" for item in items],
-            file_name=f"{path_results}accounting_view/Macro-economic_aggregates.pdf",
-        )
-
-        # Plot collateral
-        items = (
-            [
-                "securities usable",
-                "securities encumbered",
-            ]
-            + par.off_bs_items
-            + ["repo balance"]
-        )
-        self.plot_trajectory(
-            df=df_network_trajectory,
-            cols=[f"{item} tot. network" for item in items],
-            file_name=f"{path_results}accounting_view/collateral_aggregates.pdf",
-        )
-
-        # Plot the rate of collateral reuse in the network
-        self.plot_trajectory(
-            df=df_network_trajectory,
-            cols=["collateral reuse"],
-            ylabel="number of reuse (#)",
-            file_name=f"{path_results}accounting_view/collateral_reuse.pdf",
-        )
-
-        # Plot gini
-        self.plot_trajectory(
-            df=df_network_trajectory * 100,
-            cols=["gini"],
-            ylabel="gini (%)",
-            file_name=f"{path_results}accounting_view/gini.pdf",
-        )
-
-        # --------------
-        # transaction view
         os.makedirs(f"{path_results}transaction_view/", exist_ok=True)
-
-        # Plot the average maturity of reverse repos transactions
-        self.plot_trajectory(
-            df=df_network_trajectory,
-            cols=["repo transactions maturity av. network"],
-            ylabel="maturity (days)",
-            file_name=f"{path_results}transaction_view/repo_transactions_maturity_av_network.pdf",
-        )
-
-        # Plot average notional of reverse repos transactions
-        self.plot_trajectory(
-            df=df_network_trajectory,
-            cols=["repo transactions notional av. network"],
-            file_name=f"{path_results}transaction_view/repo_transactions_notional_av_network.pdf",
-        )
-
-        # plot average number of reverse repos transactions
-        self.plot_trajectory(
-            df=df_network_trajectory,
-            cols=["number repo transactions av. network"],
-            ylabel="Nb transactions (#)",
-            file_name=f"{path_results}transaction_view/number_repo_transactions_av_network.pdf",
-        )
-
-        # --------------
-        # exposure view
         os.makedirs(f"{path_results}exposure_view/", exist_ok=True)
 
-        # Plot reverse repo exposures statistics
-        self.plot_trajectory(
-            df=df_network_trajectory,
-            cols=[
-                "repo exposures min network",
-                "repo exposures max network",
-                "repo exposures av. network",
-            ],
-            file_name=f"{path_results}exposure_view/repo_exposure_stats.pdf",
-        )
+        # --------------
+        # all views
 
-        # Plot the time series of the jaccard index
-        self.plot_trajectory(
-            df=df_network_trajectory * 100,
-            cols=[
-                f"jaccard index-{agg_period}" for agg_period in par.agg_periods
-            ],
-            ylabel="Jaccard (%)",
-            file_name=f"{path_results}exposure_view/jaccard_index.pdf",
-        )
+        # plot all trajectories
+        for index in par.df_figures.index:
+            self.plot_trajectory(
+                df=self.Dynamics.df_network_trajectory,
+                cols=[
+                    f"{item}{par.df_figures.loc[index,'extension']}"
+                    for item in par.df_figures.loc[index, "items"]
+                ],
+                file_name=f"{path_results}{index}.pdf",
+            )
 
-        # Plot the time series of the network density
-        self.plot_trajectory(
-            df=df_network_trajectory * 100,
-            cols=[
-                f"network density-{agg_period}"
-                for agg_period in par.agg_periods
-            ],
-            ylabel="density (%)",
-            file_name=f"{path_results}exposure_view/network_density.pdf",
-        )
-
-        # Plot the time series of the network average degree
-        self.plot_trajectory(
-            df=df_network_trajectory,
-            cols=[
-                f"av. degree-{agg_period}" for agg_period in par.agg_periods
-            ],
-            ylabel="degree (#)",
-            file_name=f"{path_results}exposure_view/average_degree.pdf",
-        )
+        # --------------
+        # exposure view - specific cases
 
         # Plot the single bank trajectory time series.
         self.plot_df_bank_trajectory(
-            df_bank_trajectory, f"{path_results}exposure_view/"
+            self.Dynamics.df_bank_trajectory,
+            f"{path_results}exposure_view/",
         )
 
         days = range(
@@ -213,10 +104,7 @@ class ClassGraphics:
         df,
         cols,
         file_name,
-        xlabel="time (days)",
-        ylabel="monetary units",
         xscale="linear",
-        yscale="linear",
         figsize=par.small_figsize,
     ):
         fig = plt.figure(figsize=figsize)
@@ -228,11 +116,11 @@ class ClassGraphics:
                 df[col],
                 color=colors[i],
             )
-        plt.legend(cols)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
+        plt.legend(par.df_plt.loc[cols, "legend"])
+        plt.xlabel("time (days)")
+        plt.ylabel(par.df_plt.loc[cols[0], "label"])
         plt.xscale(xscale)
-        plt.yscale(xscale)
+        plt.yscale(par.df_plt.loc[cols[0], "scale"])
         plt.grid()
         plt.savefig(f"{file_name}", bbox_inches="tight")
         plt.close()
@@ -834,101 +722,59 @@ class ClassGraphics:
         plt.close()
 
 
-def plot_multiple_key(
-    param_values,
-    input_param,
-    output,
-    path,
-    short_key,
-    nb_char,
+def plot_sensitivity(
+    df_network_sensitivity,
+    input_parameter,
+    cols,
+    file_name,
     figsize=par.small_figsize,
 ):
-    fig, ax = plt.subplots(figsize=figsize)
-    for key in output.keys():
-        if key[0:nb_char] == short_key:
-            plt.plot(param_values, output[key], "-o")
-    if input_param in par.log_input_params:
-        ax.set_xscale("log")
-        plt.xlabel(input_param + " (log-scale)")
-    else:
-        plt.xlabel(input_param)
 
-    if (
-        short_key in par.log_output_mlt_keys
-        and input_param in par.log_input_params
-    ):
-        plt.ylabel(short_key + " (log-scale)")
-        ax.set_yscale("log")
-    else:
-        plt.ylabel(short_key)
+    # define figure
+    fig = plt.figure(figsize=figsize)
+    colors = sns.color_palette("flare", n_colors=len(cols))
 
-    plt.legend(
-        [str(agg_period) + " time steps" for agg_period in par.agg_periods],
-        loc="upper left",
-    )
-    plt.title(short_key + "x periods as a fct. of " + input_param)
-    fig.tight_layout()
-    plt.savefig(
-        path + short_key + "_agg_" + input_param + ".pdf",
-        bbox_inches="tight",
-    )
+    # filter on index
+    df = df_network_sensitivity.loc[input_parameter].copy()
+
+    # sort index
+    df.sort_index(inplace=True)
+
+    # filter on columns
+    for i, col in enumerate(cols):
+        plt.plot(df.index, df[col], ".-", color=colors[i])
+
+    # set legend
+    plt.legend(par.df_plt.loc[cols, "legend"])
+    plt.xlabel(par.df_plt.loc[input_parameter, "label"])
+    plt.ylabel(par.df_plt.loc[cols[0], "label"])
+    plt.xscale(par.df_plt.loc[input_parameter, "scale"])
+    plt.yscale(par.df_plt.loc[cols[0], "scale"])
+    plt.grid()
+    plt.savefig(f"{file_name}", bbox_inches="tight")
     plt.close()
 
 
-def plot_single_key(
-    key, param_values, input_param, output, path, figsize=par.small_figsize
-):
-    fig, ax = plt.subplots(figsize=figsize)
-    plt.plot(param_values, output[key], "-o")
-    ax.set_xscale(par.df_plt.loc[input_param, "scale"])
-    plt.xlabel(par.df_plt.loc[input_param, "label"])
+def plot_all_sensitivities(df_network_sensitivity, path):
 
-    if (
-        key in par.log_output_single_keys
-        and input_param in par.log_input_params
-    ):
-        plt.ylabel(key + " (log-scale)")
-        ax.set_yscale("log")
-    else:
-        plt.ylabel(key)
-    plt.title(key + " as a fct. of " + input_param)
-    fig.tight_layout()
-    plt.savefig(path + key + "_" + input_param + ".pdf", bbox_inches="tight")
-    plt.close()
+    # loop over the metrics
+    for metric in par.df_figures.index:
 
+        # loop over the input parameters
+        for input_parameter in pd.unique(
+            df_network_sensitivity.index.get_level_values(0)
+        ):
 
-def plot_output_by_param(
-    param_values, input_param, output, jaccard_periods, path
-):
-    output = fct.reformat_output(output)
+            # create path
+            os.makedirs(f"{path}/{metric}/", exist_ok=True)
 
-    # plot multiple keys on the same chart
-    for short_key in par.output_mlt_keys:
-        plot_multiple_key(
-            param_values=param_values,
-            input_param=input_param,
-            output=output,
-            path=path,
-            short_key=short_key,
-            nb_char=len(short_key),
-        )
-
-    # case of the jaccard old version (with jaccard perriods != agg periodes)
-    plot_multiple_key(
-        param_values=param_values,
-        input_param=input_param,
-        output=output,
-        path=path,
-        short_key="jaccard index",
-        nb_char=len(short_key),
-    )
-
-    # plot all other output metrics
-    for key in par.output_single_keys:
-        plot_single_key(
-            key=key,
-            param_values=param_values,
-            input_param=input_param,
-            output=output,
-            path=path,
-        )
+            # plot
+            plot_sensitivity(
+                df_network_sensitivity=df_network_sensitivity,
+                input_parameter=input_parameter,
+                cols=[
+                    f"{item}{par.df_figures.loc[metric,'extension']}"
+                    for item in par.df_figures.loc[metric, "items"]
+                ],
+                file_name=f"{path}{metric}/{input_parameter}.pdf",
+            )

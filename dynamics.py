@@ -1,7 +1,4 @@
 import os
-
-# os.environ["OMP_NUM_THREADS"] = "1"
-
 import networkx as nx
 import numpy as np
 from tqdm import tqdm
@@ -198,17 +195,12 @@ class ClassDynamics:
         # transaction view
 
         # expost reverse repo transactions stats network level
-        name = "av. network"
-        cols = [
-            f"repo transactions maturity {name}",
-            f"repo transactions notional {name}",
-            f"number repo transactions {name}",
-        ]
         df_transaction_stats = em.get_transaction_stats(
             df_trans=self.Network.df_rev_repo_trans,
-            name=name,
+            extension=" av. network",
             days=range(self.Network.step + 1),
         )
+        cols = df_transaction_stats.columns
         self.df_network_trajectory[cols] = df_transaction_stats
 
     def fill_df_bank_trajectory(self):
@@ -240,12 +232,7 @@ class ClassDynamics:
         # transaction view
 
         # expost reverse repo transactions stats bank level
-        name = "av. bank"
-        cols = [
-            f"repo transactions maturity {name}",
-            f"repo transactions notional {name}",
-            f"number repo transactions {name}",
-        ]
+        extension = " av. bank"
         df_trans = self.Network.df_rev_repo_trans
 
         # check of the single bank entered into any reverse repos
@@ -257,12 +244,18 @@ class ClassDynamics:
             # get transaction stats
             df_transaction_stats = em.get_transaction_stats(
                 df_trans=df_trans,
-                name=name,
+                extension=" av. bank",
                 days=range(self.Network.step + 1),
             )
+            cols = df_transaction_stats.columns
 
         # otherwise empty dataframe
         else:
+            cols = [
+                f"repo transactions maturity{extension}",
+                f"repo transactions notional{extension}",
+                f"number repo transactions{extension}",
+            ]
             df_transaction_stats = pd.DataFrame(
                 index=range(self.Network.step + 1), columns=cols
             )
@@ -292,7 +285,7 @@ class ClassDynamics:
         # print
         print("get arr_rev_repo_exp_adj")
 
-        # loop over the rows of df_reverse_repos transactions
+        # loop over the rows of df_rev_repo_trans
         for index, row in tqdm(self.Network.df_rev_repo_trans.iterrows()):
 
             # get the tenor (fill by current step if tenor is empty)
@@ -398,6 +391,7 @@ class ClassDynamics:
         with open(f"{self.path_results}input_parameters.txt", "w") as f:
             f.write(
                 f"nb_banks={self.Network.nb_banks} \n"
+                f"alpha_init={self.Network.alpha_init} \n"
                 f"alpha={self.Network.alpha} \n"
                 f"beta_init={self.Network.beta_init} \n"
                 f"beta_reg={self.Network.beta_reg} \n"

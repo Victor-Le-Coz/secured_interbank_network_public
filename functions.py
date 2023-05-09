@@ -36,24 +36,78 @@ def build_args(dic_default_value, dic_ranges):
     return list_dic_args
 
 
-def reformat_output(output):
-    """
-    Function to convert a list of dictionaries into a dictionary of lists.
-    """
-    if type(output) is dict:  # case of single run
-        return output
+def get_dic_range(path):
 
-    else:  # case of multiprocessing
-        # initialization with empty list for each keys
-        output_rf = {}
-        for keys in output[0].keys():
-            output_rf.update({keys: []})
+    # get the list of input parameters
+    repositories = os.listdir(path)
 
-        # build the lists within the dict
-        for output_dict in output:
-            for keys in output_dict.keys():
-                output_rf[keys].append(output_dict[keys])
-        return output_rf
+    # exclude from this list df_network_trajectory.csv if it exists
+    input_parameters = [
+        rep for rep in repositories if rep != "df_network_sensitivity.csv"
+    ]
+
+    dic_range = {}
+    for input_parameter in input_parameters:
+        ar_range = np.sort(np.array(os.listdir(f"{path}{input_parameter}")))
+        dic_range.update({input_parameter: ar_range})
+    return dic_range
+
+
+def get_df_network_sensitivity(path):
+    # get the input parameters and their ranges
+    dic_range = get_dic_range(path)
+
+    # initiaze the index of df_network_sensitivity
+    index = pd.MultiIndex.from_tuples(
+        [
+            (input_parameter, float(value))
+            for input_parameter in dic_range.keys()
+            for value in dic_range[input_parameter]
+        ]
+    )
+
+    # fill-in df_network_sensitivity
+    first_round = True
+    for input_parameter in dic_range.keys():
+        for value in dic_range[input_parameter]:
+            path_df = (
+                f"{path}{input_parameter}/{value}/df_network_trajectory.csv"
+            )
+            if os.path.exists(path_df):
+
+                # load df_network_trajectory
+                df_network_trajectory = pd.read_csv(path_df, index_col=0)
+
+                # initialize at the first round
+                if first_round:
+                    df_network_sensitivity = pd.DataFrame(
+                        index=index, columns=df_network_trajectory.columns
+                    )
+                    first_round = False
+
+                df_network_sensitivity.loc[
+                    (input_parameter, float(value))
+                ] = df_network_trajectory.iloc[-250:].mean()
+
+    # save the results
+    df_network_sensitivity.to_csv(f"{path}/df_network_sensitivity.csv")
+
+    return df_network_sensitivity
+
+
+def get_plot_steps_from_days(days, plot_days):
+    plot_steps = [step for step in range(len(days)) if days[step] in plot_days]
+    return plot_steps
+
+
+def get_plot_steps_from_period(days, plot_period):
+    nb_days = len(days)
+    plot_steps = [
+        step
+        for step in range(len(days))
+        if step % plot_period == 0 or step == nb_days - 1
+    ]
+    return plot_steps
 
 
 def delete_n_init_path(path):
@@ -84,22 +138,6 @@ def get_trunc_lognorm(mu, sigma, lower_bound, upper_bound=np.inf, size=10000):
     norm_data = X.rvs(size)
     log_norm_data = np.exp(norm_data)
     return log_norm_data
-
-
-def last_common_element(list1, list2):
-    """
-    This function returns the last common element between two lists.
-    If the lists do not have any common elements, the function returns None.
-    """
-    # Traverse both lists in reverse order
-    for i in range(len(list1) - 1, -1, -1):
-        for j in range(len(list2) - 1, -1, -1):
-            # If the current element of both lists is equal
-            if list1[i] == list2[j]:
-                # We have found the common element, return it
-                return list1[i]
-    # If we get here, there is no common element
-    return None
 
 
 def get_size(obj, seen=None):
@@ -150,19 +188,3 @@ def sizeof_fmt(num, suffix="B"):
 
 def list_intersection(list1, list2):
     return [x for x in list1 if x in set(list2)]
-
-
-def get_plot_steps_from_days(days, plot_days):
-    nb_days = len(days)
-    plot_steps = [step for step in range(len(days)) if days[step] in plot_days]
-    return plot_steps
-
-
-def get_plot_steps_from_period(days, plot_period):
-    nb_days = len(days)
-    plot_steps = [
-        step
-        for step in range(len(days))
-        if step % plot_period == 0 or step == nb_days - 1
-    ]
-    return plot_steps

@@ -218,20 +218,19 @@ def gini(x):
     return total / (len(x) ** 2 * np.mean(x))
 
 
-def get_transaction_stats(df_trans, name, days, path=False):
+def get_transaction_stats(df_trans, extension, days, path=False):
 
-    print(f"get transaction stats {name}")
+    print(f"get transaction stats{extension}")
 
-    cols = [
-        f"repo transactions maturity {name}",
-        f"repo transactions notional {name}",
-        f"number repo transactions {name}",
-    ]
+    # cols = [
+    #     f"repo transactions maturity{extension}",
+    #     f"repo transactions notional{extension}",
+    #     f"number repo transactions{extension}",
+    # ]
 
     # initialisation
     df_transaction_stats = pd.DataFrame(
         index=days,
-        columns=cols,
     )
 
     # loop over the steps
@@ -243,13 +242,13 @@ def get_transaction_stats(df_trans, name, days, path=False):
         ]
         if df_ending["amount"].sum() > 0:
             df_transaction_stats.loc[
-                day, f"repo transactions maturity {name}"
+                day, f"repo transactions maturity{extension}"
             ] = (df_ending["amount"] @ df_ending["tenor"]) / df_ending[
                 "amount"
             ].sum()
         else:
             df_transaction_stats.loc[
-                day, f"repo transactions maturity {name}"
+                day, f"repo transactions maturity{extension}"
             ] = 0
 
         # repo transactions notional av. network
@@ -258,18 +257,18 @@ def get_transaction_stats(df_trans, name, days, path=False):
         if nb_trans > 0:
             df_transaction_stats.loc[
                 day,
-                f"repo transactions notional {name}",
+                f"repo transactions notional{extension}",
             ] = (df_starting["amount"].sum()) / nb_trans
         else:
             df_transaction_stats.loc[
                 day,
-                f"repo transactions notional {name}",
+                f"repo transactions notional{extension}",
             ] = 0
 
         # number repo transactions av. network
         df_transaction_stats.loc[
             day,
-            f"number repo transactions {name}",
+            f"number repo transactions{extension}",
         ] = nb_trans
 
     if path:
