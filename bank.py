@@ -454,16 +454,21 @@ class ClassBank:
         # case with an issue (no solution yet, just print the issue and a warning)
         if len(trans_ids) == 0:
             self.df_rev_repo_trans.to_csv(
-                f"./support/{self.id}_df_reverse_repo_err.csv"
+                f"./support/errors/{self.id}_df_reverse_repo_err.csv"
             )
             pickle.dump(
                 self.banks[bank_id].on_repo_exp,
-                open(f"./support/{bank_id}_on_balance_repos.pickle", "wb"),
+                open(
+                    f"./support/errors/{bank_id}_on_balance_repos.pickle", "wb"
+                ),
                 protocol=pickle.HIGHEST_PROTOCOL,
             )
             pickle.dump(
                 self.banks[bank_id].off_repo_exp,
-                open(f"./support/{bank_id}_off_balance_repos.pickle", "wb"),
+                open(
+                    f"./support/errors/{bank_id}_off_balance_repos.pickle",
+                    "wb",
+                ),
                 protocol=pickle.HIGHEST_PROTOCOL,
             )
             print(

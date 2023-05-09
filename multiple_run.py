@@ -23,9 +23,9 @@ dic_default_value = {
     "shocks_vol": 0.05,
     "result_location": "./results/multiple_run/",
     "min_repo_trans_size": 1e-8,
-    "nb_steps": int(1e1),
-    "dump_period": 10,
-    "plot_period": 10,
+    "nb_steps": int(1e3),
+    "dump_period": 200,
+    "plot_period": 20,
     "cp_option": False,
     "LCR_mgt_opt": False,
 }
@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
     dask.compute(dld_obj)
 
-    # # plot the results # to be re-factored
+    # # plot the results -> to be re-factored
     # param_values = fct.get_param_values(input_param)
     # gx.plot_output_by_param(
     #     param_values=param_values,

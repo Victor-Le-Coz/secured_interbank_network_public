@@ -9,6 +9,7 @@ from bank import ClassBank
 import pandas as pd
 import parameters as par
 from scipy import stats
+import functions as fct
 
 
 class ClassNetwork:
@@ -30,6 +31,9 @@ class ClassNetwork:
         min_repo_trans_size,
         LCR_mgt_opt,
     ):
+
+        # init path
+        os.makedirs("./support/errors/", exist_ok=True)
 
         # adequacy tests
         assert (
@@ -186,7 +190,7 @@ class ClassNetwork:
             print(
                 r"Assets don't match liabilities for one or several banks, check the df_banks under ./errors"
             )
-            self.df_banks.to_csv(f"{self.path_results}./errors/df_banks.csv")
+            self.df_banks.to_csv(f"./support/errors/df_banks.csv")
             exit()
 
     def check_min_reserves(self):
@@ -199,7 +203,7 @@ class ClassNetwork:
             print(
                 r"Minimum reserves not respected for one or several banks, check the df_banks under ./errors"
             )
-            self.df_banks.to_csv(f"{self.path_results}./errors/df_banks.csv")
+            self.df_banks.to_csv(f"./support/errors/df_banks.csv")
             exit()
 
     def check_lcr(self):
@@ -220,7 +224,7 @@ class ClassNetwork:
             print(
                 r"LCR not at its target value one or several banks, check the df_banks under ./errors"
             )
-            self.df_banks.to_csv(f"{self.path_results}./errors/df_banks.csv")
+            self.df_banks.to_csv(f"./support/errors/df_banks.csv")
             exit()
 
     def fill_step_df_banks(self):

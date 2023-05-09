@@ -35,7 +35,7 @@ class ClassGraphics:
         # --------------
         # accounting view
 
-        fct.init_path(f"{path_results}accounting_view/")
+        os.makedirs(f"{path_results}accounting_view/", exist_ok=True)
 
         # Plot aggregates
         items = [
@@ -84,7 +84,7 @@ class ClassGraphics:
 
         # --------------
         # transaction view
-        fct.init_path(f"{path_results}transaction_view/")
+        os.makedirs(f"{path_results}transaction_view/", exist_ok=True)
 
         # Plot the average maturity of reverse repos transactions
         self.plot_trajectory(
@@ -111,7 +111,7 @@ class ClassGraphics:
 
         # --------------
         # exposure view
-        fct.init_path(f"{path_results}exposure_view/")
+        os.makedirs(f"{path_results}exposure_view/", exist_ok=True)
 
         # Plot reverse repo exposures statistics
         self.plot_trajectory(
@@ -301,7 +301,7 @@ class ClassGraphics:
         figsize=par.small_figsize,
     ):
 
-        fct.init_path(path)
+        os.makedirs(path, exist_ok=True)
 
         plot_steps = fct.get_plot_steps_from_period(days, self.plot_period)
 
@@ -390,7 +390,7 @@ class ClassGraphics:
         figsize=par.small_figsize,
     ):
 
-        fct.init_path(path)
+        os.makedirs(path, exist_ok=True)
 
         plot_steps = fct.get_plot_steps_from_period(days, self.plot_period)
 
@@ -481,7 +481,7 @@ class ClassGraphics:
         finrep_bank_ids=False,
     ):
 
-        fct.init_path(path)
+        os.makedirs(path, exist_ok=True)
 
         if plot_days:
             plot_steps = fct.get_plot_steps_from_days(days, plot_days)
@@ -515,7 +515,7 @@ class ClassGraphics:
         figsize=(6, 3),
     ):
 
-        fct.init_path(path)
+        os.makedirs(path, exist_ok=True)
 
         # Visualization
         fig = plt.figure(figsize=figsize)

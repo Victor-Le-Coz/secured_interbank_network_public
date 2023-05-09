@@ -316,7 +316,9 @@ class ClassDynamics:
             ] = 0
 
         # save last step to csv
-        fct.init_path(f"{self.path_results}exposure_view/adj_matrices/")
+        os.makedirs(
+            f"{self.path_results}exposure_view/adj_matrices/", exist_ok=True
+        )
         fct.dump_np_array(
             self.arr_rev_repo_exp_adj[self.Network.step],
             f"{self.path_results}exposure_view/adj_matrices/arr_reverse_repo_adj_{self.Network.step}.csv",
@@ -345,8 +347,9 @@ class ClassDynamics:
             self.dic_arr_binary_adj[agg_period] = arr_binary_adj[period_nb]
 
             # save last step to csv
-            fct.init_path(
-                f"{self.path_results}exposure_view/adj_matrices/{agg_period}/"
+            os.makedirs(
+                f"{self.path_results}exposure_view/adj_matrices/{agg_period}/",
+                exist_ok=True,
             )
             fct.dump_np_array(
                 arr_binary_adj[period_nb][self.Network.step],

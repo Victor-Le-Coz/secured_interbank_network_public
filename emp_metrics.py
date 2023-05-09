@@ -6,6 +6,7 @@ from tqdm import tqdm
 from tqdm import tqdm
 import parameters as par
 import cpnet
+import os
 
 
 def get_rev_repo_exposure_stats(dic_arr_binary_adj, days, path=False):
@@ -36,7 +37,7 @@ def get_rev_repo_exposure_stats(dic_arr_binary_adj, days, path=False):
                 )
 
     if path:
-        fct.init_path(path)
+        os.makedirs(path, exist_ok=True)
         df_jaccard.to_csv(f"{path}df_jaccard.csv")
 
     return df_jaccard
@@ -67,7 +68,7 @@ def get_density(dic_arr_binary_adj, days, path=False):
             )  # for a directed graph
 
     if path:
-        fct.init_path(path)
+        os.makedirs(path, exist_ok=True)
         df_density.to_csv(f"{path}df_density.csv")
 
     return df_density
@@ -118,7 +119,7 @@ def get_degree_distribution(dic_arr_binary_adj, path=False):
             )[:, 1]
 
     if path:
-        fct.init_path(path)
+        os.makedirs(path, exist_ok=True)
         for agg_period in par.agg_periods:
             fct.dump_np_array(
                 dic_in_degree[agg_period],
@@ -156,7 +157,7 @@ def get_av_degree(dic_degree, days, path=False):
             ][step].mean()
 
     if path:
-        fct.init_path(path)
+        os.makedirs(path, exist_ok=True)
         df_av_degree.to_csv(f"{path}df_av_degree.csv")
 
     return df_av_degree
@@ -272,7 +273,7 @@ def get_transaction_stats(df_trans, name, days, path=False):
         ] = nb_trans
 
     if path:
-        fct.init_path(path)
+        os.makedirs(path, exist_ok=True)
         df_transaction_stats.to_csv(f"{path}df_transaction_stats.csv")
 
     return df_transaction_stats
@@ -297,18 +298,19 @@ def get_exposure_stats(arr_rev_repo_exp_adj, days, path=False):
         ar_rev_repo_exp_adj_non_zero = arr_rev_repo_exp_adj[step][
             np.nonzero(arr_rev_repo_exp_adj[step])
         ]
-        df_exposures_stats.loc[day, "repo exposures min network"] = np.min(
-            ar_rev_repo_exp_adj_non_zero
-        )
-        df_exposures_stats.loc[day, "repo exposures max network"] = np.max(
-            ar_rev_repo_exp_adj_non_zero
-        )
-        df_exposures_stats.loc[day, "repo exposures av. network"] = np.mean(
-            ar_rev_repo_exp_adj_non_zero
-        )
+        if len(ar_rev_repo_exp_adj_non_zero) > 0:
+            df_exposures_stats.loc[day, "repo exposures min network"] = np.min(
+                ar_rev_repo_exp_adj_non_zero
+            )
+            df_exposures_stats.loc[day, "repo exposures max network"] = np.max(
+                ar_rev_repo_exp_adj_non_zero
+            )
+            df_exposures_stats.loc[
+                day, "repo exposures av. network"
+            ] = np.mean(ar_rev_repo_exp_adj_non_zero)
 
     if path:
-        fct.init_path(path)
+        os.makedirs(path, exist_ok=True)
         df_exposures_stats.to_csv(f"{path}df_exposures_stats.csv")
 
     return df_exposures_stats

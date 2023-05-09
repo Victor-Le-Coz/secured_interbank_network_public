@@ -5,6 +5,7 @@ import functions as fct
 import numpy as np
 from numba import jit
 import parameters as par
+import os
 
 
 def build_from_mmsr(df_mmsr):
@@ -48,7 +49,7 @@ def build_from_mmsr(df_mmsr):
                     + df_mmsr.loc[ts_trade, "trns_nominal_amt"]
                 )
 
-    fct.init_path("./support")
+    os.makedirs("./support/", exist_ok=True)
     pickle.dump(
         dic_obs_matrix_reverse_repo,
         open("./support/dic_obs_matrix_reverse_repo.pickle", "wb"),
@@ -90,7 +91,7 @@ def build_from_exposures(df_exposures, path):
             df_exposures.loc[index, "borr_lei"],
         ] = df_exposures.loc[index, "exposure"]
 
-    fct.init_path(path)
+    os.makedirs(path, exist_ok=True)
     pickle.dump(
         dic_rev_repo_exp_adj,
         open(f"{path}dic_obs_matrix_reverse_repo.pickle", "wb"),
@@ -184,7 +185,7 @@ def build_rolling_binary_adj(dic_rev_repo_exp_adj, path):
         dic_arr_binary_adj.update({agg_period: arr_binary_adj[period_nb]})
 
     # dump results
-    fct.init_path(path)
+    os.makedirs(path, exist_ok=True)
     pickle.dump(
         dic_arr_binary_adj,
         open(f"{path}dic_arr_binary_adj.pickle", "wb"),
@@ -204,7 +205,7 @@ def build_arr_total_assets(df_finrep, path):
     df_total_assets = df_finrep.set_index(["date", "lei"]).unstack()
     arr_total_assets = np.array(df_total_assets)
 
-    fct.init_path(path)
+    os.makedirs(path, exist_ok=True)
     df_total_assets.to_csv(f"{path}df_total_assets.csv")
 
     return arr_total_assets
