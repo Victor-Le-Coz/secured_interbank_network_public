@@ -66,8 +66,7 @@ if __name__ == "__main__":
 
     # run with dask distributed
     dld_obj = [
-        dld_obj.append(dask.delayed(dyn.single_run)(**dic_args))
-        for dic_args in list_dic_args
+        dask.delayed(dyn.single_run)(**dic_args) for dic_args in list_dic_args
     ]
     dask.compute(dld_obj)
 
