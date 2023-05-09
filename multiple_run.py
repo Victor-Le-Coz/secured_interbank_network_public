@@ -1,6 +1,4 @@
-import os
 import functions as fct
-import parameters as par
 import dynamics as dyn
 import numpy as np
 import dask
@@ -61,7 +59,7 @@ if __name__ == "__main__":
 
     # open a cluster
     client, cluster = launch_cluster_mltp(
-        TASK_MEMORY=19, JOB_WALLTIME="30:00:00"
+        TASK_MEMORY=19, JOB_WALLTIME="30:00:00", max_cpu=300
     )
 
     # run with dask distributed

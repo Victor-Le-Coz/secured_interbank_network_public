@@ -107,7 +107,7 @@ class ClassGraphics:
         xscale="linear",
         figsize=par.small_figsize,
     ):
-        fig = plt.figure(figsize=figsize)
+        fig, ax = plt.subplots(figsize=figsize)
         colors = sns.color_palette("flare", n_colors=len(cols))
 
         for i, col in enumerate(cols):
@@ -158,7 +158,7 @@ class ClassGraphics:
         pos = nx.spring_layout(bank_network)
 
         # draw the network
-        plt.figure(figsize=figsize)
+        fig, ax = plt.subplots(figsize=figsize)
         nx.draw_networkx(
             bank_network,
             pos,
@@ -406,8 +406,8 @@ class ClassGraphics:
         os.makedirs(path, exist_ok=True)
 
         # Visualization
-        fig = plt.figure(figsize=figsize)
-        ax = ax
+        fig, ax = plt.subplots(figsize=figsize)
+        ax = plt.gca()
         ax, pos = cpnet.draw(bank_network, sig_c, sig_x, ax)
 
         # show the plot
@@ -418,7 +418,7 @@ class ClassGraphics:
         )
         plt.close()
 
-    def run_step_cp_test(
+    def run_algo_cp_test(
         self,
         arr_reverse_repo_adj,
         algo,
@@ -506,7 +506,7 @@ class ClassGraphics:
 
             df_pvalue = pd.DataFrame(columns=algos)
             for algo in algos:
-                df_pvalue[algo] = self.run_step_cp_test(
+                df_pvalue[algo] = self.run_algo_cp_test(
                     dic_adj,
                     algo=algo,
                     days=days,
@@ -646,7 +646,7 @@ class ClassGraphics:
         path,
         step,
     ):
-        plt.figure()
+
         fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=par.halfslide_figsize)
 
         ix_sorted = np.argsort(np.asarray(df_banks["total assets"]))
@@ -731,7 +731,7 @@ def plot_sensitivity(
 ):
 
     # define figure
-    fig = plt.figure(figsize=figsize)
+    fig, ax = plt.subplots(figsize=figsize)
     colors = sns.color_palette("flare", n_colors=len(cols))
 
     # filter on index
