@@ -16,9 +16,9 @@ dyn.single_run(
     shocks_vol=0.05,
     result_location="./results/single_run/",
     min_repo_trans_size=1e-8,
-    nb_steps=int(1e4),
-    dump_period=2500,
-    plot_period=1000,
+    nb_steps=int(1e2),
+    dump_period=int(1e2),
+    plot_period=int(1e2),
     cp_option=False,
     LCR_mgt_opt=False,
 )

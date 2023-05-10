@@ -75,7 +75,7 @@ plt_columns = [
     "label",
     "legend",
     "scale",
-    "str_format",
+    "format",
     "convertion",
 ]
 
@@ -196,42 +196,49 @@ average_degree = [
 # input parameters
 nb_banks = [
     "nb_banks",
-    r"$N$ (log scale)",
-    r"$N$ (log scale)",
+    r"$N$ (#, log scale)",
+    r"$N$ (#, log scale)",
     "log",
     "",
     False,
 ]
 alpha_init = [
     "alpha_init",
-    r"$\alpha_0$ (log scale)",
-    r"$\alpha_0$ (log scale)",
+    r"$\alpha_0$ (%)",
+    r"$\alpha_0$ (%)",
     "linear",
     "",
     "%",
 ]
 alpha = [
     "alpha",
-    r"$\alpha_0$ (log scale)",
-    r"$\alpha_0$ (log scale)",
-    "log",
+    r"$\alpha$ (%)",
+    r"$\alpha$ (%)",
+    "linear",
     "",
     "%",
 ]
-beta_init = ["beta_init", r"$\beta_0$", r"$\beta_0$", "linear", "", "%"]
-beta_reg = ["beta_reg", r"$\beta$", r"$\beta$", "linear", "", "%"]
+beta_init = [
+    "beta_init",
+    r"$\beta_0$ (%)",
+    r"$\beta_0$ (%)",
+    "linear",
+    "",
+    "%",
+]
+beta_reg = ["beta_reg", r"$\beta$ (%)", r"$\beta$ (%)", "linear", "", "%"]
 alpha_pareto = [
     "alpha_pareto",
-    r"alpha patero (log scale)",
-    r"alpha patero (log scale)",
+    r"alpha patero (%, log scale)",
+    r"alpha patero (%, log scale)",
     "log",
     "",
     "%",
 ]
 shocks_vol = [
     "shocks_vol",
-    r"$\sigma$ (log scale)",
-    r"$\sigma$ (log scale)",
+    r"$\sigma$ (%, log scale)",
+    r"$\sigma$ (%, log scale)",
     "log",
     "",
     "%",

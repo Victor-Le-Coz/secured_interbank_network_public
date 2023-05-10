@@ -110,6 +110,9 @@ class ClassGraphics:
         fig, ax = plt.subplots(figsize=figsize)
         colors = sns.color_palette("flare", n_colors=len(cols))
 
+        # convert the cols of the df using the convertion of first col
+        df = convert_data(df[cols], par.df_plt.loc[cols[0], "convertion"])
+
         for i, col in enumerate(cols):
             plt.plot(
                 df.index,
@@ -737,6 +740,16 @@ def plot_sensitivity(
     # filter on index
     df = df_network_sensitivity.loc[input_parameter].copy()
 
+    # convert the cols of the df using the convertion of first col
+    df = convert_data(df[cols], par.df_plt.loc[cols[0], "convertion"])
+
+    # convert the index
+    df = convert_n_format_index(
+        df,
+        par.df_plt.loc[input_parameter, "format"],
+        par.df_plt.loc[input_parameter, "convertion"],
+    )
+
     # sort index
     df.sort_index(inplace=True)
 
@@ -778,3 +791,37 @@ def plot_all_sensitivities(df_network_sensitivity, path):
                 ],
                 file_name=f"{path}{metric}/{input_parameter}.pdf",
             )
+
+
+def convert_data(df, str_convertion):
+
+    if str_convertion == "e-K$":
+        df = np.exp(df) / 1e3
+    elif str_convertion == "e":
+        df = np.exp(df)
+    elif str_convertion == "K$":
+        df = df / 1e3
+    elif str_convertion == "%":
+        df = df * 100
+
+    return df
+
+
+def convert_n_format_index(df, str_format, str_convertion):
+
+    index = df.index
+
+    if str_convertion == "e-K$":
+        index = np.exp(index) / 1e3
+    elif str_convertion == "e":
+        index = np.exp(index)
+    elif str_convertion == "K$":
+        index = index / 1e3
+    elif str_convertion == "%":
+        index = index * 100
+
+    index = index.map(("{:" + str_format + "}").format)
+
+    df.index = pd.Index(index)
+
+    return df
