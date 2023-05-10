@@ -137,30 +137,40 @@ def get_degree_distribution(dic_arr_binary_adj, path=False):
     return dic_in_degree, dic_out_degree, dic_degree
 
 
-def get_av_degree(dic_degree, days, path=False):
+def get_degree_stats(dic_degree, days, path=False):
 
-    print("get av. degree")
+    print("get degree stats")
 
-    cols = [f"av. degree-{agg_period}" for agg_period in par.agg_periods]
+    columns = [
+        f"degree{extension}-{agg_period}"
+        for extension in par.stat_extensions
+        for agg_period in par.agg_periods
+    ]
 
     # initialisation
-    df_av_degree = pd.DataFrame(
+    df_degree_stats = pd.DataFrame(
         index=days,
-        columns=cols,
+        columns=columns,
     )
 
     # loop over the steps
     for step, day in enumerate(tqdm(days[1:]), 1):
         for agg_period in par.agg_periods:
-            df_av_degree.loc[day, f"av. degree-{agg_period}"] = dic_degree[
-                agg_period
-            ][step].mean()
+            df_degree_stats.loc[
+                day, f"degree av. network-{agg_period}"
+            ] = dic_degree[agg_period][step].mean()
+            df_degree_stats.loc[
+                day, f"degree min network-{agg_period}"
+            ] = dic_degree[agg_period][step].min()
+            df_degree_stats.loc[
+                day, f"degree max network-{agg_period}"
+            ] = dic_degree[agg_period][step].max()
 
     if path:
         os.makedirs(path, exist_ok=True)
-        df_av_degree.to_csv(f"{path}df_av_degree.csv")
+        df_degree_stats.to_csv(f"{path}df_degree_stats.csv")
 
-    return df_av_degree
+    return df_degree_stats
 
 
 def cpnet_test(bank_network, algo="BE"):
@@ -222,12 +232,6 @@ def get_transaction_stats(df_trans, extension, days, path=False):
 
     print(f"get transaction stats{extension}")
 
-    # cols = [
-    #     f"repo transactions maturity{extension}",
-    #     f"repo transactions notional{extension}",
-    #     f"number repo transactions{extension}",
-    # ]
-
     # initialisation
     df_transaction_stats = pd.DataFrame(
         index=days,
@@ -286,9 +290,8 @@ def get_exposure_stats(arr_rev_repo_exp_adj, days, path=False):
     df_exposures_stats = pd.DataFrame(
         index=days,
         columns=[
-            "repo exposures min network",
-            "repo exposures max network",
-            "repo exposures av. network",
+            f"repo exposures{extension}"
+            for extension in [" min network", " max network", " av. network"]
         ],
     )
 

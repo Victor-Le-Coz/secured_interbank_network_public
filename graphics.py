@@ -119,7 +119,11 @@ class ClassGraphics:
                 df[col],
                 color=colors[i],
             )
-        plt.legend(par.df_plt.loc[cols, "legend"])
+        plt.legend(
+            par.df_plt.loc[cols, "legend"],
+            loc="upper left",
+            bbox_to_anchor=(1.0, 1.0),
+        )
         plt.xlabel("time (days)")
         plt.ylabel(par.df_plt.loc[cols[0], "label"])
         plt.xscale(xscale)
@@ -596,14 +600,14 @@ class ClassGraphics:
         for i, agg_period in enumerate(par.agg_periods):
             ax3.plot(
                 df_bank_trajectory.index,
-                df_bank_trajectory[f"av. in-degree-{agg_period}"],
+                df_bank_trajectory[f"in-degree-{agg_period}"],
                 label=f"in-degree-{agg_period}",
                 color=in_colors[i],
             )
         for i, agg_period in enumerate(par.agg_periods):
             ax3.plot(
                 df_bank_trajectory.index,
-                df_bank_trajectory[f"av. out-degree-{agg_period}"],
+                df_bank_trajectory[f"out-degree-{agg_period}"],
                 label=f"out-degree-{agg_period}",
                 color=out_colors[i],
             )

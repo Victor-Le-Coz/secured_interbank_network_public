@@ -148,6 +148,7 @@ number_repo_transactions_av_network = [
 ]
 
 # exposure view
+stat_extensions = [" min network", " max network", " av. network"]
 repo_exposure_stats = [
     [
         f"repo exposures{extension}",
@@ -157,7 +158,7 @@ repo_exposure_stats = [
         "",
         False,
     ]
-    for extension in [" min network", " max network", " av. network"]
+    for extension in stat_extensions
 ]
 jaccard_index = [
     [
@@ -181,16 +182,17 @@ network_density = [
     ]
     for agg_period in agg_periods
 ]
-average_degree = [
+degree_stats = [
     [
-        f"av. degree-{agg_period}",
+        f"degree{extension}-{agg_period}",
         r"degree (#)",
-        f"{agg_period} day(s)",
+        f"{extension}-{agg_period} day(s)",
         "linear",
         "",
         False,
     ]
     for agg_period in agg_periods
+    for extension in stat_extensions
 ]
 
 # input parameters
@@ -264,7 +266,7 @@ df_plt = pd.DataFrame(
         *repo_exposure_stats,
         *jaccard_index,
         *network_density,
-        *average_degree,
+        *degree_stats,
         nb_banks,
         alpha_init,
         alpha,
@@ -353,9 +355,13 @@ network_density = [
     [f"network density-{agg_period}" for agg_period in agg_periods],
     "",
 ]
-average_degree = [
-    "exposure_view/average_degree",
-    [f"av. degree-{agg_period}" for agg_period in agg_periods],
+degree_stats = [
+    "exposure_view/degree_stats",
+    [
+        f"degree{extension}-{agg_period}"
+        for extension in stat_extensions
+        for agg_period in agg_periods
+    ],
     "",
 ]
 
@@ -372,7 +378,7 @@ df_figures = pd.DataFrame(
         repo_exposure_stats,
         jaccard_index,
         network_density,
-        average_degree,
+        degree_stats,
     ],
     columns=figures_columns,
 )

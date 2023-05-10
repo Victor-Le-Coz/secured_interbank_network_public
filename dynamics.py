@@ -159,39 +159,31 @@ class ClassDynamics:
         df_jaccard = em.get_rev_repo_exposure_stats(
             self.dic_arr_binary_adj, range(self.Network.step)
         )
-        self.df_network_trajectory[
-            [f"jaccard index-{agg_period}" for agg_period in par.agg_periods]
-        ] = df_jaccard
+        cols = df_jaccard.columns
+        self.df_network_trajectory[cols] = df_jaccard
 
         # expost density
         df_density = em.get_density(
             self.dic_arr_binary_adj, range(self.Network.step)
         )
-        self.df_network_trajectory[
-            [f"network density-{agg_period}" for agg_period in par.agg_periods]
-        ] = df_density
+        cols = df_density.columns
+        self.df_network_trajectory[cols] = df_density
 
         # expost av. degree
-        df_degree = em.get_av_degree(
+        df_degree_stats = em.get_degree_stats(
             self.dic_degree,
             range(self.Network.step),
         )
-        self.df_network_trajectory[
-            [f"av. degree-{agg_period}" for agg_period in par.agg_periods]
-        ] = df_degree
+        cols = df_degree_stats.columns
+        self.df_network_trajectory[cols] = df_degree_stats
 
         # expost repo exposures stats
         df_exposures_stats = em.get_exposure_stats(
             self.arr_rev_repo_exp_adj,
             range(self.Network.step + 1),
         )
-        self.df_network_trajectory[
-            [
-                "repo exposures min network",
-                "repo exposures max network",
-                "repo exposures av. network",
-            ]
-        ] = df_exposures_stats
+        cols = df_exposures_stats.columns
+        self.df_network_trajectory[cols] = df_exposures_stats
 
         # --------------
         # transaction view
@@ -213,22 +205,20 @@ class ClassDynamics:
         # expost in-degree
         df_in_degree = pd.DataFrame()
         for agg_period in par.agg_periods:
-            df_in_degree[f"av. in-degree-{agg_period}"] = self.dic_in_degree[
+            df_in_degree[f"in-degree-{agg_period}"] = self.dic_in_degree[
                 agg_period
             ][:, self.single_bank_id]
-        self.df_bank_trajectory[
-            [f"av. in-degree-{agg_period}" for agg_period in par.agg_periods]
-        ] = df_in_degree
+        cols = df_in_degree.columns
+        self.df_bank_trajectory[cols] = df_in_degree
 
         # expost out-degree
         df_out_degree = pd.DataFrame()
         for agg_period in par.agg_periods:
-            df_out_degree[
-                f"av. out-degree-{agg_period}"
-            ] = self.dic_out_degree[agg_period][:, self.single_bank_id]
-        self.df_bank_trajectory[
-            [f"av. out-degree-{agg_period}" for agg_period in par.agg_periods]
-        ] = df_out_degree
+            df_out_degree[f"out-degree-{agg_period}"] = self.dic_out_degree[
+                agg_period
+            ][:, self.single_bank_id]
+        cols = df_out_degree.columns
+        self.df_bank_trajectory[cols] = df_out_degree
 
         # --------------
         # transaction view
