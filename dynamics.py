@@ -21,6 +21,7 @@ class ClassDynamics:
         dump_period,
         plot_period,
         cp_option,
+        min_repo_trans_size,
     ):
         # initialization of the class parameters.
         self.Network = Network
@@ -28,6 +29,7 @@ class ClassDynamics:
         self.path_results = path_results
         self.dump_period = dump_period
         self.cp_option = cp_option
+        self.min_repo_trans_size = min_repo_trans_size
 
         # Create the required path to store the results
         fct.delete_n_init_path(self.path_results)
@@ -330,7 +332,10 @@ class ClassDynamics:
 
         # build arr of results with numba
         arr_binary_adj = ep.fast_build_arr_binary_adj(
-            self.arr_rev_repo_exp_adj, arr_agg_period, self.Network.step
+            self.arr_rev_repo_exp_adj,
+            arr_agg_period,
+            self.Network.step,
+            self.min_repo_trans_size,
         )
 
         # loop over agg periods
@@ -402,7 +407,7 @@ class ClassDynamics:
                 f"shock_method={self.Network.shocks_method} \n"
                 f"shocks_law={self.Network.shocks_law} \n"
                 f"shocks_vol={self.Network.shocks_vol} \n"
-                f"min_repo_trans_size={self.Network.min_repo_trans_size} \n"
+                f"min_repo_trans_size={self.min_repo_trans_size} \n"
                 f"nb_steps={self.nb_steps} \n"
                 f"LCR_mgt_opt={self.Network.LCR_mgt_opt} \n"
             )
@@ -446,7 +451,6 @@ def single_run(
         shocks_method=shocks_method,
         shocks_law=shocks_law,
         shocks_vol=shocks_vol,
-        min_repo_trans_size=min_repo_trans_size,
         LCR_mgt_opt=LCR_mgt_opt,
     )
 
@@ -458,6 +462,7 @@ def single_run(
         dump_period=dump_period,
         plot_period=plot_period,
         cp_option=cp_option,
+        min_repo_trans_size=min_repo_trans_size,
     )
 
     # simulate

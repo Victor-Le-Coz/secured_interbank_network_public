@@ -23,9 +23,9 @@ dic_default_value = {
     "shocks_vol": 0.05,
     "result_location": f"{path}runs/",
     "min_repo_trans_size": 1e-8,
-    "nb_steps": int(10e3),
-    "dump_period": 2500,
-    "plot_period": 1000,
+    "nb_steps": int(2e3),
+    "dump_period": int(2e3),
+    "plot_period": int(1e3),
     "cp_option": False,
     "LCR_mgt_opt": False,
 }

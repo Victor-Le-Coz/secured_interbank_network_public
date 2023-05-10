@@ -103,7 +103,7 @@ def build_from_exposures(df_exposures, path):
 
 @jit(nopython=True)
 def fast_build_arr_binary_adj(
-    arr_obs_matrix_reverse_repo, arr_agg_period, nb_days
+    arr_obs_matrix_reverse_repo, arr_agg_period, nb_days, min_repo_trans_size=0
 ):
 
     # get the lenght of the arrays
@@ -131,7 +131,10 @@ def fast_build_arr_binary_adj(
 
                 # build a binary adjency matrix from the weighted adjency matrix
                 binary_adj = np.where(
-                    arr_obs_matrix_reverse_repo[agg_day_nb] > 0, True, False
+                    arr_obs_matrix_reverse_repo[agg_day_nb]
+                    > min_repo_trans_size,
+                    True,
+                    False,
                 )
 
                 # update the tempory adj matrix to count the links

@@ -28,7 +28,6 @@ class ClassNetwork:
         shocks_method,
         shocks_law,
         shocks_vol,
-        min_repo_trans_size,
         LCR_mgt_opt,
     ):
 
@@ -55,7 +54,6 @@ class ClassNetwork:
         self.shocks_method = shocks_method
         self.shocks_law = shocks_law
         self.shocks_vol = shocks_vol
-        self.min_repo_trans_size = min_repo_trans_size
         self.LCR_mgt_opt = LCR_mgt_opt
 
         # (Re)set the network
