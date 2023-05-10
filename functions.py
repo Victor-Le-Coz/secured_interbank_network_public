@@ -188,3 +188,7 @@ def sizeof_fmt(num, suffix="B"):
 
 def list_intersection(list1, list2):
     return [x for x in list1 if x in set(list2)]
+
+
+def list_exclusion(list1, list2):
+    return [x for x in list1 if x not in set(list2)]

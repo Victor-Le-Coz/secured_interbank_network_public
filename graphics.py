@@ -9,6 +9,7 @@ from matplotlib.colors import ListedColormap
 import functions as fct
 import parameters as par
 import emp_metrics as em
+import powerlaw
 
 
 class ClassGraphics:
@@ -640,12 +641,19 @@ class ClassGraphics:
         self,
     ):
 
+        df_banks = self.Dynamics.Network.df_banks
+        step = self.Dynamics.Network.step
+        path = f"{self.Dynamics.path_results}accounting_view/"
+
         # Plot the break-down of the balance per bank
         self.plot_step_balance_sheet(
-            self.Dynamics.Network.df_banks,
-            f"{self.Dynamics.path_results}accounting_view/",
-            self.Dynamics.Network.step,
+            df_banks,
+            path,
+            step,
         )
+
+        # plot all power law tests
+        self.plot_all_power_law_tests(df_banks, f"{path}power_laws/")
 
     def plot_step_balance_sheet(
         self,
@@ -726,6 +734,114 @@ class ClassGraphics:
             f"{path}balance_sheets_on_day_{step}.pdf",
             bbox_inches="tight",
         )
+        plt.close()
+
+    def power_law_test(self, sr_data, file_name, figsize=par.small_figsize):
+
+        # fit the data with the powerlaw librairy
+        fit = powerlaw.Fit(sr_data.dropna())
+
+        # define the figure and colors
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
+        colors = sns.color_palette("flare", n_colors=3)
+        col = sr_data.name
+
+        # ax1 : pdf
+        fit.plot_pdf(color=colors[0], ax=ax1)
+        fit.power_law.plot_pdf(color=colors[1], linestyle="--", ax=ax1)
+        fit.exponential.plot_pdf(color=colors[2], linestyle="--", ax=ax1)
+        ax1.set_xlabel(par.df_plt.loc[col, "legend"])
+        ax1.set_ylabel("pdf")
+        ax1.grid()
+
+        # ax2 : ccdf
+        fit.plot_ccdf(color=colors[0], ax=ax2)
+        fit.power_law.plot_ccdf(color=colors[1], linestyle="--", ax=ax2)
+        fit.exponential.plot_ccdf(color=colors[2], linestyle="--", ax=ax2)
+        ax2.set_xlabel(par.df_plt.loc[col, "legend"])
+        ax2.set_ylabel("ccdf")
+        ax2.grid()
+
+        # legend
+        alpha_power_law = fit.power_law.alpha
+        alpha_power_law_fm = "{:.1f}".format(alpha_power_law)
+        R, p_value = fit.distribution_compare("power_law", "exponential")
+        p_value_fm = "{:.1f}".format(p_value)
+        ax2.legend(
+            [
+                "data",
+                r"power law fit, $\alpha =$"
+                + f"{alpha_power_law_fm}, p-value = {p_value_fm}",
+                "exponential",
+            ],
+            loc="upper left",
+            bbox_to_anchor=(1.0, 1.0),
+        )
+
+        # adjust the space between the 2 charts
+        plt.subplots_adjust(wspace=0.4)
+
+        plt.savefig(f"{file_name}.pdf", bbox_inches="tight")
+        plt.close()
+
+        return alpha_power_law, p_value
+
+    def plot_all_power_law_tests(
+        self, df_banks, path, figsize=par.small_figsize
+    ):
+
+        # replace all values smaller or equal to 0 by nan (to avoid powerlaw warnings)
+        df = df_banks.mask(df_banks <= 0)
+
+        # build path
+        os.makedirs(f"{path}", exist_ok=True)
+
+        df_power_law = pd.DataFrame(
+            index=df.columns, columns=["alpha_power_law", "p_value"]
+        )
+
+        for col in df.columns:
+
+            # define data
+            sr_data = df[col]
+
+            # check that some data exists
+            if not (sr_data.isna().all()):
+
+                # run and plot the power law test
+                df_power_law.loc[col] = self.power_law_test(
+                    sr_data, f"{path}{col}", figsize=figsize
+                )
+
+        # dump to csv
+        df_power_law.to_csv(f"{path}df_power_law.csv")
+
+        # plot
+        fig, ax1 = plt.subplots(figsize=figsize)
+        colors = sns.color_palette("flare", n_colors=2)
+
+        # ax1: alpha
+        ax1.plot(
+            df_power_law.index,
+            df_power_law["alpha_power_law"],
+            ".",
+            color=colors[0],
+        )
+        ax1.tick_params(axis="x", labelrotation=90, labelsize="small")
+        ax1.set_xlabel("accounting item")
+        ax1.set_ylabel(r"$\alpha$")
+        ax1.legend([r"$\alpha$"], loc="upper left")
+
+        # ax2: p value
+        ax2 = ax1.twinx()
+        ax2.plot(
+            df_power_law.index, df_power_law["p_value"], ".", color=colors[1]
+        )
+        ax2.set_ylabel("p-value")
+        ax2.legend(["p-value"], loc="upper right")
+
+        plt.grid()
+        plt.savefig(f"{path}power_law_tests.pdf", bbox_inches="tight")
         plt.close()
 
 

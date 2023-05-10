@@ -40,6 +40,7 @@ other_items = [
     "initial deposits",
     "total assets",
     "excess liquidity",
+    "total liabilities",
 ]
 
 # bank items
