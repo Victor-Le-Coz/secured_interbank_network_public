@@ -23,21 +23,21 @@ dic_default_value = {
     "shocks_vol": 0.05,
     "result_location": f"{path}runs/",
     "min_repo_trans_size": 1e-8,
-    "nb_steps": int(2e1),
-    "dump_period": int(2e3),
-    "plot_period": int(1e3),
-    "cp_option": False,
+    "nb_steps": int(5e3),
+    "dump_period": int(5e3),
+    "plot_period": int(5e2),
+    "cp_option": True,
     "LCR_mgt_opt": False,
 }
 
 dic_range = {
-    "nb_banks": np.arange(10, 260, 10),
+    "nb_banks": np.arange(10, 260, 5),
     "alpha_init": np.arange(0, 0.3, 0.01),
-    "beta_init": np.arange(0, 1, 0.05),
-    "beta_reg": np.arange(0.01, 1, 0.02),
-    "alpha_pareto": np.logspace(0, 1, num=25),
-    "shocks_vol": np.arange(0, 0.30, 0.0025),
-    "min_repo_trans_size": np.logspace(-16, 2, num=25),
+    "beta_init": np.arange(0, 1, 0.02),
+    "beta_reg": np.arange(0.01, 1, 0.01),
+    "alpha_pareto": np.logspace(0, 1, num=50),
+    "shocks_vol": np.arange(0, 0.30, 0.0010),
+    "min_repo_trans_size": np.logspace(-16, 2, num=50),
 }
 
 
@@ -55,11 +55,13 @@ dic_ranges_test = {
 if __name__ == "__main__":
 
     # build list of the dic_args to be tested
-    list_dic_args = fct.build_args(dic_default_value, dic_ranges_test)
+    list_dic_args = fct.build_args(dic_default_value, dic_range)
 
     # open a cluster
     client, cluster = launch_cluster_mltp(
-        TASK_MEMORY=19, JOB_WALLTIME="30:00:00", max_cpu=100
+        TASK_MEMORY=19,
+        JOB_WALLTIME="30:00:00",
+        # max_cpu=100,
     )
 
     # run with dask distributed

@@ -653,7 +653,7 @@ class ClassGraphics:
         )
 
         # plot all power law tests
-        self.plot_all_power_law_tests(df_banks, f"{path}power_laws/")
+        # self.plot_all_power_law_tests(df_banks, f"{path}power_laws/")
 
     def plot_step_balance_sheet(
         self,

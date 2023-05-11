@@ -8,7 +8,7 @@ This class initialises also an instance of ClassGraphics.
 This class simulate a Network and stores all the historical information about this Network.
 Most metrics are computed using the their definition in the module emp_metrics and stored in df_network_trajectory, a DataFrame with the historical information at network level.
 The metrics specific to one bank are store in df_bank_trajectory.
-The information about each individual bank across time is not stored in general, except the transaction information in df_reverse_repo and their associated exposure view (store in adj matrix) in arr_matrix_reverse_repo (a nb_steps * nb_banks * nb_banks numpy array).
+The information about each individual bank across time is not stored in general, except the transaction information in df_reverse_repo and their associated exposure view (store in adj matrix) in arr_rev_repo_exp_adj (a nb_steps * nb_banks * nb_banks numpy array).
 After aggregation in rolling windows, the binary adjencies are stored in dic_arr_binary_adj.
 An other exception is dic_in_degree, dic_out_degree, dic_degree, which stores, for each agg_period, an array of the degree per bank across time.
 
@@ -26,7 +26,7 @@ This class maintains at local level the history of the reserve repo transaction 
 
 ## module Graphics (subclass of dynamics)
 Definition of the ClassGraphics.
-This class plots the trajectory of the states of the network across time using df_network_trajectory, df_bank_trajectory, arr_matrix_reverse_repo, dic_arr_binary_adj, and dic_degree.
+This class plots the trajectory of the states of the network across time using df_network_trajectory, df_bank_trajectory, arr_rev_repo_exp_adj, dic_arr_binary_adj, and dic_degree.
 
 ## notebook emp_analysis
 Notebook to run all empirical measures on the MMSR data base.
