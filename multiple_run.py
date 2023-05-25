@@ -5,7 +5,7 @@ import dask
 from cluster import launch_cluster_mltp
 import graphics as gx
 
-path = "./results/testing/sensitivity/"
+path = "./results/sensitivity/lux_25_05"
 
 dic_default_value = {
     "nb_banks": 50,
@@ -30,7 +30,7 @@ dic_default_value = {
     "LCR_mgt_opt": False,
 }
 
-dic_range = {
+dic_ranges = {
     "nb_banks": np.arange(10, 260, 5),
     "alpha_init": np.arange(0, 0.3, 0.01),
     "beta_init": np.arange(0, 1, 0.02),
@@ -55,13 +55,13 @@ dic_ranges_test = {
 if __name__ == "__main__":
 
     # build list of the dic_args to be tested
-    list_dic_args = fct.build_args(dic_default_value, dic_range)
+    list_dic_args = fct.build_args(dic_default_value, dic_ranges)
 
     # open a cluster
     client, cluster = launch_cluster_mltp(
         TASK_MEMORY=19,
         JOB_WALLTIME="30:00:00",
-        # max_cpu=100,
+        max_cpu=300,
     )
 
     # run with dask distributed

@@ -10,6 +10,7 @@ import functions as fct
 import parameters as par
 import emp_metrics as em
 import powerlaw
+import sys
 
 
 class ClassGraphics:
@@ -653,7 +654,7 @@ class ClassGraphics:
         )
 
         # plot all power law tests
-        # self.plot_all_power_law_tests(df_banks, f"{path}power_laws/")
+        self.plot_all_power_law_tests(df_banks, f"{path}power_laws/")
 
     def plot_step_balance_sheet(
         self,
@@ -739,50 +740,55 @@ class ClassGraphics:
     def power_law_test(self, sr_data, file_name, figsize=par.small_figsize):
 
         # fit the data with the powerlaw librairy
-        fit = powerlaw.Fit(sr_data.dropna())
+        if len(sr_data.dropna()) > 1:  # at least 2 data points required
+            fit = powerlaw.Fit(sr_data.dropna())
 
-        # define the figure and colors
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
-        colors = sns.color_palette("flare", n_colors=3)
-        col = sr_data.name
+            # define the figure and colors
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
+            colors = sns.color_palette("flare", n_colors=3)
+            col = sr_data.name
 
-        # ax1 : pdf
-        fit.plot_pdf(color=colors[0], ax=ax1)
-        fit.power_law.plot_pdf(color=colors[1], linestyle="--", ax=ax1)
-        fit.exponential.plot_pdf(color=colors[2], linestyle="--", ax=ax1)
-        ax1.set_xlabel(par.df_plt.loc[col, "legend"])
-        ax1.set_ylabel("pdf")
-        ax1.grid()
+            # ax1 : pdf
+            fit.plot_pdf(color=colors[0], ax=ax1)
+            fit.power_law.plot_pdf(color=colors[1], linestyle="--", ax=ax1)
+            fit.exponential.plot_pdf(color=colors[2], linestyle="--", ax=ax1)
+            ax1.set_xlabel(par.df_plt.loc[col, "legend"])
+            ax1.set_ylabel("pdf")
+            ax1.grid()
 
-        # ax2 : ccdf
-        fit.plot_ccdf(color=colors[0], ax=ax2)
-        fit.power_law.plot_ccdf(color=colors[1], linestyle="--", ax=ax2)
-        fit.exponential.plot_ccdf(color=colors[2], linestyle="--", ax=ax2)
-        ax2.set_xlabel(par.df_plt.loc[col, "legend"])
-        ax2.set_ylabel("ccdf")
-        ax2.grid()
+            # ax2 : ccdf
+            fit.plot_ccdf(color=colors[0], ax=ax2)
+            fit.power_law.plot_ccdf(color=colors[1], linestyle="--", ax=ax2)
+            fit.exponential.plot_ccdf(color=colors[2], linestyle="--", ax=ax2)
+            ax2.set_xlabel(par.df_plt.loc[col, "legend"])
+            ax2.set_ylabel("ccdf")
+            ax2.grid()
 
-        # legend
-        alpha_power_law = fit.power_law.alpha
-        alpha_power_law_fm = "{:.1f}".format(alpha_power_law)
-        R, p_value = fit.distribution_compare("power_law", "exponential")
-        p_value_fm = "{:.1f}".format(p_value)
-        ax2.legend(
-            [
-                "data",
-                r"power law fit, $\alpha =$"
-                + f"{alpha_power_law_fm}, p-value = {p_value_fm}",
-                "exponential",
-            ],
-            loc="upper left",
-            bbox_to_anchor=(1.0, 1.0),
-        )
+            # legend
+            alpha_power_law = fit.power_law.alpha
+            alpha_power_law_fm = "{:.1f}".format(alpha_power_law)
+            R, p_value = fit.distribution_compare("power_law", "exponential")
+            p_value_fm = "{:.1f}".format(p_value)
+            ax2.legend(
+                [
+                    "data",
+                    r"power law fit, $\alpha =$"
+                    + f"{alpha_power_law_fm}, p-value = {p_value_fm}",
+                    "exponential",
+                ],
+                loc="upper left",
+                bbox_to_anchor=(1.0, 1.0),
+            )
 
-        # adjust the space between the 2 charts
-        plt.subplots_adjust(wspace=0.4)
+            # adjust the space between the 2 charts
+            plt.subplots_adjust(wspace=0.4)
 
-        plt.savefig(f"{file_name}.pdf", bbox_inches="tight")
-        plt.close()
+            plt.savefig(f"{file_name}.pdf", bbox_inches="tight")
+            plt.close()
+
+        else:
+            alpha_power_law = np.nan
+            p_value = np.nan
 
         return alpha_power_law, p_value
 

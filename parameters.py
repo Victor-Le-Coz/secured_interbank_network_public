@@ -404,3 +404,8 @@ cp_algos = [
     "Lip",  # do not take weights into acount
     "BE",  # do not take weights into acount
 ]
+
+dingo = [1, 3, 4]
+
+dic_test = {"test": "test"}
+list_test = ["test"]

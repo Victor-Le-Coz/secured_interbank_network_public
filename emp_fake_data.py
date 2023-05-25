@@ -76,3 +76,19 @@ def get_df_finrep():
         },
     )
     return df_finrep
+
+
+# list of the column in FINREP fake data (to be added)
+# balance_sheet_data_clean.dta	total_assets
+# balance_sheet_data_clean.dta	own_funds
+# balance_sheet_data_clean.dta	own_funds_assets
+# balance_sheet_data_clean.dta	cash
+# balance_sheet_data_clean.dta	cash_assets
+# balance_sheet_data_clean.dta	deposits
+# balance_sheet_data_clean.dta	deposits_assets
+# balance_sheet_data_clean.dta	loans
+# balance_sheet_data_clean.dta	loans_assets
+# balance_sheet_data_clean.dta	stock_market_sec_gov
+# balance_sheet_data_clean.dta	sec_holdings_assets_m
+# balance_sheet_data_clean.dta	stock_nominal_sec_gov
+# balance_sheet_data_clean.dta	sec_holdings_assets_n
