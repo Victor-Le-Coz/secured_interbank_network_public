@@ -2,10 +2,10 @@ import functions as fct
 import dynamics as dyn
 import numpy as np
 import dask
-from cluster import launch_cluster_mltp
+from cluster import new_launch_cluster
 import graphics as gx
 
-path = "./results/sensitivity/lux_25_05"
+path = "./results/sensitivity/lux_25_05/"
 
 dic_default_value = {
     "nb_banks": 50,
@@ -23,7 +23,7 @@ dic_default_value = {
     "shocks_vol": 0.05,
     "result_location": f"{path}runs/",
     "min_repo_trans_size": 1e-8,
-    "nb_steps": int(5e3),
+    "nb_steps": int(5e1),
     "dump_period": int(5e3),
     "plot_period": int(5e2),
     "cp_option": True,
@@ -58,9 +58,9 @@ if __name__ == "__main__":
     list_dic_args = fct.build_args(dic_default_value, dic_ranges)
 
     # open a cluster
-    client, cluster = launch_cluster_mltp(
-        TASK_MEMORY=19,
-        JOB_WALLTIME="30:00:00",
+    client, cluster = new_launch_cluster(
+        task_memory=19,
+        job_walltime="30:00:00",
         max_cpu=300,
     )
 

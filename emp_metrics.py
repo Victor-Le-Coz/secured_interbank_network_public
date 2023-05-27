@@ -199,19 +199,23 @@ def cpnet_test(bank_network, algo="BE"):
     elif algo == "BE":
         alg = cpnet.BE()
 
-    alg.detect(bank_network)  # Feed the network as an input
-    x = alg.get_coreness()  # Get the coreness of nodes
-    c = alg.get_pair_id()  # Get the group membership of nodes
+    try:
+        alg.detect(bank_network)  # Feed the network as an input
+        x = alg.get_coreness()  # Get the coreness of nodes
+        c = alg.get_pair_id()  # Get the group membership of nodes
 
-    # Statistical significance test
-    sig_c, sig_x, significant, p_value = cpnet.qstest(
-        c,
-        x,
-        bank_network,
-        alg,
-        significance_level=0.05,
-        # num_of_thread=1,
-    )
+        # Statistical significance test
+        sig_c, sig_x, significant, p_value = cpnet.qstest(
+            c,
+            x,
+            bank_network,
+            alg,
+            significance_level=0.05,
+            # num_of_thread=1,
+        )
+
+    except:  # if one of the algorithm generates an error, fill all outputs with nan or empty list
+        sig_c, sig_x, significant, p_value = {}, {}, [np.nan], [np.nan]
 
     return sig_c, sig_x, significant, p_value
 

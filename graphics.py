@@ -471,14 +471,15 @@ class ClassGraphics:
             else:
                 day_print = day
 
-            self.plot_step_cp_test(
-                bank_network=bank_network,
-                sig_c=sig_c,
-                sig_x=sig_x,
-                path=f"{path_results}",
-                step=day_print,
-                figsize=figsize,
-            )
+            if sig_c != {}:
+                self.plot_step_cp_test(
+                    bank_network=bank_network,
+                    sig_c=sig_c,
+                    sig_x=sig_x,
+                    path=f"{path_results}",
+                    step=day_print,
+                    figsize=figsize,
+                )
 
         sr_pvalue.to_csv(f"{path_results}sr_pvalue.csv")
 
@@ -740,7 +741,10 @@ class ClassGraphics:
     def power_law_test(self, sr_data, file_name, figsize=par.small_figsize):
 
         # fit the data with the powerlaw librairy
-        if len(sr_data.dropna()) > 1:  # at least 2 data points required
+
+        if (len(sr_data.dropna()) > 1) and (
+            sr_data.abs().sum() > par.float_limit
+        ):  # at least 2 data points required with non negligeable size
             fit = powerlaw.Fit(sr_data.dropna())
 
             # define the figure and colors
@@ -749,7 +753,12 @@ class ClassGraphics:
             col = sr_data.name
 
             # ax1 : pdf
-            fit.plot_pdf(color=colors[0], ax=ax1)
+            try:
+                fit.plot_pdf(color=colors[0], ax=ax1)
+            except:
+                sr_data.to_csv("./support/sr_data.csv")
+                sys.exit(3)
+
             fit.power_law.plot_pdf(color=colors[1], linestyle="--", ax=ax1)
             fit.exponential.plot_pdf(color=colors[2], linestyle="--", ax=ax1)
             ax1.set_xlabel(par.df_plt.loc[col, "legend"])

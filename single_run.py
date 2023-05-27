@@ -19,6 +19,6 @@ dyn.single_run(
     nb_steps=int(1e2),
     dump_period=int(1e2),
     plot_period=int(1e2),
-    cp_option=False,
+    cp_option=True,
     LCR_mgt_opt=False,
 )
