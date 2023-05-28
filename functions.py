@@ -53,6 +53,13 @@ def get_dic_range(path):
     return dic_range
 
 
+def get_nb_runs(dic_range):
+    nb_runs = 0
+    for key in dic_range.keys():
+        nb_runs += len(dic_range[key])
+    return nb_runs
+
+
 def get_df_network_sensitivity(path):
     # get the input parameters and their ranges
     dic_range = get_dic_range(path)

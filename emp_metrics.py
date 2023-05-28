@@ -233,10 +233,10 @@ def get_algo_cpnet(
     plot_steps = fct.get_plot_steps_from_period(days, plot_period)
     df_algo_cpnet = pd.DataFrame(
         {
-            "sig_c": pd.Series([], dtype=object),
-            "sig_x": pd.Series([], dtype=object),
-            "significant": pd.Series([], dtype=object),
-            "p_value": pd.Series([], dtype=float),
+            "cpnet sig_c": pd.Series([], dtype=object),
+            "cpnet sig_x": pd.Series([], dtype=object),
+            "cpnet significant": pd.Series([], dtype=object),
+            "cpnet p-value": pd.Series([], dtype=float),
         }
     )
 
@@ -254,11 +254,11 @@ def get_algo_cpnet(
         )
 
         # run cpnet test
-        sig_c, sig_x, significant, p_values = step_cpnet(
+        sig_c, sig_x, significant, pvalues = step_cpnet(
             bank_network, algo=algo
         )
 
-        df_algo_cpnet.loc[day] = [sig_c, sig_x, significant, p_values[0]]
+        df_algo_cpnet.loc[day] = [sig_c, sig_x, significant, pvalues[0]]
 
     return df_algo_cpnet
 
@@ -276,8 +276,13 @@ def get_cpnet(
     # initialise results
     df_cpnet = pd.DataFrame(
         columns=[
-            f"{col}-{agg_period}-{algo}"
-            for col in ["sig_c", "sig_x", "significant", "p_value"]
+            f"{col} {algo}-{agg_period}"
+            for col in [
+                "cpnet sig_c",
+                "cpnet sig_x",
+                "cpnet significant",
+                "cpnet p-value",
+            ]
             for agg_period in par.agg_periods
             for algo in par.cp_algos
         ],
@@ -300,7 +305,7 @@ def get_cpnet(
             )
 
             for col in df_algo_cpnet.columns:
-                df_cpnet[f"{col}-{agg_period}-{algo}"] = df_algo_cpnet[col]
+                df_cpnet[f"{col} {algo}-{agg_period}"] = df_algo_cpnet[col]
 
     if path:
         os.makedirs(path, exist_ok=True)

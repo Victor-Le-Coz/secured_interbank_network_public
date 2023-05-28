@@ -416,13 +416,13 @@ def plot_cpnet(
 
                 # retrieve the cp structure from df_network trajectory
                 sig_c = df_network_trajectory.loc[
-                    day, f"sig_c-{agg_period}-{algo}"
+                    day, f"cpnet sig_c {algo}-{agg_period}"
                 ]
                 sig_x = df_network_trajectory.loc[
-                    day, f"sig_x-{agg_period}-{algo}"
+                    day, f"cpnet sig_x {algo}-{agg_period}"
                 ]
                 df_pvalue.loc[day, algo] = df_network_trajectory.loc[
-                    day, f"p_value-{agg_period}-{algo}"
+                    day, f"cpnet p-value {algo}-{agg_period}"
                 ]
 
                 # check that there is a result to plot

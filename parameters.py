@@ -4,8 +4,8 @@ import pandas as pd
 # run features
 
 # aggregation periods for the definition of links
-# agg_periods = [1, 50, 100, 250]
-agg_periods = [1, 50]
+agg_periods = [1, 50, 100, 250]
+# agg_periods = [1, 50]
 
 # limit to the float precision
 float_limit = 1e-10  # required to model a 1000 bilion euros balance sheet
@@ -63,6 +63,25 @@ matrices = ["adjency", "trust", "binary_adjency", "non-zero_adjency"]
 
 # reverse repos
 transaction_cols = ["amount", "start_step", "tenor", "status"]
+
+# -----------------------
+# miscellaneous parameters
+
+# core-periphery algorithms
+cp_algos = [
+    "KM_ER",  # divide by zero error
+    "KM_config",  # divide by zero error
+    "Divisive",  # divide by zero error
+    "Rombach",
+    "Rossa",
+    "LapCore",  # generates bug (scipy.sparse.linalg._eigen.arpack.arpack.ArpackError: ARPACK error 3: No shifts could be applied during a cycle of the Implicitly restarted Arnoldi iteration. One possibility is to increase the size of NCV relative to NEV.)
+    "LapSgnCore",
+    "LowRankCore",  # generates bug (scipy.sparse.linalg._eigen.arpack.arpack.ArpackError: ARPACK error 3: No shifts could be applied during a cycle of the Implicitly restarted Arnoldi iteration. One possibility is to increase the size of NCV relative to NEV.)
+    "MINRES",  # do not take weights into acount
+    # "Surprise",  # do not take weights into acount & too slow
+    "Lip",  # do not take weights into acount
+    "BE",  # do not take weights into acount
+]
 
 # --------------------
 # ploting conventions
@@ -196,6 +215,18 @@ degree_stats = [
     for agg_period in agg_periods
     for extension in stat_extensions
 ]
+cpnet_pvalue = [
+    [
+        f"cpnet p-value {algo}-{agg_period}",
+        r"core-periphery p-value (%)",
+        f"{algo}-{agg_period} day(s)",
+        "linear",
+        "",
+        "%",
+    ]
+    for algo in cp_algos
+    for agg_period in agg_periods + ["weighted"]
+]
 
 # input parameters
 nb_banks = [
@@ -269,6 +300,7 @@ df_plt = pd.DataFrame(
         *jaccard_index,
         *network_density,
         *degree_stats,
+        *cpnet_pvalue,
         nb_banks,
         alpha_init,
         alpha,
@@ -366,6 +398,15 @@ degree_stats = [
     ],
     "",
 ]
+cpnet_pvalue = [
+    "exposure_view/cpnet_pvalue",
+    [
+        f"cpnet p-value {algo}-{agg_period}"  # extensions have normaly a space, here we add it in front of algo (which have no space)
+        for algo in cp_algos
+        for agg_period in agg_periods + ["weighted"]
+    ],
+    "",
+]
 
 # get df_figures
 df_figures = pd.DataFrame(
@@ -381,32 +422,8 @@ df_figures = pd.DataFrame(
         jaccard_index,
         network_density,
         degree_stats,
+        cpnet_pvalue,
     ],
     columns=figures_columns,
 )
 df_figures.set_index(["file_name"], inplace=True)
-
-
-# -----------------------
-# miscellaneous parameters
-
-# core-periphery algorithms
-cp_algos = [
-    # "KM_ER", # divide by zero error
-    # "KM_config", # divide by zero error
-    # "Divisive", # divide by zero error
-    "Rombach",
-    "Rossa",
-    # # "LapCore",  # generates bug (scipy.sparse.linalg._eigen.arpack.arpack.ArpackError: ARPACK error 3: No shifts could be applied during a cycle of the Implicitly restarted Arnoldi iteration. One possibility is to increase the size of NCV relative to NEV.)
-    # "LapSgnCore",
-    # # "LowRankCore", # generates bug (scipy.sparse.linalg._eigen.arpack.arpack.ArpackError: ARPACK error 3: No shifts could be applied during a cycle of the Implicitly restarted Arnoldi iteration. One possibility is to increase the size of NCV relative to NEV.)
-    # "MINRES",  # do not take weights into acount
-    # # "Surprise",  # do not take weights into acount & too slow
-    # "Lip",  # do not take weights into acount
-    # "BE",  # do not take weights into acount
-]
-
-dingo = [1, 3, 4]
-
-dic_test = {"test": "test"}
-list_test = ["test"]

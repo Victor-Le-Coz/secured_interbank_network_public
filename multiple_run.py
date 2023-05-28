@@ -5,7 +5,7 @@ import dask
 from cluster import new_launch_cluster
 import graphics as gx
 
-path = "./results/sensitivity/lux_25_05/"
+path = "./results/sensitivity/lux_test/"
 
 dic_default_value = {
     "nb_banks": 50,
@@ -23,14 +23,14 @@ dic_default_value = {
     "shocks_vol": 0.05,
     "result_location": f"{path}runs/",
     "min_repo_trans_size": 1e-8,
-    "nb_steps": int(5e1),
+    "nb_steps": int(5e2),
     "dump_period": int(5e3),
     "plot_period": int(5e2),
     "cp_option": True,
     "LCR_mgt_opt": False,
 }
 
-dic_ranges = {
+dic_range = {
     "nb_banks": np.arange(10, 260, 5),
     "alpha_init": np.arange(0, 0.3, 0.01),
     "beta_init": np.arange(0, 1, 0.02),
@@ -41,7 +41,7 @@ dic_ranges = {
 }
 
 
-dic_ranges_test = {
+dic_range_test = {
     "nb_banks": np.arange(1, 3),
     "alpha_init": np.arange(0, 1, 0.1),
     "beta_init": np.arange(0, 1, 0.05),
@@ -52,16 +52,20 @@ dic_ranges_test = {
 }
 
 
+# define the dictionary to be used for the ranges
+dic_range = dic_range
+
+
 if __name__ == "__main__":
 
     # build list of the dic_args to be tested
-    list_dic_args = fct.build_args(dic_default_value, dic_ranges)
+    list_dic_args = fct.build_args(dic_default_value, dic_range)
 
     # open a cluster
     client, cluster = new_launch_cluster(
         task_memory=19,
         job_walltime="30:00:00",
-        max_cpu=300,
+        max_cpu=fct.get_nb_runs(dic_range),
     )
 
     # run with dask distributed
