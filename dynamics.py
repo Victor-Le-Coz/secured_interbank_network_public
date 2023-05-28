@@ -415,6 +415,9 @@ class ClassDynamics:
                 f"LCR_mgt_opt={self.Network.LCR_mgt_opt} \n"
             )
 
+        with open(f"{self.path_results}input_parameters.txt", "r") as f:
+            print(f.read())
+
 
 def single_run(
     nb_banks,

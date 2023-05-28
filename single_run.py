@@ -15,7 +15,7 @@ dyn.single_run(
     shocks_law="normal-mean-reverting",
     shocks_vol=0.05,
     result_location="./results/single_run/",
-    min_repo_trans_size=1e-8,
+    min_repo_trans_size=100.0,  # 1e-8
     nb_steps=int(1e1),
     dump_period=int(1e2),
     plot_period=int(1e2),

@@ -71,7 +71,7 @@ transaction_cols = ["amount", "start_step", "tenor", "status"]
 cp_algos = [
     "KM_ER",  # divide by zero error
     "KM_config",  # divide by zero error
-    "Divisive",  # divide by zero error
+    # "Divisive",  # divide by zero error - generates a strange bug, kills the whole computation even with the try except option
     "Rombach",
     "Rossa",
     "LapCore",  # generates bug (scipy.sparse.linalg._eigen.arpack.arpack.ArpackError: ARPACK error 3: No shifts could be applied during a cycle of the Implicitly restarted Arnoldi iteration. One possibility is to increase the size of NCV relative to NEV.)

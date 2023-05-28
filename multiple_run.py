@@ -6,6 +6,7 @@ from cluster import new_launch_cluster
 import graphics as gx
 
 path = "./results/sensitivity/lux_test/"
+fct.delete_n_init_path(path)
 
 dic_default_value = {
     "nb_banks": 50,
