@@ -9,7 +9,6 @@ import pandas as pd
 import parameters as par
 import emp_preprocessing as ep
 import emp_metrics as em
-from graphics import ClassGraphics
 
 
 class ClassDynamics:
@@ -30,6 +29,7 @@ class ClassDynamics:
         self.dump_period = dump_period
         self.cp_option = cp_option
         self.min_repo_trans_size = min_repo_trans_size
+        self.plot_period = plot_period
 
         # Create the required path to store the results
         fct.delete_n_init_path(self.path_results)
@@ -66,9 +66,6 @@ class ClassDynamics:
                     )
                 }
             )
-
-        # initialise the class graphics
-        self.Graphics = ClassGraphics(Dynamics=self, plot_period=plot_period)
 
     def fill_step(self):
 
@@ -194,7 +191,7 @@ class ClassDynamics:
                 dic_arr_binary_adj=self.dic_arr_binary_adj,
                 arr_rev_repo_exp_adj=self.arr_rev_repo_exp_adj,
                 days=days,
-                plot_period=self.Graphics.plot_period,
+                plot_period=self.plot_period,
             )
             cols = df_cpnet.columns
             self.df_network_trajectory[cols] = None
@@ -368,7 +365,7 @@ class ClassDynamics:
         self.get_arr_rev_repo_exp_adj()
         self.get_arr_binary_adj()
 
-    def simulate(self, output_keys=False):
+    def simulate(self):
 
         # record and store trajectories & parameters used at step 0
         self.save_param()
@@ -388,15 +385,15 @@ class ClassDynamics:
             # expoxt record, dump, and plot
             if self.Network.step % self.dump_period == 0:
                 self.fill()
-                self.Graphics.plot_all_trajectories()
+                gx.plot_all_trajectories(self)
 
         # store the final step (if not already done)
         if self.Network.step % self.dump_period != 0:
             self.fill()
-            self.Graphics.plot_all_trajectories()
+            gx.plot_all_trajectories(self)
 
         # final print
-        self.Graphics.plot_final_step()
+        gx.plot_final_step(self)
 
     def save_param(self):
         with open(f"{self.path_results}input_parameters.txt", "w") as f:
