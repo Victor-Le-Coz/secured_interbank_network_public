@@ -173,7 +173,7 @@ def get_degree_stats(dic_degree, days, path=False):
     return df_degree_stats
 
 
-def cpnet_test(bank_network, algo="BE"):
+def step_cpnet(bank_network, algo="BE"):
     if algo == "KM_ER":
         alg = cpnet.KM_ER()
     elif algo == "KM_config":
@@ -218,6 +218,95 @@ def cpnet_test(bank_network, algo="BE"):
         sig_c, sig_x, significant, p_value = {}, {}, [np.nan], [np.nan]
 
     return sig_c, sig_x, significant, p_value
+
+
+def get_algo_cpnet(
+    arr_reverse_repo_adj,
+    algo,
+    days,
+    plot_period,
+):
+
+    print(f"core-periphery tests using the {algo} approach")
+
+    # initialise results and path
+    plot_steps = fct.get_plot_steps_from_period(days, plot_period)
+    df_algo_cpnet = pd.DataFrame(
+        {
+            "sig_c": pd.Series([], dtype=object),
+            "sig_x": pd.Series([], dtype=object),
+            "significant": pd.Series([], dtype=object),
+            "p_value": pd.Series([], dtype=float),
+        }
+    )
+
+    for step in plot_steps:
+
+        day = days[step]
+
+        print(f"test on day {day}")
+
+        # build nx object
+        bank_network = nx.from_numpy_array(
+            arr_reverse_repo_adj[step],
+            parallel_edges=False,
+            create_using=nx.DiGraph,
+        )
+
+        # run cpnet test
+        sig_c, sig_x, significant, p_values = step_cpnet(
+            bank_network, algo=algo
+        )
+
+        df_algo_cpnet.loc[day] = [sig_c, sig_x, significant, p_values[0]]
+
+    return df_algo_cpnet
+
+
+def get_cpnet(
+    dic_arr_binary_adj,
+    arr_rev_repo_exp_adj,
+    days,
+    plot_period,
+    path=False,
+):
+
+    print("run core-periphery tests")
+
+    # initialise results
+    df_cpnet = pd.DataFrame(
+        columns=[
+            f"{col}-{agg_period}-{algo}"
+            for col in ["sig_c", "sig_x", "significant", "p_value"]
+            for agg_period in par.agg_periods
+            for algo in par.cp_algos
+        ],
+    )
+
+    for agg_period in list(dic_arr_binary_adj.keys()) + ["weighted"]:
+
+        # case dijonction for the dictionary of adjency periods
+        if agg_period == "weighted":
+            arr_adj = arr_rev_repo_exp_adj
+        else:
+            arr_adj = dic_arr_binary_adj[agg_period]
+
+        for algo in par.cp_algos:
+            df_algo_cpnet = get_algo_cpnet(
+                arr_adj,
+                algo=algo,
+                days=days,
+                plot_period=plot_period,
+            )
+
+            for col in df_algo_cpnet.columns:
+                df_cpnet[f"{col}-{agg_period}-{algo}"] = df_algo_cpnet[col]
+
+    if path:
+        os.makedirs(path, exist_ok=True)
+        df_cpnet.to_csv(f"{path}core-periphery/df_cpnet.csv")
+
+    return df_cpnet
 
 
 def gini(x):

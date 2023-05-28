@@ -85,6 +85,7 @@ def get_df_network_sensitivity(path):
                     )
                     first_round = False
 
+                # fill with df_network_trajectory
                 df_network_sensitivity.loc[
                     (input_parameter, float(value))
                 ] = df_network_trajectory.iloc[-250:].mean()

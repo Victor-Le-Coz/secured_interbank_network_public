@@ -85,21 +85,13 @@ class ClassGraphics:
 
         # Plot the core-periphery detection and assessment
         if self.Dynamics.cp_option:
-            self.plot_cp_test(
-                dic=self.Dynamics.dic_arr_binary_adj,
-                algos=par.cp_algos,
+            self.plot_cpnet(
+                df_network_trajectory=self.Dynamics.df_network_trajectory,
+                dic_arr_binary_adj=self.Dynamics.dic_arr_binary_adj,
+                arr_rev_repo_exp_adj=self.Dynamics.arr_rev_repo_exp_adj,
                 days=days,
-                path_results=f"{path_results}exposure_view/",
-                opt_agg=True,
+                path=f"{path_results}exposure_view/",
             )
-            self.plot_cp_test(
-                dic=self.Dynamics.arr_rev_repo_exp_adj,
-                algos=par.cp_algos,
-                days=days,
-                path_results=f"{path_results}exposure_view/",
-                opt_agg=False,
-            )
-            self.Dynamics.p_value = 0  # to be modified
 
     def plot_trajectory(
         self,
@@ -402,133 +394,92 @@ class ClassGraphics:
                 finrep_bank_ids=finrep_bank_ids,
             )
 
-    def plot_step_cp_test(
+    def plot_cpnet(
         self,
-        bank_network,
-        sig_c,
-        sig_x,
-        path,
-        step,
-        figsize=(6, 3),
-    ):
-
-        os.makedirs(path, exist_ok=True)
-
-        # Visualization
-        fig, ax = plt.subplots(figsize=figsize)
-        ax = plt.gca()
-        ax, pos = cpnet.draw(bank_network, sig_c, sig_x, ax)
-
-        # show the plot
-        fig.tight_layout()
-        plt.savefig(
-            f"{path}step_core-periphery_structure_{step}.pdf",
-            bbox_inches="tight",
-        )
-        plt.close()
-
-    def run_algo_cp_test(
-        self,
-        arr_reverse_repo_adj,
-        algo,
+        df_network_trajectory,
+        dic_arr_binary_adj,
+        arr_rev_repo_exp_adj,
         days,
-        path_results,
-        figsize=(6, 3),
+        path,
+        figsize=par.small_figsize,
     ):
-
-        print(f"core-periphery tests using the {algo} approach")
-
-        # initialise results and path
-        sr_pvalue = pd.Series(dtype=float)
-        fct.delete_n_init_path(path_results)
 
         plot_steps = fct.get_plot_steps_from_period(days, self.plot_period)
 
-        for step in plot_steps:
+        # loop across agg periods
+        for agg_period in par.agg_periods + ["weighted"]:
 
-            day = days[step]
-
-            print(f"test on day {day}")
-
-            # build nx object
-            bank_network = nx.from_numpy_array(
-                arr_reverse_repo_adj[step],
-                parallel_edges=False,
-                create_using=nx.DiGraph,
-            )
-
-            # run cpnet test
-            sig_c, sig_x, significant, p_values = em.cpnet_test(
-                bank_network, algo=algo
-            )
-
-            # store the p_value (only the first one)
-            sr_pvalue.loc[day] = p_values[0]
-
-            # plot
-            if isinstance(day, pd.Timestamp):
-                day_print = day.strftime("%Y-%m-%d")
+            # define the arr_adj to be used
+            if agg_period == "weighted":
+                arr_adj = arr_rev_repo_exp_adj
             else:
-                day_print = day
+                arr_adj = dic_arr_binary_adj[agg_period]
 
-            if sig_c != {}:
-                self.plot_step_cp_test(
-                    bank_network=bank_network,
-                    sig_c=sig_c,
-                    sig_x=sig_x,
-                    path=f"{path_results}",
-                    step=day_print,
-                    figsize=figsize,
-                )
+            # define df_pvalue
+            df_pvalue = pd.DataFrame(columns=par.cp_algos)
 
-        sr_pvalue.to_csv(f"{path_results}sr_pvalue.csv")
+            # loop across algos
+            for algo in par.cp_algos:
 
-        return sr_pvalue
+                # loop across plot step
+                for step in plot_steps:
+                    day = days[step]
 
-    def plot_cp_test(
-        self,
-        dic,
-        algos,
-        days,
-        path_results,
-        figsize=(6, 3),
-        opt_agg=False,
-    ):
+                    # retrieve the cp structure from df_network trajectory
+                    sig_c = df_network_trajectory.loc[
+                        day, f"sig_c-{agg_period}-{algo}"
+                    ]
+                    sig_x = df_network_trajectory.loc[
+                        day, f"sig_x-{agg_period}-{algo}"
+                    ]
+                    df_pvalue.loc[day, algo] = df_network_trajectory.loc[
+                        day, f"p_value-{agg_period}-{algo}"
+                    ]
 
-        print("run core-periphery tests")
+                    # check that there is a result to plot
+                    if sig_c != {}:
 
-        # case dijonction to build the list of agg periods
-        if opt_agg:
-            agg_periods = dic.keys()
-        else:
-            agg_periods = ["weighted"]
+                        # define path
+                        path_cp_struct = (
+                            f"{path}core-periphery/{agg_period}/{algo}/"
+                        )
+                        os.makedirs(path_cp_struct, exist_ok=True)
 
-        for agg_period in agg_periods:
+                        # build nx object
+                        bank_network = nx.from_numpy_array(
+                            arr_adj[step],
+                            parallel_edges=False,
+                            create_using=nx.DiGraph,
+                        )
 
-            # define the path
-            path = f"{path_results}core-periphery/{agg_period}/"
+                        # plot cp structure
+                        fig, ax = plt.subplots(figsize=figsize)
+                        ax = plt.gca()
+                        ax, pos = cpnet.draw(bank_network, sig_c, sig_x, ax)
+                        if isinstance(day, pd.Timestamp):
+                            day_print = day.strftime("%Y-%m-%d")
+                        else:
+                            day_print = day
+                        plt.savefig(
+                            f"{path_cp_struct}core-periphery_structure_step_{day_print}.pdf",
+                            bbox_inches="tight",
+                        )
+                        plt.close()
 
-            # case dijonction for the dictionary of adjency periods
-            if opt_agg:
-                dic_adj = dic[agg_period]
-            else:
-                dic_adj = dic
-
-            df_pvalue = pd.DataFrame(columns=algos)
-            for algo in algos:
-                df_pvalue[algo] = self.run_algo_cp_test(
-                    dic_adj,
-                    algo=algo,
-                    days=days,
-                    path_results=f"{path}{algo}/",
-                    figsize=figsize,
-                )
-            df_pvalue.to_csv(f"{path}df_pvalue.csv")
-
-            ax = df_pvalue.plot(figsize=figsize, style=".")
+            # plot df_pvalue
+            path_pvalue = f"{path}core-periphery/{agg_period}/"
+            os.makedirs(path_pvalue, exist_ok=True)
+            df_pvalue.to_csv(f"{path_pvalue}df_pvalue.csv")
+            ax = df_pvalue.plot(
+                figsize=figsize,
+                style=".-",
+                colormap=ListedColormap(
+                    sns.color_palette("flare", n_colors=len(par.cp_algos))
+                ),
+            )
             lgd = ax.legend(loc="upper left", bbox_to_anchor=(1, 1))
             plt.savefig(
-                f"{path}pvalues.pdf",
+                f"{path_pvalue}pvalues.pdf",
                 bbox_extra_artists=(lgd,),
                 bbox_inches="tight",
             )
@@ -740,11 +691,12 @@ class ClassGraphics:
 
     def power_law_test(self, sr_data, file_name, figsize=par.small_figsize):
 
-        # fit the data with the powerlaw librairy
-
+        # at least 2 data points required with non negligeable size
         if (len(sr_data.dropna()) > 1) and (
             sr_data.abs().sum() > par.float_limit
-        ):  # at least 2 data points required with non negligeable size
+        ):
+
+            # fit the data with the powerlaw librairy
             fit = powerlaw.Fit(sr_data.dropna())
 
             # define the figure and colors
@@ -752,13 +704,15 @@ class ClassGraphics:
             colors = sns.color_palette("flare", n_colors=3)
             col = sr_data.name
 
-            # ax1 : pdf
-            try:
-                fit.plot_pdf(color=colors[0], ax=ax1)
-            except:
-                sr_data.to_csv("./support/sr_data.csv")
-                sys.exit(3)
+            # debug
+            # try:
+            #     fit.plot_pdf(color=colors[0], ax=ax1)
+            # except:
+            #     sr_data.to_csv("./support/sr_data.csv")
+            #     sys.exit(3)
 
+            # ax1 : pdf
+            fit.plot_pdf(color=colors[0], ax=ax1)
             fit.power_law.plot_pdf(color=colors[1], linestyle="--", ax=ax1)
             fit.exponential.plot_pdf(color=colors[2], linestyle="--", ax=ax1)
             ax1.set_xlabel(par.df_plt.loc[col, "legend"])

@@ -82,7 +82,7 @@ class ClassDynamics:
     def fill_step_df_network_trajectory(self):
 
         # -----------
-        # accounting view
+        # I - accounting view
 
         # accounting items
         for item in par.bank_items:
@@ -153,8 +153,9 @@ class ClassDynamics:
     def fill_df_network_trajectory(self):
 
         # --------------
-        # exposure view
+        # II - exposure view
 
+        # A - full path
         # expost jaccard
         df_jaccard = em.get_rev_repo_exposure_stats(
             self.dic_arr_binary_adj, range(self.Network.step)
@@ -169,7 +170,7 @@ class ClassDynamics:
         cols = df_density.columns
         self.df_network_trajectory[cols] = df_density
 
-        # expost av. degree
+        # expost degree stats
         df_degree_stats = em.get_degree_stats(
             self.dic_degree,
             range(self.Network.step),
@@ -185,8 +186,23 @@ class ClassDynamics:
         cols = df_exposures_stats.columns
         self.df_network_trajectory[cols] = df_exposures_stats
 
+        # B - lonely step
+        days = range(self.Network.step + 1)  # to cover all steps up to now
+        # expost cpnet
+        if self.cp_option:
+            df_cpnet = em.get_cpnet(
+                dic_arr_binary_adj=self.dic_arr_binary_adj,
+                arr_rev_repo_exp_adj=self.arr_rev_repo_exp_adj,
+                days=days,
+                plot_period=self.Graphics.plot_period,
+            )
+            cols = df_cpnet.columns
+            self.df_network_trajectory[cols] = None
+            for step in df_cpnet.index:
+                self.df_network_trajectory.loc[step, cols] = df_cpnet.loc[step]
+
         # --------------
-        # transaction view
+        # III - transaction view
 
         # expost reverse repo transactions stats network level
         df_transaction_stats = em.get_transaction_stats(

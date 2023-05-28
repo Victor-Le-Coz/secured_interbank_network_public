@@ -4,7 +4,8 @@ import pandas as pd
 # run features
 
 # aggregation periods for the definition of links
-agg_periods = [1, 50, 100, 250]
+# agg_periods = [1, 50, 100, 250]
+agg_periods = [1, 50]
 
 # limit to the float precision
 float_limit = 1e-10  # required to model a 1000 bilion euros balance sheet
@@ -396,13 +397,13 @@ cp_algos = [
     # "Divisive", # divide by zero error
     "Rombach",
     "Rossa",
-    # "LapCore",  # generates bug (scipy.sparse.linalg._eigen.arpack.arpack.ArpackError: ARPACK error 3: No shifts could be applied during a cycle of the Implicitly restarted Arnoldi iteration. One possibility is to increase the size of NCV relative to NEV.)
-    "LapSgnCore",
-    # "LowRankCore", # generates bug (scipy.sparse.linalg._eigen.arpack.arpack.ArpackError: ARPACK error 3: No shifts could be applied during a cycle of the Implicitly restarted Arnoldi iteration. One possibility is to increase the size of NCV relative to NEV.)
-    "MINRES",  # do not take weights into acount
-    # "Surprise",  # do not take weights into acount & too slow
-    "Lip",  # do not take weights into acount
-    "BE",  # do not take weights into acount
+    # # "LapCore",  # generates bug (scipy.sparse.linalg._eigen.arpack.arpack.ArpackError: ARPACK error 3: No shifts could be applied during a cycle of the Implicitly restarted Arnoldi iteration. One possibility is to increase the size of NCV relative to NEV.)
+    # "LapSgnCore",
+    # # "LowRankCore", # generates bug (scipy.sparse.linalg._eigen.arpack.arpack.ArpackError: ARPACK error 3: No shifts could be applied during a cycle of the Implicitly restarted Arnoldi iteration. One possibility is to increase the size of NCV relative to NEV.)
+    # "MINRES",  # do not take weights into acount
+    # # "Surprise",  # do not take weights into acount & too slow
+    # "Lip",  # do not take weights into acount
+    # "BE",  # do not take weights into acount
 ]
 
 dingo = [1, 3, 4]
