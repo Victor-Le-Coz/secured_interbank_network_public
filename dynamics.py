@@ -41,6 +41,9 @@ class ClassDynamics:
         self.single_bank_id = 0  # the selected single bank id
         self.df_bank_trajectory = pd.DataFrame(index=range(self.nb_steps))
 
+        # dashed trajectory for all banks
+        self.dic_dashed_trajectory = {}
+
         # total assets of each bank
         self.arr_total_assets = np.zeros(
             (self.nb_steps, self.Network.nb_banks), dtype=np.float32
@@ -75,6 +78,12 @@ class ClassDynamics:
         self.fill_step_df_network_trajectory()
         self.fill_step_df_bank_trajectory()
         self.fill_step_arr_total_assets()
+
+        if (
+            self.Network.step % self.plot_period == 0
+            or self.Network.step == self.nb_steps - 1
+        ):
+            self.fill_step_dic_dashed_trajectory()
 
     def fill_step_df_network_trajectory(self):
 
@@ -120,6 +129,11 @@ class ClassDynamics:
     def fill_step_arr_total_assets(self):
         self.arr_total_assets[self.Network.step] = np.array(
             self.Network.df_banks["total assets"]
+        )
+
+    def fill_step_dic_dashed_trajectory(self):
+        self.dic_dashed_trajectory.update(
+            {self.Network.step: self.Network.df_banks}
         )
 
     def fill(self):
@@ -385,17 +399,16 @@ class ClassDynamics:
             # expoxt record, dump, and plot
             if self.Network.step % self.dump_period == 0:
                 self.fill()
-                gx.plot_all_trajectories(self)
+                gx.plot(self)
 
         # store the final step (if not already done)
         if self.Network.step % self.dump_period != 0:
             self.fill()
-            gx.plot_all_trajectories(self)
-
-        # final print
-        gx.plot_final_step(self)
+            gx.plot(self)
 
     def save_param(self):
+
+        # save parameters to a file
         with open(f"{self.path_results}input_parameters.txt", "w") as f:
             f.write(
                 f"nb_banks={self.Network.nb_banks} \n"
@@ -415,6 +428,7 @@ class ClassDynamics:
                 f"LCR_mgt_opt={self.Network.LCR_mgt_opt} \n"
             )
 
+        # print the parameter to terminal
         with open(f"{self.path_results}input_parameters.txt", "r") as f:
             print(f.read())
 

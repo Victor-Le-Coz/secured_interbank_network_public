@@ -95,7 +95,7 @@ def get_df_network_sensitivity(path):
                 # fill with df_network_trajectory
                 df_network_sensitivity.loc[
                     (input_parameter, float(value))
-                ] = df_network_trajectory.iloc[-250:].mean()
+                ] = df_network_trajectory.iloc[-500:].mean()
 
     # save the results
     df_network_sensitivity.to_csv(f"{path}/df_network_sensitivity.csv")
@@ -116,6 +116,16 @@ def get_plot_steps_from_period(days, plot_period):
         if step % plot_period == 0 or step == nb_days - 1
     ]
     return plot_steps
+
+
+def get_plot_days_from_period(days, plot_period):
+    nb_days = len(days)
+    plot_days = [
+        days[step]
+        for step in range(len(days))
+        if step % plot_period == 0 or step == nb_days - 1
+    ]
+    return plot_days
 
 
 def delete_n_init_path(path):

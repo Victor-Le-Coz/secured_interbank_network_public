@@ -6,7 +6,6 @@ from cluster import new_launch_cluster
 import graphics as gx
 
 path = "./results/sensitivity/lux_test/"
-fct.delete_n_init_path(path)
 
 dic_default_value = {
     "nb_banks": 50,
@@ -24,9 +23,9 @@ dic_default_value = {
     "shocks_vol": 0.05,
     "result_location": f"{path}runs/",
     "min_repo_trans_size": 1e-8,
-    "nb_steps": int(5e2),
+    "nb_steps": int(5e3),
     "dump_period": int(5e3),
-    "plot_period": int(5e2),
+    "plot_period": int(1e2),
     "cp_option": True,
     "LCR_mgt_opt": False,
 }
@@ -52,12 +51,13 @@ dic_range_test = {
     "min_repo_trans_size": np.logspace(-16, 2, num=3),
 }
 
-
-# define the dictionary to be used for the ranges
-dic_range = dic_range
-
-
 if __name__ == "__main__":
+
+    # define the dictionary to be used for the ranges
+    dic_range = dic_range
+
+    # initialize the path
+    fct.delete_n_init_path(path)
 
     # build list of the dic_args to be tested
     list_dic_args = fct.build_args(dic_default_value, dic_range)

@@ -96,7 +96,7 @@ plt_columns = [
     "label",
     "legend",
     "scale",
-    "format",
+    "style",
     "convertion",
 ]
 
@@ -221,7 +221,7 @@ cpnet_pvalue = [
         r"core-periphery p-value (%)",
         f"{algo}-{agg_period} day(s)",
         "linear",
-        "",
+        ".-",
         "%",
     ]
     for algo in cp_algos
@@ -398,15 +398,17 @@ degree_stats = [
     ],
     "",
 ]
-cpnet_pvalue = [
-    "exposure_view/cpnet_pvalue",
+cpnet_pvalues = [
     [
-        f"cpnet p-value {algo}-{agg_period}"  # extensions have normaly a space, here we add it in front of algo (which have no space)
-        for algo in cp_algos
-        for agg_period in agg_periods + ["weighted"]
-    ],
-    "",
-]
+        f"exposure_view/core-periphery/cpnet_pvalue-{agg_period}",
+        [
+            f"cpnet p-value {algo}-{agg_period}"  # extensions have normaly a space, here we add it in front of algo (which have no space)
+            for algo in cp_algos
+        ],
+        "",
+    ]
+    for agg_period in agg_periods + ["weighted"]
+]  # create one figure per agg period
 
 # get df_figures
 df_figures = pd.DataFrame(
@@ -422,8 +424,8 @@ df_figures = pd.DataFrame(
         jaccard_index,
         network_density,
         degree_stats,
-        cpnet_pvalue,
-    ],
+    ]
+    + cpnet_pvalues,
     columns=figures_columns,
 )
 df_figures.set_index(["file_name"], inplace=True)
