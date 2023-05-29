@@ -17,7 +17,7 @@ def plot(Dynamics):
 
     # create paths
     path_results = Dynamics.path_results
-    os.makedirs(f"{path_results}accounting_view/power_laws/", exist_ok=True)
+    os.makedirs(f"{path_results}accounting_view/power_law/", exist_ok=True)
     os.makedirs(f"{path_results}transaction_view/", exist_ok=True)
     os.makedirs(f"{path_results}exposure_view/core-periphery/", exist_ok=True)
 
@@ -116,17 +116,16 @@ def plot_all_dashed_trajectory(Dynamics):
         f"{path_results}exposure_view/degree_per_asset/",
     )
 
-    # # commented because it creates too many figures (costs up to 3000 nodes)
-    # # Plot the core-periphery detection and assessment
-    # if Dynamics.cp_option:
-    #     plot_cpnet(
-    #         df_network_trajectory=Dynamics.df_network_trajectory,
-    #         dic_arr_binary_adj=Dynamics.dic_arr_binary_adj,
-    #         arr_rev_repo_exp_adj=Dynamics.arr_rev_repo_exp_adj,
-    #         days=days,
-    #         plot_period=Dynamics.plot_period,
-    #         path=f"{path_results}exposure_view/",
-    #     )
+    # Plot the core-periphery struture (warning heavy plot : app. 3000 plots per run)
+    if Dynamics.cp_option and Dynamics.heavy_plot:
+        plot_cpnet(
+            df_network_trajectory=Dynamics.df_network_trajectory,
+            dic_arr_binary_adj=Dynamics.dic_arr_binary_adj,
+            arr_rev_repo_exp_adj=Dynamics.arr_rev_repo_exp_adj,
+            days=days,
+            plot_period=Dynamics.plot_period,
+            path=f"{path_results}exposure_view/",
+        )
 
     # --------------
     # accounting view
@@ -139,12 +138,14 @@ def plot_all_dashed_trajectory(Dynamics):
         f"{path_results}accounting_view/balance_sheet/",
     )
 
-    plot_all_power_law(
-        dic_dashed_trajectory,
-        days,
-        plot_period,
-        f"{path_results}accounting_view/power_laws/",
-    )
+    # plot powerlaws (warning heavy plot : app. 500 plots per run)
+    if Dynamics.heavy_plot:
+        plot_powerlaw(
+            df_network_trajectory=Dynamics.df_network_trajectory,
+            days=days,
+            plot_period=plot_period,
+            path=f"{path_results}accounting_view/",
+        )
 
 
 def plot_step_weighted_adj_network(
@@ -449,7 +450,7 @@ def plot_cpnet(
                 sig_x = df_network_trajectory.loc[
                     day, f"cpnet sig_x {algo}-{agg_period}"
                 ]
-                plot_step_cpnet(
+                plot_step_algo_cpnet(
                     sig_c,
                     sig_x,
                     f"{path}core-periphery/{agg_period}/{algo}/",
@@ -459,7 +460,7 @@ def plot_cpnet(
                 )
 
 
-def plot_step_cpnet(sig_c, sig_x, path, day, adj, figsize):
+def plot_step_algo_cpnet(sig_c, sig_x, path, day, adj, figsize):
     # check that there is a result to plot
     if sig_c != {}:
 
@@ -482,147 +483,92 @@ def plot_step_cpnet(sig_c, sig_x, path, day, adj, figsize):
         else:
             day_print = day
         plt.savefig(
-            f"{path}core-periphery_structure_step_{day_print}.pdf",
+            f"{path}core-periphery_structure_on_day_{day_print}.pdf",
             bbox_inches="tight",
         )
         plt.close()
 
 
-def plot_all_power_law(
-    dic_dashed_trajectory,
-    days,
-    plot_period,
-    path,
-    figsize=par.small_figsize,
+def plot_powerlaw(
+    df_network_trajectory, days, plot_period, path, figsize=par.small_figsize
 ):
-
-    os.makedirs(path, exist_ok=True)
 
     plot_days = fct.get_plot_days_from_period(days, plot_period)
 
     for day in plot_days:
-        df_banks = dic_dashed_trajectory[day]
-        plot_step_all_power_law(df_banks, day, path, figsize=figsize)
+        for bank_item in par.bank_items:
+
+            # retrive the information to plot
+            powerlaw_fit = df_network_trajectory.loc[
+                day, f"powerlaw fit {bank_item}"
+            ]
+            powerlaw_alpha = df_network_trajectory.loc[
+                day, f"powerlaw alpha {bank_item}"
+            ]
+            powerlaw_pvalue = df_network_trajectory.loc[
+                day, f"powerlaw p-value {bank_item}"
+            ]
+
+            # plot
+            if not (np.isnan(powerlaw_pvalue)):
+                plot_step_item_powerlaw(
+                    powerlaw_fit,
+                    powerlaw_alpha,
+                    powerlaw_pvalue,
+                    bank_item,
+                    f"{path}power_law/on_day_{day}/",
+                    figsize=figsize,
+                )
 
 
-def plot_step_all_power_law(df_banks, day, path, figsize=par.small_figsize):
+def plot_step_item_powerlaw(
+    powerlaw_fit,
+    powerlaw_alpha,
+    powerlaw_pvalue,
+    bank_item,
+    path,
+    figsize=par.small_figsize,
+):
 
-    # replace all values smaller or equal to 0 by nan (to avoid powerlaw warnings)
-    df = df_banks.mask(df_banks <= 0)
+    # define the figure and colors
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
+    colors = sns.color_palette("flare", n_colors=3)
 
-    # build path
-    if isinstance(day, pd.Timestamp):
-        day_print = day.strftime("%Y-%m-%d")
-    else:
-        day_print = day
-    path_pwl = f"{path}{day_print}/"
-    os.makedirs(f"{path_pwl}", exist_ok=True)
+    # ax1 : pdf
+    powerlaw_fit.plot_pdf(color=colors[0], ax=ax1)
+    powerlaw_fit.power_law.plot_pdf(color=colors[1], linestyle="--", ax=ax1)
+    powerlaw_fit.exponential.plot_pdf(color=colors[2], linestyle="--", ax=ax1)
+    ax1.set_xlabel(par.df_plt.loc[bank_item, "legend"])
+    ax1.set_ylabel("pdf")
+    ax1.grid()
 
-    df_power_law = pd.DataFrame(
-        index=df.columns, columns=["alpha_power_law", "p_value"]
+    # ax2 : ccdf
+    powerlaw_fit.plot_ccdf(color=colors[0], ax=ax2)
+    powerlaw_fit.power_law.plot_ccdf(color=colors[1], linestyle="--", ax=ax2)
+    powerlaw_fit.exponential.plot_ccdf(color=colors[2], linestyle="--", ax=ax2)
+    ax2.set_xlabel(par.df_plt.loc[bank_item, "legend"])
+    ax2.set_ylabel("ccdf")
+    ax2.grid()
+
+    # legend
+    powerlaw_alpha_fm = "{:.1f}".format(powerlaw_alpha)
+    powerlaw_pvalue_fm = "{:.1f}".format(powerlaw_pvalue)
+    ax2.legend(
+        [
+            "data",
+            r"power law fit, $\alpha =$"
+            + f"{powerlaw_alpha_fm}, p-value = {powerlaw_pvalue_fm}",
+            "exponential",
+        ],
+        loc="upper left",
+        bbox_to_anchor=(1.0, 1.0),
     )
 
-    for col in df.columns:
-
-        # define data
-        sr_data = df[col]
-
-        # check that some data exists
-        if not (sr_data.isna().all()):
-
-            # run and plot the power law test
-            df_power_law.loc[col] = plot_step_power_law(
-                sr_data, f"{path_pwl}{col}", figsize=figsize
-            )
-
-    # dump to csv
-    df_power_law.to_csv(f"{path}df_power_law.csv")
-
-    # plot
-    fig, ax1 = plt.subplots(figsize=figsize)
-    colors = sns.color_palette("flare", n_colors=2)
-
-    # ax1: alpha
-    ax1.plot(
-        df_power_law.index,
-        df_power_law["alpha_power_law"],
-        ".",
-        color=colors[0],
-    )
-    ax1.tick_params(axis="x", labelrotation=90, labelsize="small")
-    ax1.set_xlabel("accounting item")
-    ax1.set_ylabel(r"$\alpha$")
-    ax1.legend([r"$\alpha$"], loc="upper left")
-
-    # ax2: p value
-    ax2 = ax1.twinx()
-    ax2.plot(df_power_law.index, df_power_law["p_value"], ".", color=colors[1])
-    ax2.set_ylabel("p-value")
-    ax2.legend(["p-value"], loc="upper right")
-
-    plt.grid()
-    plt.savefig(
-        f"{path}power_law_tests_on_day_{day_print}.pdf", bbox_inches="tight"
-    )
+    # adjust the space between the 2 charts
+    plt.subplots_adjust(wspace=0.4)
+    os.makedirs(path, exist_ok=True)
+    plt.savefig(f"{path}{bank_item}.pdf", bbox_inches="tight")
     plt.close()
-
-
-def plot_step_power_law(sr_data, file_name, figsize=par.small_figsize):
-
-    # at least 2 data points required with non negligeable size
-    if (len(sr_data.dropna()) > 1) and (sr_data.abs().sum() > par.float_limit):
-
-        # fit the data with the powerlaw librairy
-        fit = powerlaw.Fit(sr_data.dropna())
-
-        # define the figure and colors
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
-        colors = sns.color_palette("flare", n_colors=3)
-        col = sr_data.name
-
-        # ax1 : pdf
-        fit.plot_pdf(color=colors[0], ax=ax1)
-        fit.power_law.plot_pdf(color=colors[1], linestyle="--", ax=ax1)
-        fit.exponential.plot_pdf(color=colors[2], linestyle="--", ax=ax1)
-        ax1.set_xlabel(par.df_plt.loc[col, "legend"])
-        ax1.set_ylabel("pdf")
-        ax1.grid()
-
-        # ax2 : ccdf
-        fit.plot_ccdf(color=colors[0], ax=ax2)
-        fit.power_law.plot_ccdf(color=colors[1], linestyle="--", ax=ax2)
-        fit.exponential.plot_ccdf(color=colors[2], linestyle="--", ax=ax2)
-        ax2.set_xlabel(par.df_plt.loc[col, "legend"])
-        ax2.set_ylabel("ccdf")
-        ax2.grid()
-
-        # legend
-        alpha_power_law = fit.power_law.alpha
-        alpha_power_law_fm = "{:.1f}".format(alpha_power_law)
-        R, p_value = fit.distribution_compare("power_law", "exponential")
-        p_value_fm = "{:.1f}".format(p_value)
-        ax2.legend(
-            [
-                "data",
-                r"power law fit, $\alpha =$"
-                + f"{alpha_power_law_fm}, p-value = {p_value_fm}",
-                "exponential",
-            ],
-            loc="upper left",
-            bbox_to_anchor=(1.0, 1.0),
-        )
-
-        # adjust the space between the 2 charts
-        plt.subplots_adjust(wspace=0.4)
-
-        plt.savefig(f"{file_name}.pdf", bbox_inches="tight")
-        plt.close()
-
-    else:
-        alpha_power_law = np.nan
-        p_value = np.nan
-
-    return alpha_power_law, p_value
 
 
 def plot_balance_sheet(
@@ -848,9 +794,8 @@ def plot_sensitivity(
     df = convert_data(df[cols], par.df_plt.loc[cols[0], "convertion"])
 
     # convert the index
-    df = convert_n_format_index(
+    df = convert_index(
         df,
-        par.df_plt.loc[input_parameter, "format"],
         par.df_plt.loc[input_parameter, "convertion"],
     )
 
@@ -917,7 +862,7 @@ def convert_data(df, str_convertion):
     return df
 
 
-def convert_n_format_index(df, str_format, str_convertion):
+def convert_index(df, str_convertion):
 
     index = df.index
 
@@ -929,8 +874,6 @@ def convert_n_format_index(df, str_format, str_convertion):
         index = index / 1e3
     elif str_convertion == "%":
         index = index * 100
-
-    index = index.map(("{:" + str_format + "}").format)
 
     df.index = pd.Index(index)
 

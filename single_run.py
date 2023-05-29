@@ -21,4 +21,5 @@ dyn.single_run(
     plot_period=int(1e2),
     cp_option=True,
     LCR_mgt_opt=False,
+    heavy_plot=True,
 )

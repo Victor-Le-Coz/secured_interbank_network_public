@@ -23,11 +23,12 @@ dic_default_value = {
     "shocks_vol": 0.05,
     "result_location": f"{path}runs/",
     "min_repo_trans_size": 1e-8,
-    "nb_steps": int(5e3),
+    "nb_steps": int(5e1),
     "dump_period": int(5e3),
     "plot_period": int(1e2),
     "cp_option": True,
     "LCR_mgt_opt": False,
+    "heavy_plot": False,  # False to avoid the number of linux node to explode
 }
 
 dic_range = {
@@ -54,7 +55,7 @@ dic_range_test = {
 if __name__ == "__main__":
 
     # define the dictionary to be used for the ranges
-    dic_range = dic_range
+    dic_range = dic_range_test
 
     # initialize the path
     fct.delete_n_init_path(path)

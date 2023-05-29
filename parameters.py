@@ -438,7 +438,7 @@ cpnet_pvalues = [
 ]  # create one figure per agg period
 
 powelaw_alpha = [
-    f"accounting_view/power_laws/powelaw_alpha",
+    f"accounting_view/power_law/powelaw_alpha",
     [
         f"powerlaw alpha {bank_item}"  # extensions have normaly a space, here we add it in front of algo (which have no space)
         for bank_item in bank_items
@@ -446,7 +446,7 @@ powelaw_alpha = [
     "",
 ]
 powelaw_pvalue = [
-    f"accounting_view/power_laws/powelaw_pvalue",
+    f"accounting_view/power_law/powelaw_pvalue",
     [
         f"powerlaw p-value {bank_item}"  # extensions have normaly a space, here we add it in front of algo (which have no space)
         for bank_item in bank_items

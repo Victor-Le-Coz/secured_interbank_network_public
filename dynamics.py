@@ -21,6 +21,7 @@ class ClassDynamics:
         plot_period,
         cp_option,
         min_repo_trans_size,
+        heavy_plot,
     ):
         # initialization of the class parameters.
         self.Network = Network
@@ -30,6 +31,7 @@ class ClassDynamics:
         self.cp_option = cp_option
         self.min_repo_trans_size = min_repo_trans_size
         self.plot_period = plot_period
+        self.heavy_plot = heavy_plot
 
         # Create the required path to store the results
         fct.delete_n_init_path(self.path_results)
@@ -152,6 +154,8 @@ class ClassDynamics:
         self.fill_df_network_trajectory()
         self.fill_df_bank_trajectory()
 
+    def dump(self):
+
         # save the data frame results
         self.df_bank_trajectory.to_csv(
             f"{self.path_results}df_bank_trajectory.csv"
@@ -159,7 +163,14 @@ class ClassDynamics:
         self.df_network_trajectory.to_csv(
             f"{self.path_results}df_network_trajectory.csv"
         )
-        self.Network.dump_step(self.path_results)
+        self.Network.df_rev_repo_trans.to_csv(
+            f"{self.path_results}df_reverse_repos.csv"
+        )
+        os.makedirs(f"{self.path_results}/dashed_trajectory/", exist_ok=True)
+        for step in self.dic_dashed_trajectory.keys():
+            self.dic_dashed_trajectory[step].to_csv(
+                f"{self.path_results}/dashed_trajectory/df_banks_on_day_{step}.csv"
+            )
 
     def fill_df_network_trajectory(self):
 
@@ -410,11 +421,13 @@ class ClassDynamics:
             # expoxt record, dump, and plot
             if self.Network.step % self.dump_period == 0:
                 self.fill()
+                self.dump()
                 gx.plot(self)
 
         # store the final step (if not already done)
         if self.Network.step % self.dump_period != 0:
             self.fill()
+            self.dump()
             gx.plot(self)
 
     def save_param(self):
@@ -465,6 +478,7 @@ def single_run(
     plot_period,
     cp_option,
     LCR_mgt_opt,
+    heavy_plot,
 ):
 
     # initialize ClassNetwork
@@ -494,6 +508,7 @@ def single_run(
         plot_period=plot_period,
         cp_option=cp_option,
         min_repo_trans_size=min_repo_trans_size,
+        heavy_plot=heavy_plot,
     )
 
     # simulate
