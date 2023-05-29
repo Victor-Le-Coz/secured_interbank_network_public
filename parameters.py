@@ -10,6 +10,9 @@ agg_periods = [1, 50, 100, 250]
 # limit to the float precision
 float_limit = 1e-10  # required to model a 1000 bilion euros balance sheet
 
+# nb of days on which stationary average is computed
+len_statio = 200
+
 # ------------------
 # variables definition
 
@@ -227,6 +230,28 @@ cpnet_pvalue = [
     for algo in cp_algos
     for agg_period in agg_periods + ["weighted"]
 ]
+powerlaw_alpha = [
+    [
+        f"powerlaw alpha {bank_item}",
+        r"power law alpha",
+        f"{bank_item}",
+        "linear",
+        ".-",
+        "",
+    ]
+    for bank_item in bank_items
+]
+powerlaw_pvalue = [
+    [
+        f"powerlaw p-value {bank_item}",
+        r"power law p-value (%)",
+        f"{bank_item}",
+        "linear",
+        ".-",
+        "%",
+    ]
+    for bank_item in bank_items
+]
 
 # input parameters
 nb_banks = [
@@ -301,6 +326,8 @@ df_plt = pd.DataFrame(
         *network_density,
         *degree_stats,
         *cpnet_pvalue,
+        *powerlaw_alpha,
+        *powerlaw_pvalue,
         nb_banks,
         alpha_init,
         alpha,
@@ -410,6 +437,24 @@ cpnet_pvalues = [
     for agg_period in agg_periods + ["weighted"]
 ]  # create one figure per agg period
 
+powelaw_alpha = [
+    f"accounting_view/power_laws/powelaw_alpha",
+    [
+        f"powerlaw alpha {bank_item}"  # extensions have normaly a space, here we add it in front of algo (which have no space)
+        for bank_item in bank_items
+    ],
+    "",
+]
+powelaw_pvalue = [
+    f"accounting_view/power_laws/powelaw_pvalue",
+    [
+        f"powerlaw p-value {bank_item}"  # extensions have normaly a space, here we add it in front of algo (which have no space)
+        for bank_item in bank_items
+    ],
+    "",
+]
+
+
 # get df_figures
 df_figures = pd.DataFrame(
     [
@@ -424,6 +469,8 @@ df_figures = pd.DataFrame(
         jaccard_index,
         network_density,
         degree_stats,
+        powelaw_alpha,
+        powelaw_pvalue,
     ]
     + cpnet_pvalues,
     columns=figures_columns,

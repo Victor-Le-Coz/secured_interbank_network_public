@@ -7,6 +7,7 @@ from tqdm import tqdm
 import parameters as par
 import cpnet
 import os
+import powerlaw
 
 
 def get_rev_repo_exposure_stats(dic_arr_binary_adj, days, path=False):
@@ -414,3 +415,74 @@ def get_exposure_stats(arr_rev_repo_exp_adj, days, path=False):
         df_exposures_stats.to_csv(f"{path}df_exposures_stats.csv")
 
     return df_exposures_stats
+
+
+def step_item_powerlaw(sr_data):
+
+    # at least 2 data points required with non negligeable size
+    if (len(sr_data.dropna()) > 1) and (sr_data.abs().sum() > par.float_limit):
+
+        # fit the data with the powerlaw librairy
+        powerlaw_fit = powerlaw.Fit(sr_data.dropna())
+
+        # retrieve the alpha and p-value
+        powerlaw_alpha = powerlaw_fit.power_law.alpha
+        R, powerlaw_pvalue = powerlaw_fit.distribution_compare(
+            "power_law", "exponential"
+        )
+
+    # fill with nan otherwise
+    else:
+        powerlaw_fit = np.nan
+        powerlaw_alpha = np.nan
+        powerlaw_pvalue = np.nan
+
+    fits = [powerlaw_fit, powerlaw_alpha, powerlaw_pvalue]
+
+    return fits
+
+
+def get_powerlaw(
+    dic_dashed_trajectory,
+    days,
+    plot_period,
+    path=False,
+):
+
+    print("run power law tests")
+
+    # initialise results
+    df_powerlaw = pd.DataFrame(
+        columns=[
+            f"{metric} {bank_item}"
+            for metric in [
+                "powerlaw fit",
+                "powerlaw alpha",
+                "powerlaw p-value",
+            ]
+            for bank_item in par.bank_items
+        ],
+    )
+
+    # get the list of ploting days
+    plot_days = fct.get_plot_days_from_period(days, plot_period)
+
+    for day in plot_days:
+
+        # get df_banks for this day
+        df_banks = dic_dashed_trajectory[day]
+
+        # replace values smaller than 0 by nan (avoid powerlaw warnings)
+        df = df_banks.mask(df_banks <= 0)
+
+        for bank_item in df.columns:
+            fits = step_item_powerlaw(df[bank_item])
+            df_powerlaw.loc[day, f"powerlaw fit {bank_item}"] = fits[0]
+            df_powerlaw.loc[day, f"powerlaw alpha {bank_item}"] = fits[1]
+            df_powerlaw.loc[day, f"powerlaw p-value {bank_item}"] = fits[2]
+
+    if path:
+        os.makedirs(path, exist_ok=True)
+        df_powerlaw.to_csv(f"{path}powerlaw/df_powerlaw.csv")
+
+    return df_powerlaw

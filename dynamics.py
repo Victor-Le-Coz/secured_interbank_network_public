@@ -197,7 +197,7 @@ class ClassDynamics:
         cols = df_exposures_stats.columns
         self.df_network_trajectory[cols] = df_exposures_stats
 
-        # B - lonely step
+        # B - dashed path
         days = range(self.Network.step + 1)  # to cover all steps up to now
         # expost cpnet
         if self.cp_option:
@@ -211,6 +211,17 @@ class ClassDynamics:
             self.df_network_trajectory[cols] = None
             for step in df_cpnet.index:
                 self.df_network_trajectory.loc[step, cols] = df_cpnet.loc[step]
+
+        # expost powerlaw
+        df_powerlaw = em.get_powerlaw(
+            dic_dashed_trajectory=self.dic_dashed_trajectory,
+            days=days,
+            plot_period=self.plot_period,
+        )
+        cols = df_powerlaw.columns
+        self.df_network_trajectory[cols] = None
+        for step in df_powerlaw.index:
+            self.df_network_trajectory.loc[step, cols] = df_powerlaw.loc[step]
 
         # --------------
         # III - transaction view

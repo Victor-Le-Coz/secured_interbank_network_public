@@ -8,6 +8,7 @@ import shutil
 import pandas as pd
 from scipy import stats
 import sys
+import parameters as par
 
 
 def build_args(dic_default_value, dic_ranges):
@@ -95,7 +96,7 @@ def get_df_network_sensitivity(path):
                 # fill with df_network_trajectory
                 df_network_sensitivity.loc[
                     (input_parameter, float(value))
-                ] = df_network_trajectory.iloc[-500:].mean()
+                ] = df_network_trajectory.iloc[-par.len_statio:].mean()
 
     # save the results
     df_network_sensitivity.to_csv(f"{path}/df_network_sensitivity.csv")
