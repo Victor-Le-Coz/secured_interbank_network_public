@@ -490,12 +490,23 @@ def plot_step_algo_cpnet(sig_c, sig_x, path, day, adj, figsize):
 
 
 def plot_powerlaw(
-    df_network_trajectory, days, plot_period, path, figsize=par.small_figsize
+    df_network_trajectory,
+    days,
+    plot_period,
+    path,
+    figsize=par.small_figsize,
+    plot_days=False,
 ):
-
-    plot_days = fct.get_plot_days_from_period(days, plot_period)
+    if not (plot_days):
+        plot_days = fct.get_plot_days_from_period(days, plot_period)
 
     for day in plot_days:
+
+        if isinstance(day, pd.Timestamp):
+            day_print = day.strftime("%Y-%m-%d")
+        else:
+            day_print = day
+
         for bank_item in par.bank_items:
 
             # retrive the information to plot
@@ -516,7 +527,7 @@ def plot_powerlaw(
                     powerlaw_alpha,
                     powerlaw_pvalue,
                     bank_item,
-                    f"{path}power_law/on_day_{day}/",
+                    f"{path}power_law/on_day_{day_print}/",
                     figsize=figsize,
                 )
 

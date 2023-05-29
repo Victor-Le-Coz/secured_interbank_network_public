@@ -446,6 +446,7 @@ def get_powerlaw(
     dic_dashed_trajectory,
     days,
     plot_period,
+    plot_days=False,
     path=False,
 ):
 
@@ -460,12 +461,13 @@ def get_powerlaw(
                 "powerlaw alpha",
                 "powerlaw p-value",
             ]
-            for bank_item in par.bank_items
+            for bank_item in list(dic_dashed_trajectory.values())[0].columns
         ],
     )
 
     # get the list of ploting days
-    plot_days = fct.get_plot_days_from_period(days, plot_period)
+    if not (plot_days):
+        plot_days = fct.get_plot_days_from_period(days, plot_period)
 
     for day in plot_days:
 

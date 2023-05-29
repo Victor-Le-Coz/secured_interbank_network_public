@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from random import choices
+import parameters as par
 
 freq = "5h"
 
@@ -61,21 +62,42 @@ def get_df_exposures(lines):
 
 
 def get_df_finrep():
+
+    dic_data = {
+        "lei": ["bank_" + str(i) for i in range(50)] * 25,
+        "date": sorted(
+            list(
+                pd.period_range(
+                    start="2020-01-01", freq="1y", periods=25
+                ).to_timestamp()
+            )
+            * 50
+        ),
+    }
+
+    for bank_item in par.bank_items:
+        dic_data.update({bank_item: np.random.rand(50 * 25) * 100})
+
     df_finrep = pd.DataFrame(
-        data={
-            "lei": ["bank_" + str(i) for i in range(50)] * 25,
-            "date": sorted(
-                list(
-                    pd.period_range(
-                        start="2020-01-01", freq="1y", periods=25
-                    ).to_timestamp()
-                )
-                * 50
-            ),
-            "total assets": np.random.rand(50 * 25) * 100,
-        },
+        data=dic_data,
     )
+
     return df_finrep
+
+
+def get_dic_dashed_trajectory(df_finrep):
+    dic_dashed_trajectory = {}
+    plot_days = pd.to_datetime(
+        sorted(list(set(df_finrep["date"].dt.strftime("%Y-%m-%d"))))
+    )
+    for day in plot_days:
+        df_banks = (
+            df_finrep[df_finrep["date"] == plot_days[0]]
+            .set_index("lei")
+            .drop("date", axis=1)
+        )
+        dic_dashed_trajectory.update({day: df_banks})
+    return dic_dashed_trajectory
 
 
 # list of the column in FINREP fake data (to be added)
