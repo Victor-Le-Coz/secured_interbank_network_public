@@ -310,12 +310,12 @@ def get_cpnet(
 
     if path:
         os.makedirs(path, exist_ok=True)
-        df_cpnet.to_csv(f"{path}core-periphery/df_cpnet.csv")
+        df_cpnet.to_csv(f"{path}df_cpnet.csv")
 
     return df_cpnet
 
 
-def gini(x):
+def fig_gini(x):
     """
     This function computes the gini coeficient of a numpy arary.
     param: x: a numpy array
@@ -485,6 +485,6 @@ def get_powerlaw(
 
     if path:
         os.makedirs(path, exist_ok=True)
-        df_powerlaw.to_csv(f"{path}powerlaw/df_powerlaw.csv")
+        df_powerlaw.to_csv(f"{path}df_powerlaw.csv")
 
     return df_powerlaw

@@ -99,9 +99,9 @@ class ClassDynamics:
             ] = self.Network.df_banks[item].sum()
 
         # gini
-        self.df_network_trajectory.loc[self.Network.step, "gini"] = em.gini(
-            self.Network.df_banks["total assets"]
-        )
+        self.df_network_trajectory.loc[
+            self.Network.step, "gini"
+        ] = em.fig_gini(self.Network.df_banks["total assets"])
 
         # Collateral reuse
         self.df_network_trajectory.loc[

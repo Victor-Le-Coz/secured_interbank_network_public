@@ -47,7 +47,7 @@ def plot_network_trajectory(
     df,
     cols,
     file_name,
-    xscale="linear",
+    xscale=False,
     figsize=par.small_figsize,
 ):
     fig, ax = plt.subplots(figsize=figsize)
@@ -70,7 +70,8 @@ def plot_network_trajectory(
     )
     plt.xlabel("time (days)")
     plt.ylabel(par.df_plt.loc[cols[0], "label"])
-    plt.xscale(xscale)
+    if xscale:
+        plt.xscale(xscale)
     plt.yscale(par.df_plt.loc[cols[0], "scale"])
     plt.grid()
     plt.savefig(f"{file_name}", bbox_inches="tight")
