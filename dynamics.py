@@ -46,11 +46,6 @@ class ClassDynamics:
         # dashed trajectory for all banks
         self.dic_dashed_trajectory = {}
 
-        # total assets of each bank
-        self.arr_total_assets = np.zeros(
-            (self.nb_steps, self.Network.nb_banks), dtype=np.float32
-        )
-
         # reverse repo adj exposure: array (nb_steps * nb_banks * nb_banks)
         self.arr_rev_repo_exp_adj = np.zeros(
             (self.nb_steps, self.Network.nb_banks, self.Network.nb_banks),
@@ -79,7 +74,6 @@ class ClassDynamics:
 
         self.fill_step_df_network_trajectory()
         self.fill_step_df_bank_trajectory()
-        self.fill_step_arr_total_assets()
 
         if (
             self.Network.step % self.plot_period == 0
@@ -127,11 +121,6 @@ class ClassDynamics:
             self.df_bank_trajectory.loc[
                 self.Network.step, item
             ] = self.Network.df_banks.loc[self.single_bank_id, item]
-
-    def fill_step_arr_total_assets(self):
-        self.arr_total_assets[self.Network.step] = np.array(
-            self.Network.df_banks["total assets"]
-        )
 
     def fill_step_dic_dashed_trajectory(self):
         self.dic_dashed_trajectory.update(
@@ -218,7 +207,10 @@ class ClassDynamics:
                 days=days,
                 plot_period=self.plot_period,
             )
-            cols = df_cpnet.columns
+            if self.heavy_plot:
+                cols = df_cpnet.columns
+            else:  # not save all columns if there is no need (spare memory)
+                cols = [plot_char[0] for plot_char in par.cpnet_pvalue]
             self.df_network_trajectory[cols] = None
             for step in df_cpnet.index:
                 self.df_network_trajectory.loc[step, cols] = df_cpnet.loc[step]
@@ -229,7 +221,12 @@ class ClassDynamics:
             days=days,
             plot_period=self.plot_period,
         )
-        cols = df_powerlaw.columns
+        if self.heavy_plot:
+            cols = df_powerlaw.columns
+        else:  # not save all columns if there is no need (spare memory)
+            cols = [plot_char[0] for plot_char in par.powerlaw_pvalue] + [
+                plot_char[0] for plot_char in par.powerlaw_alpha
+            ]
         self.df_network_trajectory[cols] = None
         for step in df_powerlaw.index:
             self.df_network_trajectory.loc[step, cols] = df_powerlaw.loc[step]

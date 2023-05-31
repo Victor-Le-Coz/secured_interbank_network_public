@@ -11,6 +11,7 @@ import parameters as par
 import emp_metrics as em
 import powerlaw
 import sys
+from tqdm import tqdm
 
 
 def plot(Dynamics):
@@ -91,7 +92,7 @@ def plot_all_dashed_trajectory(Dynamics):
     # plot the reverse repo network
     plot_weighted_adj_network(
         Dynamics.arr_rev_repo_exp_adj,
-        Dynamics.arr_total_assets,
+        dic_dashed_trajectory,
         days,
         plot_period,
         f"{path_results}exposure_view/weighted_adj_network/",
@@ -109,7 +110,7 @@ def plot_all_dashed_trajectory(Dynamics):
 
     # Plot degree per asset
     plot_degree_per_asset(
-        Dynamics.arr_total_assets,
+        dic_dashed_trajectory,
         Dynamics.dic_degree,
         range(Dynamics.Network.nb_banks),
         days,
@@ -151,12 +152,14 @@ def plot_all_dashed_trajectory(Dynamics):
 
 def plot_step_weighted_adj_network(
     adj,
-    ar_total_assets,
+    df_banks,
     days,
     step,
     path,
     name,
     figsize=par.small_figsize,
+    bank_ids=False,
+    log_node=False,
 ):
     # build a network from an adjacency matrix
     bank_network = nx.from_numpy_array(
@@ -172,8 +175,21 @@ def plot_step_weighted_adj_network(
     # log scale the big values in the repo network
     log_weights = [1 if i <= 1 else np.log(i) + 1 for i in weights]
 
+    # filter df_banks to keep only bank_ids
+    if bank_ids:
+        finrep_bank_ids = df_banks.index
+        df_banks = df_banks.loc[
+            fct.list_intersection(finrep_bank_ids, bank_ids)
+        ]
+
     # define the size of the nodes a a function of the total deposits
-    log_node_sizes = [0 if i <= 1 else np.log(i) + 1 for i in ar_total_assets]
+    if log_node:
+        node_sizes = [
+            0 if amount <= 1 else np.log(amount) + 1
+            for amount in df_banks["total assets"]
+        ]
+    else:
+        node_sizes = df_banks["total assets"]
 
     # define the position of the nodes
     pos = nx.spring_layout(bank_network)
@@ -185,7 +201,7 @@ def plot_step_weighted_adj_network(
         pos,
         width=log_weights,
         with_labels=True,
-        node_size=log_node_sizes,
+        node_size=node_sizes,
     )
 
     # show the plot
@@ -203,27 +219,34 @@ def plot_step_weighted_adj_network(
 
 def plot_weighted_adj_network(
     arr_adj,
-    arr_total_assets,
+    dic_dashed_trajectory,
     days,
     plot_period,
     path,
     name,
     figsize=par.small_figsize,
+    bank_ids=False,
+    plot_days=False,
 ):
 
     os.makedirs(path, exist_ok=True)
 
-    plot_steps = fct.get_plot_steps_from_period(days, plot_period)
+    if plot_days:
+        plot_steps = fct.get_plot_steps_from_days(days, plot_days)
+
+    else:
+        plot_steps = fct.get_plot_steps_from_period(days, plot_period)
 
     for step in plot_steps:
         plot_step_weighted_adj_network(
             arr_adj[step],
-            arr_total_assets[step],
+            dic_dashed_trajectory[days[step]],
             days,
             step,
             path,
             name=name,
             figsize=figsize,
+            bank_ids=bank_ids,
         )
 
 
@@ -311,7 +334,7 @@ def plot_degree_distribution(
 
 
 def plot_step_degree_per_asset(
-    ar_total_assets,
+    df_banks,
     dic_degree,
     bank_ids,
     days,
@@ -329,14 +352,9 @@ def plot_step_degree_per_asset(
     if not (finrep_bank_ids):
         finrep_bank_ids = bank_ids
 
-    # build the asset per bank from the ar_total assets
-    df_total_assets = pd.DataFrame(
-        ar_total_assets, index=finrep_bank_ids, columns=["total assets"]
-    )
-
     # merge the 2 df
     df = pd.merge(
-        df_total_assets,
+        df_banks[["total assets"]],
         df_degree,
         right_index=True,
         left_index=True,
@@ -366,7 +384,7 @@ def plot_step_degree_per_asset(
     else:
         day_print = days[step]
 
-    plt.title(f"degree verus total assets at step {day_print}")
+    plt.title(f"degree verus total assets on day {day_print}")
     plt.savefig(
         f"{path}degree_per_asset_on_day_{day_print}.pdf",
         bbox_inches="tight",
@@ -375,7 +393,7 @@ def plot_step_degree_per_asset(
 
 
 def plot_degree_per_asset(
-    arr_total_assets,
+    dic_dashed_trajectory,
     dic_degree,
     bank_ids,
     days,
@@ -383,7 +401,6 @@ def plot_degree_per_asset(
     path,
     figsize=(6, 3),
     plot_days=False,
-    finrep_days=False,
     finrep_bank_ids=False,
 ):
 
@@ -391,17 +408,13 @@ def plot_degree_per_asset(
 
     if plot_days:
         plot_steps = fct.get_plot_steps_from_days(days, plot_days)
-        finrep_plot_steps = fct.get_plot_steps_from_days(
-            finrep_days, plot_days
-        )
 
     else:
         plot_steps = fct.get_plot_steps_from_period(days, plot_period)
-        finrep_plot_steps = plot_steps
 
-    for step, finrep_step in zip(plot_steps, finrep_plot_steps):
+    for step in plot_steps:
         plot_step_degree_per_asset(
-            arr_total_assets[finrep_step],
+            dic_dashed_trajectory[days[step]],
             dic_degree,
             bank_ids,
             days,
@@ -838,7 +851,7 @@ def plot_sensitivity(
 def plot_all_sensitivities(df_network_sensitivity, path):
 
     # loop over the metrics
-    for metric in par.df_figures.index:
+    for metric in tqdm(par.df_figures.index):
 
         # loop over the input parameters
         for input_parameter in pd.unique(

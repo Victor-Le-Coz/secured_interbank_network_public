@@ -32,13 +32,13 @@ dic_default_value = {
 }
 
 dic_range = {
-    "nb_banks": np.arange(10, 260, 5),
-    "alpha_init": np.arange(0, 0.3, 0.01),
-    "beta_init": np.arange(0, 1, 0.02),
-    "beta_reg": np.arange(0.01, 1, 0.01),
-    "alpha_pareto": np.logspace(0, 1, num=50),
-    "shocks_vol": np.arange(0, 0.30, 0.0010),
-    "min_repo_trans_size": np.logspace(-16, 2, num=50),
+    "nb_banks": np.arange(155, 260, 5),  # 10 to 260
+    # "alpha_init": np.arange(0, 0.3, 0.01),
+    # "beta_init": np.arange(0, 1, 0.02),
+    # "beta_reg": np.arange(0.01, 1, 0.01),
+    # "alpha_pareto": np.logspace(0, 1, num=50),
+    # "shocks_vol": np.arange(0, 0.30, 0.0010),
+    # "min_repo_trans_size": np.logspace(-16, 2, num=50),
 }
 
 
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     dic_range = dic_range
 
     # initialize the path
-    fct.delete_n_init_path(path)
+    # fct.delete_n_init_path(path)
 
     # build list of the dic_args to be tested
     list_dic_args = fct.build_args(dic_default_value, dic_range)

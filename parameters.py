@@ -118,7 +118,7 @@ accounting_metrics = [
     for metric in bank_items
     for extension in [" av. network", " tot. network", ""]
 ]
-fig_collateral_reuse = [
+collateral_reuse = [
     "collateral reuse",
     r"number of reuse (#)",
     r"number of reuse (#)",
@@ -126,7 +126,7 @@ fig_collateral_reuse = [
     "",
     False,
 ]
-fig_gini = [
+gini = [
     "gini",
     r"gini (%)",
     r"gini (%)",
@@ -137,7 +137,7 @@ fig_gini = [
 
 
 # transaction view
-fig_repo_transactions_maturity_av_network = [
+repo_transactions_maturity_av_network = [
     [
         f"repo transactions maturity{extension}",
         r"maturity (days)",
@@ -148,7 +148,7 @@ fig_repo_transactions_maturity_av_network = [
     ]
     for extension in [" av. network", " av. bank"]
 ]
-fig_repo_transactions_notional_av_network = [
+repo_transactions_notional_av_network = [
     [
         f"repo transactions notional{extension}",
         r"notional (monetary units)",
@@ -159,7 +159,7 @@ fig_repo_transactions_notional_av_network = [
     ]
     for extension in [" av. network", " av. bank"]
 ]
-fig_number_repo_transactions_av_network = [
+number_repo_transactions_av_network = [
     [
         f"number repo transactions{extension}",
         r"Nb transactions (#)",
@@ -173,7 +173,7 @@ fig_number_repo_transactions_av_network = [
 
 # exposure view
 stat_extensions = [" min network", " max network", " av. network"]
-fig_repo_exposure_stats = [
+repo_exposure_stats = [
     [
         f"repo exposures{extension}",
         r"notional (monetary units)",
@@ -184,7 +184,7 @@ fig_repo_exposure_stats = [
     ]
     for extension in stat_extensions
 ]
-fig_jaccard_index = [
+jaccard_index = [
     [
         f"jaccard index-{agg_period}",
         r"Jaccard (%)",
@@ -195,7 +195,7 @@ fig_jaccard_index = [
     ]
     for agg_period in agg_periods
 ]
-fig_network_density = [
+network_density = [
     [
         f"network density-{agg_period}",
         r"density (%)",
@@ -206,7 +206,7 @@ fig_network_density = [
     ]
     for agg_period in agg_periods
 ]
-fig_degree_stats = [
+degree_stats = [
     [
         f"degree{extension}-{agg_period}",
         r"degree (#)",
@@ -230,7 +230,7 @@ cpnet_pvalue = [
     for algo in cp_algos
     for agg_period in agg_periods + ["weighted"]
 ]
-fig_powerlaw_alpha = [
+powerlaw_alpha = [
     [
         f"powerlaw alpha {bank_item}",
         r"power law alpha",
@@ -241,7 +241,7 @@ fig_powerlaw_alpha = [
     ]
     for bank_item in bank_items
 ]
-fig_powerlaw_pvalue = [
+powerlaw_pvalue = [
     [
         f"powerlaw p-value {bank_item}",
         r"power law p-value (%)",
@@ -289,11 +289,11 @@ beta_init = [
 beta_reg = ["beta_reg", r"$\beta$ (%)", r"$\beta$ (%)", "linear", "", "%"]
 alpha_pareto = [
     "alpha_pareto",
-    r"alpha patero (%, log scale)",
-    r"alpha patero (%, log scale)",
+    r"alpha patero (log scale)",
+    r"alpha patero (log scale)",
     "log",
     "",
-    "%",
+    "",
 ]
 shocks_vol = [
     "shocks_vol",
@@ -316,18 +316,18 @@ min_repo_trans_size = [
 df_plt = pd.DataFrame(
     [
         *accounting_metrics,
-        fig_collateral_reuse,
-        fig_gini,
-        *fig_repo_transactions_maturity_av_network,
-        *fig_repo_transactions_notional_av_network,
-        *fig_number_repo_transactions_av_network,
-        *fig_repo_exposure_stats,
-        *fig_jaccard_index,
-        *fig_network_density,
-        *fig_degree_stats,
+        collateral_reuse,
+        gini,
+        *repo_transactions_maturity_av_network,
+        *repo_transactions_notional_av_network,
+        *number_repo_transactions_av_network,
+        *repo_exposure_stats,
+        *jaccard_index,
+        *network_density,
+        *degree_stats,
         *cpnet_pvalue,
-        *fig_powerlaw_alpha,
-        *fig_powerlaw_pvalue,
+        *powerlaw_alpha,
+        *powerlaw_pvalue,
         nb_banks,
         alpha_init,
         alpha,

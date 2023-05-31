@@ -9,6 +9,7 @@ import pandas as pd
 from scipy import stats
 import sys
 import parameters as par
+from tqdm import tqdm
 
 
 def build_args(dic_default_value, dic_ranges):
@@ -76,7 +77,7 @@ def get_df_network_sensitivity(path):
 
     # fill-in df_network_sensitivity
     first_round = True
-    for input_parameter in dic_range.keys():
+    for input_parameter in tqdm(dic_range.keys()):
         for value in dic_range[input_parameter]:
             path_df = (
                 f"{path}{input_parameter}/{value}/df_network_trajectory.csv"
@@ -96,7 +97,7 @@ def get_df_network_sensitivity(path):
                 # fill with df_network_trajectory
                 df_network_sensitivity.loc[
                     (input_parameter, float(value))
-                ] = df_network_trajectory.iloc[-par.len_statio:].mean()
+                ] = df_network_trajectory.iloc[-par.len_statio :].mean()
 
     # save the results
     df_network_sensitivity.to_csv(f"{path}/df_network_sensitivity.csv")
