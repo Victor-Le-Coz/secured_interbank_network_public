@@ -412,6 +412,9 @@ class ClassDynamics:
             # run one step of the network
             self.Network.step_network()
 
+            # debug check memory
+            fct.check_memory()
+
             # record information
             self.fill_step()
 

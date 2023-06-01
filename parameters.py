@@ -86,6 +86,9 @@ cp_algos = [
     "BE",  # do not take weights into acount
 ]
 
+# for plots per bank using empirical data
+bank_ids = [f"bank_{i}" for i in range(150)]
+
 # --------------------
 # ploting conventions
 
@@ -106,6 +109,18 @@ plt_columns = [
 # metrics
 
 # accounting view
+deposits_bank_ids = [
+    [
+        f"{id}",
+        r"deposits (monetary units)",
+        f"{id}",
+        "linear",
+        "",
+        False,
+    ]
+    for id in bank_ids
+]
+
 accounting_metrics = [
     [
         f"{metric}{extension}",
@@ -336,6 +351,7 @@ df_plt = pd.DataFrame(
         alpha_pareto,
         shocks_vol,
         min_repo_trans_size,
+        *deposits_bank_ids,
     ],
     columns=plt_columns,
 )

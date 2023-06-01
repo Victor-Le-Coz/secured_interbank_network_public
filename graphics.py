@@ -553,6 +553,7 @@ def plot_step_item_powerlaw(
     bank_item,
     path,
     figsize=par.small_figsize,
+    auto_xlabel=True,
 ):
 
     # define the figure and colors
@@ -563,7 +564,8 @@ def plot_step_item_powerlaw(
     powerlaw_fit.plot_pdf(color=colors[0], ax=ax1)
     powerlaw_fit.power_law.plot_pdf(color=colors[1], linestyle="--", ax=ax1)
     powerlaw_fit.exponential.plot_pdf(color=colors[2], linestyle="--", ax=ax1)
-    ax1.set_xlabel(par.df_plt.loc[bank_item, "legend"])
+    if auto_xlabel:
+        ax1.set_xlabel(par.df_plt.loc[bank_item, "legend"])
     ax1.set_ylabel("pdf")
     ax1.grid()
 
@@ -571,7 +573,8 @@ def plot_step_item_powerlaw(
     powerlaw_fit.plot_ccdf(color=colors[0], ax=ax2)
     powerlaw_fit.power_law.plot_ccdf(color=colors[1], linestyle="--", ax=ax2)
     powerlaw_fit.exponential.plot_ccdf(color=colors[2], linestyle="--", ax=ax2)
-    ax2.set_xlabel(par.df_plt.loc[bank_item, "legend"])
+    if auto_xlabel:
+        ax2.set_xlabel(par.df_plt.loc[bank_item, "legend"])
     ax2.set_ylabel("ccdf")
     ax2.grid()
 

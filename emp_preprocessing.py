@@ -212,3 +212,62 @@ def build_arr_total_assets(df_finrep, path):
     df_total_assets.to_csv(f"{path}df_total_assets.csv")
 
     return arr_total_assets
+
+
+def get_df_deposits_variations(df_mmsr, dic_dashed_trajectory, path):
+
+    # build the deposits time series (multi index bank and time)
+    df_deposits = (
+        df_mmsr.groupby("report_agent_lei")
+        .resample("1d")
+        .sum("trns_nominal_amt")
+    )
+
+    # get one column per bank
+    df_deposits = df_deposits.unstack(0)
+    df_deposits.columns = df_deposits.columns.droplevel()
+
+    # compute the deposits variations (absolute and relative)
+    df_delta_deposits = df_deposits.diff(1)
+    df_relative_deposits = df_delta_deposits / df_deposits.shift(1)
+
+    # select the bank ids that match df_finrep to build the variation over total assets
+    df_banks = list(dic_dashed_trajectory.values())[
+        -1
+    ]  # take the last value of total assets (to be updated with something more fancy)
+    finrep_bank_ids = df_banks.index
+    bank_ids = fct.list_intersection(finrep_bank_ids, df_deposits.columns)
+    df_delta_deposits_over_assets = (
+        df_delta_deposits[bank_ids] / df_banks["total assets"].T[bank_ids]
+    )
+
+    # rename all columns
+    df_delta_deposits.columns = [
+        f"{col} abs. var." for col in df_deposits.columns
+    ]
+    df_relative_deposits.columns = [
+        f"{col} rel. var." for col in df_deposits.columns
+    ]
+    df_delta_deposits_over_assets.columns = [
+        f"{col} var over tot. assets" for col in bank_ids
+    ]
+
+    # merge all data
+    df_deposits_variations = pd.merge(
+        df_delta_deposits,
+        df_relative_deposits,
+        right_index=True,
+        left_index=True,
+    )
+    df_deposits_variations = pd.merge(
+        df_deposits_variations,
+        df_delta_deposits_over_assets,
+        right_index=True,
+        left_index=True,
+    )
+
+    # save df_deposits_variations
+    os.makedirs(path, exist_ok=True)
+    df_deposits_variations.to_csv(f"{path}df_deposits_variations.csv")
+
+    return df_deposits_variations
