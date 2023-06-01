@@ -214,14 +214,31 @@ def build_arr_total_assets(df_finrep, path):
     return arr_total_assets
 
 
+def get_dic_dashed_trajectory(df_finrep):
+    dic_dashed_trajectory = {}
+    plot_days = pd.to_datetime(
+        sorted(list(set(df_finrep["date"].dt.strftime("%Y-%m-%d"))))
+    )
+    for day in plot_days:
+        df_banks = (
+            df_finrep[df_finrep["date"] == plot_days[0]]
+            .set_index("lei")
+            .drop("date", axis=1)
+        )
+        dic_dashed_trajectory.update({day: df_banks})
+    return dic_dashed_trajectory
+
+
 def get_df_deposits_variations_by_bank(df_mmsr, dic_dashed_trajectory, path):
+
+    df_mmsr.set_index("trade_date", inplace=True)
 
     # build the deposits time series (multi index bank and time)
     df_deposits = (
-        df_mmsr.groupby("report_agent_lei")
+        df_mmsr.groupby("proprietary_trns_id")
         .resample("1d")
         .sum("trns_nominal_amt")
-    )
+    )[["trns_nominal_amt"]]
 
     # get one column per bank
     df_deposits = df_deposits.unstack(0)
@@ -236,7 +253,7 @@ def get_df_deposits_variations_by_bank(df_mmsr, dic_dashed_trajectory, path):
         -1
     ]  # take the last value of total assets (to be updated with something more fancy)
     finrep_bank_ids = df_banks.index
-    bank_ids = fct.list_intersection(finrep_bank_ids, df_deposits.columns)
+    bank_ids = fct.list_intersection(df_banks.index, df_deposits.columns)
     df_delta_deposits_over_assets = (
         df_delta_deposits[bank_ids] / df_banks["total assets"].T[bank_ids]
     )
@@ -276,12 +293,15 @@ def get_df_deposits_variations_by_bank(df_mmsr, dic_dashed_trajectory, path):
 
 
 def get_df_deposits_variation(df_mmsr, dic_dashed_trajectory, path):
+
+    df_mmsr.set_index("trade_date", inplace=True)
+
     # build the deposits time series (multi index bank and time)
     df_deposits_variations = (
-        df_mmsr.groupby("report_agent_lei")
+        df_mmsr.groupby("proprietary_trns_id")
         .resample("1d")
         .sum("trns_nominal_amt")
-    )
+    )[["trns_nominal_amt"]]
     df_deposits_variations.rename(
         {"trns_nominal_amt": "deposits"}, axis=1, inplace=True
     )
@@ -298,7 +318,7 @@ def get_df_deposits_variation(df_mmsr, dic_dashed_trajectory, path):
     df_banks = list(dic_dashed_trajectory.values())[
         -1
     ]  # take the last value of total assets (to be updated with something more fancy)
-    df_banks.index.name = "report_agent_lei"
+    df_banks.index.name = "proprietary_trns_id"
 
     df_deposits_variations = df_deposits_variations.join(
         df_banks[["total assets"]], how="inner"

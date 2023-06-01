@@ -3,33 +3,46 @@ import pandas as pd
 from random import choices
 import parameters as par
 
-freq = "5h"
 
-
-def get_df_mmsr_secured(nb_tran):
+def get_df_mmsr_secured(nb_tran, freq="5h"):
     df_mmsr = pd.DataFrame(
-        index=pd.period_range(
-            start="2020-01-01", freq=freq, periods=nb_tran
-        ).to_timestamp(),
+        index=range(nb_tran),
         data={
-            "report_agent_lei": choices(
+            "trade_date": pd.period_range(
+                start="2020-01-01", freq=freq, periods=nb_tran
+            ).to_timestamp(),
+            "unique_trns_id": range(nb_tran),
+            "proprietary_trns_id": choices(
                 ["bank_" + str(i) for i in range(10)], k=nb_tran
             ),
-            "cntp_lei": choices(
+            "cntp_proprietary_trns_id": choices(
                 ["bank_" + str(i) for i in range(15)]
                 + ["fund_" + str(i) for i in range(5)],
                 k=nb_tran,
             ),
             "trns_nominal_amt": np.random.rand(nb_tran) * 100,
-            "maturity_time_stamp": pd.to_timedelta(
+            "maturity_date": pd.to_timedelta(
                 np.random.rand(nb_tran) * 10, unit="d"
             )
             + pd.period_range(
                 start="2020-01-01", freq=freq, periods=nb_tran
             ).to_timestamp(),
-            "first_occurence": choices(
-                [True, False],
-                k=nb_tran,  # first occurence of the reporting of an evergreen transaction repo
+            "maturity_bucket": choices(
+                [
+                    "NA",
+                    "O/N",
+                    "T/N",
+                    "S/N",
+                    "1W",
+                    "2W",
+                    "1M",
+                    "2M",
+                    "3M",
+                    "6M",
+                    "9M",
+                    "12M",
+                ],
+                k=nb_tran,
             ),
             "trns_type": choices(
                 ["BORR", "LEND", "BUYI", "SELL"],
@@ -40,27 +53,46 @@ def get_df_mmsr_secured(nb_tran):
     return df_mmsr
 
 
-def get_df_mmsr_unsecured(nb_tran, freq):
+def get_df_mmsr_unsecured(nb_tran, freq="5h"):
     df_mmsr = pd.DataFrame(
-        index=pd.period_range(
-            start="2020-01-01", freq=freq, periods=nb_tran
-        ).to_timestamp(),
+        index=range(nb_tran),
         data={
-            "report_agent_lei": choices(
-                ["bank_" + str(i) for i in range(5)], k=nb_tran
+            "trade_date": pd.period_range(
+                start="2020-01-01", freq=freq, periods=nb_tran
+            ).to_timestamp(),
+            "unique_trns_id": range(nb_tran),
+            "proprietary_trns_id": choices(
+                ["bank_" + str(i) for i in range(10)], k=nb_tran
             ),
-            "cntp_lei": choices(
-                ["bank_" + str(i) for i in range(5)]
+            "cntp_proprietary_trns_id": choices(
+                ["bank_" + str(i) for i in range(15)]
                 + ["fund_" + str(i) for i in range(5)],
                 k=nb_tran,
             ),
             "trns_nominal_amt": np.random.rand(nb_tran) * 100,
-            "maturity_time_stamp": pd.to_timedelta(
+            "maturity_date": pd.to_timedelta(
                 np.random.rand(nb_tran) * 10, unit="d"
             )
             + pd.period_range(
                 start="2020-01-01", freq=freq, periods=nb_tran
             ).to_timestamp(),
+            "MATURITY_BUCKET_CD": choices(
+                [
+                    "NA",
+                    "O/N",
+                    "T/N",
+                    "S/N",
+                    "1W",
+                    "2W",
+                    "1M",
+                    "2M",
+                    "3M",
+                    "6M",
+                    "9M",
+                    "12M",
+                ],
+                k=nb_tran,
+            ),
             "trns_type": choices(
                 ["BORR", "LEND", "BUYI", "SELL"],
                 k=nb_tran,
@@ -71,7 +103,7 @@ def get_df_mmsr_unsecured(nb_tran, freq):
     return df_mmsr
 
 
-def get_df_exposures(lines):
+def get_df_exposures(lines, freq="5h"):
     df_exposures = pd.DataFrame(
         index=range(lines),
         data={
@@ -114,34 +146,3 @@ def get_df_finrep():
     )
 
     return df_finrep
-
-
-def get_dic_dashed_trajectory(df_finrep):
-    dic_dashed_trajectory = {}
-    plot_days = pd.to_datetime(
-        sorted(list(set(df_finrep["date"].dt.strftime("%Y-%m-%d"))))
-    )
-    for day in plot_days:
-        df_banks = (
-            df_finrep[df_finrep["date"] == plot_days[0]]
-            .set_index("lei")
-            .drop("date", axis=1)
-        )
-        dic_dashed_trajectory.update({day: df_banks})
-    return dic_dashed_trajectory
-
-
-# list of the column in FINREP fake data (to be added)
-# balance_sheet_data_clean.dta	total_assets
-# balance_sheet_data_clean.dta	own_funds
-# balance_sheet_data_clean.dta	own_funds_assets
-# balance_sheet_data_clean.dta	cash
-# balance_sheet_data_clean.dta	cash_assets
-# balance_sheet_data_clean.dta	deposits
-# balance_sheet_data_clean.dta	deposits_assets
-# balance_sheet_data_clean.dta	loans
-# balance_sheet_data_clean.dta	loans_assets
-# balance_sheet_data_clean.dta	stock_market_sec_gov
-# balance_sheet_data_clean.dta	sec_holdings_assets_m
-# balance_sheet_data_clean.dta	stock_nominal_sec_gov
-# balance_sheet_data_clean.dta	sec_holdings_assets_n

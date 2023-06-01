@@ -153,7 +153,7 @@ class ClassDynamics:
             f"{self.path_results}df_network_trajectory.csv"
         )
         self.Network.df_rev_repo_trans.to_csv(
-            f"{self.path_results}df_reverse_repos.csv"
+            f"{self.path_results}df_rev_repo_trans.csv"
         )
         os.makedirs(f"{self.path_results}/dashed_trajectory/", exist_ok=True)
         for step in self.dic_dashed_trajectory.keys():
