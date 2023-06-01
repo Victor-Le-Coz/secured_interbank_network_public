@@ -8,6 +8,7 @@ import parameters as par
 import cpnet
 import os
 import powerlaw
+import graphics as gx
 
 
 def get_rev_repo_exposure_stats(dic_arr_binary_adj, days, path=False):
@@ -488,3 +489,31 @@ def get_powerlaw(
         df_powerlaw.to_csv(f"{path}df_powerlaw.csv")
 
     return df_powerlaw
+
+
+def run_n_plot_powerlaw(df, path):
+
+    df_powerlaw = pd.DataFrame(
+        index=df.columns,
+        columns=["powerlaw alpha", "powerlaw p-value"],
+    )
+
+    # loop over the banks
+    for col in df.columns:
+
+        # get the fits
+        fits = step_item_powerlaw(df[col])
+        df_powerlaw.loc[col] = fits[1:]
+
+        # plot
+        gx.plot_step_item_powerlaw(
+            fits[0],
+            fits[1],
+            fits[2],
+            col,
+            path,
+            auto_xlabel=False,
+        )
+
+    os.makedirs(path, exist_ok=True)
+    df_powerlaw.to_csv(f"{path}df_powerlaw.csv")

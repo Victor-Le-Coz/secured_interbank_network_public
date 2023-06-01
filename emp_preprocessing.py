@@ -214,7 +214,7 @@ def build_arr_total_assets(df_finrep, path):
     return arr_total_assets
 
 
-def get_df_deposits_variations(df_mmsr, dic_dashed_trajectory, path):
+def get_df_deposits_variations_by_bank(df_mmsr, dic_dashed_trajectory, path):
 
     # build the deposits time series (multi index bank and time)
     df_deposits = (
@@ -253,17 +253,64 @@ def get_df_deposits_variations(df_mmsr, dic_dashed_trajectory, path):
     ]
 
     # merge all data
-    df_deposits_variations = pd.merge(
+    df_deposits_variations_by_bank = pd.merge(
         df_delta_deposits,
         df_relative_deposits,
         right_index=True,
         left_index=True,
     )
-    df_deposits_variations = pd.merge(
-        df_deposits_variations,
+    df_deposits_variations_by_bank = pd.merge(
+        df_deposits_variations_by_bank,
         df_delta_deposits_over_assets,
         right_index=True,
         left_index=True,
+    )
+
+    # save df_deposits_variations
+    os.makedirs(path, exist_ok=True)
+    df_deposits_variations_by_bank.to_csv(
+        f"{path}df_deposits_variations_by_bank.csv"
+    )
+
+    return df_deposits_variations_by_bank
+
+
+def get_df_deposits_variation(df_mmsr, dic_dashed_trajectory, path):
+    # build the deposits time series (multi index bank and time)
+    df_deposits_variations = (
+        df_mmsr.groupby("report_agent_lei")
+        .resample("1d")
+        .sum("trns_nominal_amt")
+    )
+    df_deposits_variations.rename(
+        {"trns_nominal_amt": "deposits"}, axis=1, inplace=True
+    )
+
+    # compute the deposits variations (absolute and relative)
+    df_deposits_variations["deposits abs. var."] = df_deposits_variations[
+        "deposits"
+    ].diff(1)
+    df_deposits_variations["deposits rel. var."] = df_deposits_variations[
+        "deposits abs. var."
+    ] / df_deposits_variations["deposits"].shift(1)
+
+    # select the bank ids that match df_finrep to build the variation over total assets
+    df_banks = list(dic_dashed_trajectory.values())[
+        -1
+    ]  # take the last value of total assets (to be updated with something more fancy)
+    df_banks.index.name = "report_agent_lei"
+
+    df_deposits_variations = df_deposits_variations.join(
+        df_banks[["total assets"]], how="inner"
+    )
+
+    df_deposits_variations["deposits var over tot. assets"] = (
+        df_deposits_variations["deposits abs. var."]
+        / df_deposits_variations["total assets"]
+    )
+
+    df_deposits_variations.drop(
+        ["deposits", "total assets"], axis=1, inplace=True
     )
 
     # save df_deposits_variations
