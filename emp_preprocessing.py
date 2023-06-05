@@ -6,6 +6,7 @@ import numpy as np
 from numba import jit
 import parameters as par
 import os
+from more_itertools import consecutive_groups
 
 
 def build_from_mmsr(df_mmsr):
@@ -231,6 +232,10 @@ def get_dic_dashed_trajectory(df_finrep):
 
 def get_df_deposits_variations_by_bank(df_mmsr, dic_dashed_trajectory, path):
 
+    # filter only on the deposits instruments
+    df_mmsr = df_mmsr[df_mmsr["instr_type"] == "DPST"]
+
+    # set the trade date as index
     df_mmsr.set_index("trade_date", inplace=True)
 
     # build the deposits time series (multi index bank and time)
@@ -252,7 +257,6 @@ def get_df_deposits_variations_by_bank(df_mmsr, dic_dashed_trajectory, path):
     df_banks = list(dic_dashed_trajectory.values())[
         -1
     ]  # take the last value of total assets (to be updated with something more fancy)
-    finrep_bank_ids = df_banks.index
     bank_ids = fct.list_intersection(df_banks.index, df_deposits.columns)
     df_delta_deposits_over_assets = (
         df_delta_deposits[bank_ids] / df_banks["total assets"].T[bank_ids]
@@ -294,6 +298,10 @@ def get_df_deposits_variations_by_bank(df_mmsr, dic_dashed_trajectory, path):
 
 def get_df_deposits_variation(df_mmsr, dic_dashed_trajectory, path):
 
+    # filter only on the deposits instruments
+    df_mmsr = df_mmsr[df_mmsr["instr_type"] == "DPST"]
+
+    # set the trade date as index
     df_mmsr.set_index("trade_date", inplace=True)
 
     # build the deposits time series (multi index bank and time)
@@ -338,3 +346,159 @@ def get_df_deposits_variation(df_mmsr, dic_dashed_trajectory, path):
     df_deposits_variations.to_csv(f"{path}df_deposits_variations.csv")
 
     return df_deposits_variations
+
+
+def get_df_rev_repo_trans(df_mmsr_secured, business_day=False, path=False):
+
+    # 1 - build the start_step and tenor columns
+
+    # convert datetime to date
+    df_mmsr_secured["trade_date"] = df_mmsr_secured["trade_date"].dt.date
+    df_mmsr_secured["maturity_date"] = df_mmsr_secured["maturity_date"].dt.date
+
+    if (
+        business_day
+    ):  # QUESTION 1: in which convention is each evergreen contract reported ? meaning, how should we measure the tenor from the maturity date ? QUESTION 2: on which days are trade dates repeated ? every calendat day, business day, which bank holidays ?
+        # get the tenor (in business days) # WARNIING: need to add here the list of bank holidays were the transactions are not reported (otherwise we create discontinuities when flaggin the repos)
+        lam_func_diff = lambda row: np.busday_count(
+            row["trade_date"], row["maturity_date"]
+        )
+        df_mmsr_secured["tenor"] = df_mmsr_secured.apply(lam_func_diff, axis=1)
+
+        # get the start_step (nb of the business day) # WARNIING: need to add here the list of bank holidays were the transactions are not reported (otherwise we create discontinuities when flaggin the repos)
+        df_mmsr_secured["first_date"] = df_mmsr_secured["trade_date"].min()
+        lam_func_diff = lambda row: np.busday_count(
+            row["first_date"], row["trade_date"]
+        )
+        df_mmsr_secured["start_step"] = df_mmsr_secured.apply(
+            lam_func_diff, axis=1
+        )
+
+    else:
+        # get the tenor
+        df_mmsr_secured["tenor"] = (
+            df_mmsr_secured["maturity_date"] - df_mmsr_secured["trade_date"]
+        ).dt.days
+
+        # get the start_step
+        df_mmsr_secured["first_date"] = df_mmsr_secured["trade_date"].min()
+        df_mmsr_secured["start_step"] = (
+            df_mmsr_secured["trade_date"] - df_mmsr_secured["first_date"]
+        ).dt.days
+
+    # 2 - flag the evergreen repos
+
+    # select only the columns common across an evergreen
+    df_restricted = df_mmsr_secured[
+        [
+            "start_step",
+            "proprietary_trns_id",
+            "cntp_proprietary_trns_id",
+            "trns_nominal_amt",
+            "tenor",
+        ]
+    ]
+
+    # build a copy with start_step+1
+    df_restricted_shift = df_restricted.copy()
+    df_restricted_shift["start_step"] = df_restricted["start_step"] + 1
+
+    # flags all the lines of an evergreen but the first one
+    merged_df = df_restricted.merge(
+        df_restricted_shift, indicator=True, how="left"
+    )
+    equal_rows = merged_df["_merge"] == "both"
+
+    # the first line is obtained from the shifted copy (start_step+1)
+    merged_df = df_restricted_shift.merge(
+        df_restricted, indicator=True, how="left"
+    )
+    equal_rows_shift = merged_df["_merge"] == "both"
+
+    # we take the logical OR between the 2 flags
+    df_mmsr_secured["evergreen"] = equal_rows | equal_rows_shift
+
+    # 3 - set the start step as the min of each consecutive group of evergreens
+
+    # select only the flagged evergreens
+    df_evergreen = df_mmsr_secured[df_mmsr_secured["evergreen"]]
+
+    # group the evergreen of same counterparties and amount
+    df_evergreen_lists = df_evergreen.groupby(
+        [
+            "proprietary_trns_id",
+            "cntp_proprietary_trns_id",
+            "trns_nominal_amt",
+        ]
+    ).agg(
+        {
+            "start_step": lambda x: list(x),
+            "tenor": max,
+            "unique_trns_id": lambda x: list(x),
+        }
+    )
+    df_evergreen_lists.rename(
+        columns={"start_step": "list_start_steps"}, inplace=True
+    )
+
+    # find the min and max of each consecutive group of start steps
+    min_in_cons_groups = lambda row: [
+        min(group) for group in consecutive_groups(row["list_start_steps"])
+    ]
+    max_in_cons_groups = lambda row: [
+        max(group) for group in consecutive_groups(row["list_start_steps"])
+    ]
+    df_evergreen_lists["min_start_steps"] = df_evergreen_lists.apply(
+        min_in_cons_groups, axis=1
+    )
+    df_evergreen_lists["max_start_steps"] = df_evergreen_lists.apply(
+        max_in_cons_groups, axis=1
+    )
+
+    # explode the min and max into new lines
+    df_evergreen_clean = df_evergreen_lists.explode(
+        ["min_start_steps", "max_start_steps"]
+    )
+
+    # reset the inedex
+    df_evergreen_clean.reset_index(inplace=True)
+
+    # define the effective observed tenor
+    df_evergreen_clean["tenor"] = (
+        df_evergreen_clean["tenor"]
+        + df_evergreen_clean["max_start_steps"]
+        - df_evergreen_clean["min_start_steps"]
+    )
+    df_evergreen_clean["start_step"] = df_evergreen_clean["min_start_steps"]
+
+    # 4 - build the df_repo transaction
+    df_mmsr_secured_clean = pd.concat(
+        [
+            df_mmsr_secured[df_mmsr_secured["evergreen"] == False],
+            df_evergreen_clean,
+        ]
+    )
+    dic_col_mapping = {
+        "proprietary_trns_id": "owner_bank_id",
+        "cntp_proprietary_trns_id": "bank_id",
+        "unique_trns_id": "trans_id",
+        "trns_nominal_amt": "amount",
+    }
+    df_rev_repo_trans = df_mmsr_secured_clean.rename(columns=dic_col_mapping)[
+        [
+            "owner_bank_id",
+            "bank_id",
+            "trans_id",
+            "amount",
+            "start_step",
+            "tenor",
+        ]
+    ]
+    df_rev_repo_trans["status"] = False
+
+    df_rev_repo_trans.reset_index()
+
+    if path:
+        df_rev_repo_trans.to_csv(f"{path}df_rev_repo_trans.csv")
+
+    return df_rev_repo_trans

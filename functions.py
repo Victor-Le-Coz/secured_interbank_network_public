@@ -186,13 +186,34 @@ def get_size(obj, seen=None):
     elif hasattr(obj, "__iter__") and not isinstance(
         obj, (str, bytes, bytearray)
     ):
-        size += sum(get_size(i, seen) for i in obj)
+        try:
+            bl_len = len(obj) > 0
+        except:
+            bl_len = False
+
+        if bl_len:
+            size += sum(get_size(i, seen) for i in obj)
+        else:
+            size = 0
+
     return size
 
 
 def check_memory():
-    for name, size in sorted(
-        ((name, size(value)) for name, value in locals().items()),
+    # sizes = []
+    # items = list(locals().items())[:10]
+    # for name, value in items:
+    #     try:
+    #         size = sizeof_fmt(get_size(value))
+    #         sizes.append(name, size)
+    #     except:
+    #         pass
+
+    # for size in sizes:
+    #     print("{:>30}: {:>8}".format(size[0], size[1]))
+
+    for (name, size) in sorted(
+        ((name, get_size(value)) for name, value in locals().items()),
         key=lambda x: -x[1],
     )[:50]:
         print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))

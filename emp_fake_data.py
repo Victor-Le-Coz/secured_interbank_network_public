@@ -22,34 +22,50 @@ def get_df_mmsr_secured(nb_tran, freq="5h"):
             ),
             "trns_nominal_amt": np.random.rand(nb_tran) * 100,
             "maturity_date": pd.to_timedelta(
-                np.random.rand(nb_tran) * 10, unit="d"
+                np.random.rand(nb_tran) * 50, unit="d"
             )
             + pd.period_range(
                 start="2020-01-01", freq=freq, periods=nb_tran
             ).to_timestamp(),
-            "maturity_bucket": choices(
-                [
-                    "NA",
-                    "O/N",
-                    "T/N",
-                    "S/N",
-                    "1W",
-                    "2W",
-                    "1M",
-                    "2M",
-                    "3M",
-                    "6M",
-                    "9M",
-                    "12M",
-                ],
-                k=nb_tran,
-            ),
             "trns_type": choices(
                 ["BORR", "LEND", "BUYI", "SELL"],
                 k=nb_tran,
             ),
         },
     )
+
+    # create some evergreens repeating up to x days
+    X = 10
+    for days in range(3, X):
+
+        # define the start and end of the selection of lines in df MMSR
+        start = days
+        # end = days + int(nb_tran / (X * 2))  # 50% of evergreen
+        end = days + int(nb_tran / (X))  # 100% of evergreen
+
+        # choose where to cut the evergreen into 2 segments
+        cut = int(days / 2)
+
+        for row in range(1, days):
+
+            if row != cut:
+
+                # take the lines from df_mmsr
+                df_evergreen = df_mmsr.iloc[start:end]
+
+                # move up the maturity and trade date
+                df_evergreen["trade_date"] = df_evergreen[
+                    "trade_date"
+                ] + pd.Timedelta(days=row)
+                df_evergreen["maturity_date"] = df_evergreen[
+                    "maturity_date"
+                ] + pd.Timedelta(days=row)
+
+                # add the lines to df_mmsr
+                df_mmsr = pd.concat([df_mmsr, df_evergreen], axis=0)
+
+    df_mmsr.reset_index(inplace=True)
+
     return df_mmsr
 
 
@@ -76,23 +92,6 @@ def get_df_mmsr_unsecured(nb_tran, freq="5h"):
             + pd.period_range(
                 start="2020-01-01", freq=freq, periods=nb_tran
             ).to_timestamp(),
-            "MATURITY_BUCKET_CD": choices(
-                [
-                    "NA",
-                    "O/N",
-                    "T/N",
-                    "S/N",
-                    "1W",
-                    "2W",
-                    "1M",
-                    "2M",
-                    "3M",
-                    "6M",
-                    "9M",
-                    "12M",
-                ],
-                k=nb_tran,
-            ),
             "trns_type": choices(
                 ["BORR", "LEND", "BUYI", "SELL"],
                 k=nb_tran,
