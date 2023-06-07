@@ -109,18 +109,6 @@ plt_columns = [
 # metrics
 
 # accounting view
-deposits_bank_ids = [
-    [
-        f"{id}",
-        r"deposits (monetary units)",
-        f"{id}",
-        "linear",
-        "",
-        False,
-    ]
-    for id in bank_ids
-]
-
 accounting_metrics = [
     [
         f"{metric}{extension}",
@@ -351,7 +339,6 @@ df_plt = pd.DataFrame(
         alpha_pareto,
         shocks_vol,
         min_repo_trans_size,
-        *deposits_bank_ids,
     ],
     columns=plt_columns,
 )

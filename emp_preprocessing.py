@@ -7,55 +7,261 @@ from numba import jit
 import parameters as par
 import os
 from more_itertools import consecutive_groups
+import data_mapping as dm
 
-# not used
-def build_from_mmsr(df_mmsr):
-    """
-    input: mmsr_data: filtered on lend and sell
-    """
+
+def get_df_mmsr_secured_clean(
+    df_mmsr_secured, compute_tenor=False, holidays=False, path=False
+):
+
+    print("get df_mmsr_secured_clean")
+
+    # ------------------------------------------
+    # 1 - build the start_step and tenor columns
+
+    # convert datetime to date
+    df_mmsr_secured["trade_date_d"] = df_mmsr_secured["trade_date"].dt.date
+    df_mmsr_secured["maturity_date_d"] = df_mmsr_secured[
+        "maturity_date"
+    ].dt.date
+
+    if holidays:
+
+        if compute_tenor:
+            # get the tenor (in business days)
+            lam_func = lambda row: np.busday_count(
+                row["trade_date_d"], row["maturity_date_d"], holidays=holidays
+            )
+
+        else:
+            # get the tenor (in business days)
+            lam_func = lambda row: dm.dic_tenor[row["maturity_band"]]
+
+        df_mmsr_secured["tenor"] = df_mmsr_secured.apply(lam_func, axis=1)
+
+        # get the start_step (nb of the business day)
+        df_mmsr_secured["first_date"] = df_mmsr_secured["trade_date_d"].min()
+        lam_func = lambda row: np.busday_count(
+            row["first_date"], row["trade_date_d"], holidays=holidays
+        )
+        df_mmsr_secured["start_step"] = df_mmsr_secured.apply(lam_func, axis=1)
+
+    else:
+        # get the tenor
+        df_mmsr_secured["tenor"] = (
+            df_mmsr_secured["maturity_date_d"]
+            - df_mmsr_secured["trade_date_d"]
+        ).dt.days
+
+        # get the start_step
+        df_mmsr_secured["first_date"] = df_mmsr_secured["trade_date_d"].min()
+        df_mmsr_secured["start_step"] = (
+            df_mmsr_secured["trade_date_d"] - df_mmsr_secured["first_date"]
+        ).dt.days
+
+    # drop unnecessary columns
+    df_mmsr_secured.drop(
+        columns=["trade_date_d", "maturity_date_d"], inplace=True
+    )
+
+    # ------------------------------------------
+    # 2 - flag the evergreen repos
+
+    # select only the columns common across an evergreen
+    df_restricted = df_mmsr_secured[
+        [
+            "start_step",
+            "report_agent_lei",
+            "cntp_lei",
+            "trns_nominal_amt",
+            "tenor",
+        ]
+    ]
+
+    # build a copy with start_step+1
+    df_restricted_shift = df_restricted.copy()
+    df_restricted_shift["start_step"] = df_restricted["start_step"] + 1
+
+    # flags all the lines of an evergreen but the first one
+    merged_df = df_restricted.merge(
+        df_restricted_shift, indicator=True, how="left"
+    )
+    equal_rows = merged_df["_merge"] == "both"
+
+    # the first line is obtained from the shifted copy (start_step+1)
+    merged_df = df_restricted_shift.merge(
+        df_restricted, indicator=True, how="left"
+    )
+    equal_rows_shift = merged_df["_merge"] == "both"
+
+    # we take the logical OR between the 2 flags
+    df_mmsr_secured["evergreen"] = equal_rows | equal_rows_shift
+
+    # ------------------------------------------
+    # 3 - set the start step as the min of each consecutive group of evergreens
+
+    # select only the flagged evergreens
+    df_evergreen = df_mmsr_secured[df_mmsr_secured["evergreen"]]
+
+    # group the evergreen of same counterparties and amount
+    df_evergreen_lists = df_evergreen.groupby(
+        [
+            "report_agent_lei",
+            "cntp_lei",
+            "trns_nominal_amt",
+        ]
+    ).agg(
+        {
+            "start_step": lambda x: list(x),
+            "tenor": max,
+            "unique_trns_id": lambda x: list(x),
+            "maturity_date": max,
+            "trade_date": min,
+        }
+    )
+    df_evergreen_lists.rename(
+        columns={"start_step": "list_start_steps"}, inplace=True
+    )
+
+    # find the min and max of each consecutive group of start steps
+    min_in_cons_groups = lambda row: [
+        min(group) for group in consecutive_groups(row["list_start_steps"])
+    ]
+    max_in_cons_groups = lambda row: [
+        max(group) for group in consecutive_groups(row["list_start_steps"])
+    ]
+    df_evergreen_lists["min_start_steps"] = df_evergreen_lists.apply(
+        min_in_cons_groups, axis=1
+    )
+    df_evergreen_lists["max_start_steps"] = df_evergreen_lists.apply(
+        max_in_cons_groups, axis=1
+    )
+
+    # explode the min and max into new lines
+    df_evergreen_clean = df_evergreen_lists.explode(
+        ["min_start_steps", "max_start_steps"]
+    )
+
+    # reset the inedex
+    df_evergreen_clean.reset_index(inplace=True, drop=True)
+
+    # define the effective observed tenor
+    df_evergreen_clean["tenor"] = (
+        df_evergreen_clean["tenor"]
+        + df_evergreen_clean["max_start_steps"]
+        - df_evergreen_clean["min_start_steps"]
+    )
+    df_evergreen_clean["start_step"] = df_evergreen_clean["min_start_steps"]
+
+    # ------------------------------------------
+    # 4 - build the df_mmsr_secured_clean
+
+    # concatenate the evergreen and the other transactions
+    df_mmsr_secured_clean = pd.concat(
+        [
+            df_mmsr_secured[df_mmsr_secured["evergreen"] == False],
+            df_evergreen_clean,
+        ]
+    )
+
+    # reset the index
+    df_mmsr_secured_clean.reset_index(inplace=True, drop=True)
+
+    # save df_mmsr_secured_clean
+    if path:
+        df_mmsr_secured_clean.to_csv(f"{path}df_mmsr_secured_clean.csv")
+
+    return df_mmsr_secured_clean
+
+
+def get_dic_rev_repo_exp_adj_from_mmsr_secured_clean(
+    df_mmsr_secured_clean, path=False, plot_period=False
+):
+
+    print("get dic_rev_repo_exp_adj from df_mmsr_secured_clean")
+
+    # filter only on the reverse repo i.e. lending cash
+    df_mmsr_secured_clean = df_mmsr_secured_clean[
+        df_mmsr_secured_clean["trns_type"].isin(["LEND", "SELL"])
+    ]
+
     # create an Numpy array of the unique LEI of the entities from either report agent or counterparties
     leis = pd.unique(
-        df_mmsr[["cntp_lei", "report_agent_lei"]].values.ravel("K")
+        df_mmsr_secured_clean[["cntp_lei", "report_agent_lei"]].values.ravel(
+            "K"
+        )
     )
 
     # define the list of dates in the mmsr database
-    mmsr_trade_dates = sorted(list(set(df_mmsr.index.strftime("%Y-%m-%d"))))
+    days = pd.to_datetime(
+        sorted(
+            list(
+                set(
+                    df_mmsr_secured_clean["trade_date"].dt.strftime("%Y-%m-%d")
+                )
+            )
+        )
+    )
 
-    # initialisation of a dictionary of the observed paths
-    dic_rev_repo_exp_adj = {}  # for the exposures
-    for mmsr_trade_date in mmsr_trade_dates:
+    # initialisation of a dictionary of the observed rev repo exposure adj
+    dic_rev_repo_exp_adj = {}
+    for day in pd.bdate_range(
+        start=days[0],
+        end=days[-1],
+        freq="C",
+        holidays=dm.holidays,
+    ):
         dic_rev_repo_exp_adj.update(
-            {mmsr_trade_date: pd.DataFrame(columns=leis, index=leis, data=0)}
+            {day: pd.DataFrame(columns=leis, index=leis, data=0)}
         )
 
-    # building of the matrices and storage in the dictionary observed_path - as the maturity of the evergreen is one day when it is repeated (and notice perdio when it is closed) one can apply the same rule everywhere
-    for ts_trade in tqdm(df_mmsr.index):
-        if df_mmsr.loc[ts_trade, "trns_type"] in ["LEND", "SELL"]:
-            for date in pd.period_range(
-                start=ts_trade,
-                end=min(
-                    df_mmsr.loc[ts_trade, "maturity_time_stamp"],
-                    pd.to_datetime(mmsr_trade_dates[-1]),
-                ),
-                freq="1d",
-            ).strftime("%Y-%m-%d"):
-                dic_rev_repo_exp_adj[date].loc[
-                    df_mmsr.loc[ts_trade, "cntp_lei"],
-                    df_mmsr.loc[ts_trade, "report_agent_lei"],
-                ] = (
-                    dic_rev_repo_exp_adj[date].loc[
-                        df_mmsr.loc[ts_trade, "cntp_lei"],
-                        df_mmsr.loc[ts_trade, "report_agent_lei"],
-                    ]
-                    + df_mmsr.loc[ts_trade, "trns_nominal_amt"]
-                )
+    # building of the matrices and storage in the dictionary observed_path (evergreen are already retreated in df_mmsr_clean)
+    for index in tqdm(df_mmsr_secured_clean.index):
+        for day in pd.bdate_range(
+            start=df_mmsr_secured_clean.loc[index, "trade_date"],
+            end=min(
+                df_mmsr_secured_clean.loc[index, "maturity_date"],
+                pd.to_datetime(days[-1]),
+            ),
+            freq="C",
+            holidays=dm.holidays,
+        ):
+            dic_rev_repo_exp_adj[day].loc[
+                df_mmsr_secured_clean.loc[index, "report_agent_lei"],
+                df_mmsr_secured_clean.loc[index, "cntp_lei"],
+            ] = (
+                dic_rev_repo_exp_adj[day].loc[
+                    df_mmsr_secured_clean.loc[index, "report_agent_lei"],
+                    df_mmsr_secured_clean.loc[index, "cntp_lei"],
+                ]
+                + df_mmsr_secured_clean.loc[index, "trns_nominal_amt"]
+            )
 
-    os.makedirs("./support/", exist_ok=True)
-    pickle.dump(
-        dic_rev_repo_exp_adj,
-        open("./support/dic_rev_repo_exp_adj.pickle", "wb"),
-        protocol=pickle.HIGHEST_PROTOCOL,
-    )
+    # pickle dump
+    if path:
+        os.makedirs(f"{path}pickle/", exist_ok=True)
+        pickle.dump(
+            dic_rev_repo_exp_adj,
+            open(f"{path}pickle/dic_rev_repo_exp_adj.pickle", "wb"),
+            protocol=pickle.HIGHEST_PROTOCOL,
+        )
+
+    # save to csv for the plot_days
+    if plot_period:
+        days = list(dic_rev_repo_exp_adj.keys())
+        plot_days = fct.get_plot_days_from_period(days, plot_period)
+        for day in plot_days:
+
+            day_print = day.strftime("%Y-%m-%d")
+
+            os.makedirs(
+                f"{path}exposure_view/adj_matrices/weighted/",
+                exist_ok=True,
+            )
+            fct.dump_np_array(
+                dic_rev_repo_exp_adj[day],
+                f"{path}exposure_view/adj_matrices/weighted/arr_reverse_repo_adj_{day_print}.csv",
+            )
 
     return dic_rev_repo_exp_adj
 
@@ -63,7 +269,7 @@ def build_from_mmsr(df_mmsr):
 def get_dic_rev_repo_exp_adj_from_exposures(
     df_exposures, path=False, plot_period=False
 ):
-    print("get dic_rev_repo_exp_adj")
+    print("get dic_rev_repo_exp_adj from exposure")
 
     # create an Numpy array of the unique LEI of the entities from either report agent or counterparties
     leis = pd.unique(df_exposures[["borr_lei", "lend_lei"]].values.ravel("K"))
@@ -81,7 +287,7 @@ def get_dic_rev_repo_exp_adj_from_exposures(
             {mmsr_trade_date: pd.DataFrame(columns=leis, index=leis, data=0)}
         )
 
-    # building of the matrices and storage in the dictionary observed_path - as the maturity of the evergreen is one day when it is repeated (and notice perdio when it is closed) one can apply the same rule everywhere
+    # building of the matrices and storage in the dictionary observed_path
     for index in tqdm(df_exposures.index):
         ts_trade = pd.to_datetime(
             df_exposures.loc[index, "Setdate"].strftime("%Y-%m-%d")
@@ -260,7 +466,7 @@ def build_arr_total_assets(df_finrep, path):
     return arr_total_assets
 
 
-def get_dic_dashed_trajectory(df_finrep):
+def get_dic_dashed_trajectory(df_finrep, path=False):
 
     print("get dic_dashed_trajectory")
 
@@ -276,10 +482,28 @@ def get_dic_dashed_trajectory(df_finrep):
             .drop("date", axis=1)
         )
         dic_dashed_trajectory.update({day: df_banks})
+
+    # pickle dump
+    if path:
+        os.makedirs(f"{path}pickle/", exist_ok=True)
+        pickle.dump(
+            dic_dashed_trajectory,
+            open(f"{path}pickle/dic_dashed_trajectory.pickle", "wb"),
+            protocol=pickle.HIGHEST_PROTOCOL,
+        )
+
     return dic_dashed_trajectory
 
 
+def load_dic_dashed_trajectory(path):
+    return pickle.load(
+        open(f"{path}pickle/dic_dashed_trajectory.pickle", "rb")
+    )
+
+
 def get_df_deposits_variations_by_bank(df_mmsr, dic_dashed_trajectory, path):
+
+    print("get df_deposits_variations_by_bank")
 
     # filter only on the deposits instruments
     df_mmsr = df_mmsr[df_mmsr["instr_type"] == "DPST"]
@@ -289,7 +513,7 @@ def get_df_deposits_variations_by_bank(df_mmsr, dic_dashed_trajectory, path):
 
     # build the deposits time series (multi index bank and time)
     df_deposits = (
-        df_mmsr.groupby("proprietary_trns_id")
+        df_mmsr.groupby("report_agent_lei")
         .resample("1d")
         .sum("trns_nominal_amt")
     )[["trns_nominal_amt"]]
@@ -347,6 +571,8 @@ def get_df_deposits_variations_by_bank(df_mmsr, dic_dashed_trajectory, path):
 
 def get_df_deposits_variation(df_mmsr, dic_dashed_trajectory, path):
 
+    print("get df_deposits_variation")
+
     # filter only on the deposits instruments
     df_mmsr = df_mmsr[df_mmsr["instr_type"] == "DPST"]
 
@@ -355,7 +581,7 @@ def get_df_deposits_variation(df_mmsr, dic_dashed_trajectory, path):
 
     # build the deposits time series (multi index bank and time)
     df_deposits_variations = (
-        df_mmsr.groupby("proprietary_trns_id")
+        df_mmsr.groupby("report_agent_lei")
         .resample("1d")
         .sum("trns_nominal_amt")
     )[["trns_nominal_amt"]]
@@ -375,7 +601,7 @@ def get_df_deposits_variation(df_mmsr, dic_dashed_trajectory, path):
     df_banks = list(dic_dashed_trajectory.values())[
         -1
     ]  # take the last value of total assets (to be updated with something more fancy)
-    df_banks.index.name = "proprietary_trns_id"
+    df_banks.index.name = "report_agent_lei"
 
     df_deposits_variations = df_deposits_variations.join(
         df_banks[["total assets"]], how="inner"
@@ -397,141 +623,20 @@ def get_df_deposits_variation(df_mmsr, dic_dashed_trajectory, path):
     return df_deposits_variations
 
 
-def get_df_rev_repo_trans(df_mmsr_secured, holidays=False, path=False):
+def get_df_rev_repo_trans(df_mmsr_secured_clean, path=False):
 
-    # 1 - build the start_step and tenor columns
-
-    # convert datetime to date
-    df_mmsr_secured["trade_date"] = df_mmsr_secured["trade_date"].dt.date
-    df_mmsr_secured["maturity_date"] = df_mmsr_secured["maturity_date"].dt.date
-
-    if holidays:
-        # get the tenor (in business days)
-        lam_func_diff = lambda row: np.busday_count(
-            row["trade_date"], row["maturity_date"], holidays=holidays
-        )
-        df_mmsr_secured["tenor"] = df_mmsr_secured.apply(lam_func_diff, axis=1)
-
-        # get the start_step (nb of the business day)
-        df_mmsr_secured["first_date"] = df_mmsr_secured["trade_date"].min()
-        lam_func_diff = lambda row: np.busday_count(
-            row["first_date"], row["trade_date"], holidays=holidays
-        )
-        df_mmsr_secured["start_step"] = df_mmsr_secured.apply(
-            lam_func_diff, axis=1
-        )
-
-    else:
-        # get the tenor
-        df_mmsr_secured["tenor"] = (
-            df_mmsr_secured["maturity_date"] - df_mmsr_secured["trade_date"]
-        ).dt.days
-
-        # get the start_step
-        df_mmsr_secured["first_date"] = df_mmsr_secured["trade_date"].min()
-        df_mmsr_secured["start_step"] = (
-            df_mmsr_secured["trade_date"] - df_mmsr_secured["first_date"]
-        ).dt.days
-
-    # 2 - flag the evergreen repos
-
-    # select only the columns common across an evergreen
-    df_restricted = df_mmsr_secured[
-        [
-            "start_step",
-            "proprietary_trns_id",
-            "cntp_proprietary_trns_id",
-            "trns_nominal_amt",
-            "tenor",
-        ]
+    # filter only on the reverse repo i.e. lending cash
+    df = df_mmsr_secured_clean[
+        df_mmsr_secured_clean["trns_type"].isin(["LEND", "SELL"])
     ]
 
-    # build a copy with start_step+1
-    df_restricted_shift = df_restricted.copy()
-    df_restricted_shift["start_step"] = df_restricted["start_step"] + 1
-
-    # flags all the lines of an evergreen but the first one
-    merged_df = df_restricted.merge(
-        df_restricted_shift, indicator=True, how="left"
-    )
-    equal_rows = merged_df["_merge"] == "both"
-
-    # the first line is obtained from the shifted copy (start_step+1)
-    merged_df = df_restricted_shift.merge(
-        df_restricted, indicator=True, how="left"
-    )
-    equal_rows_shift = merged_df["_merge"] == "both"
-
-    # we take the logical OR between the 2 flags
-    df_mmsr_secured["evergreen"] = equal_rows | equal_rows_shift
-
-    # 3 - set the start step as the min of each consecutive group of evergreens
-
-    # select only the flagged evergreens
-    df_evergreen = df_mmsr_secured[df_mmsr_secured["evergreen"]]
-
-    # group the evergreen of same counterparties and amount
-    df_evergreen_lists = df_evergreen.groupby(
-        [
-            "proprietary_trns_id",
-            "cntp_proprietary_trns_id",
-            "trns_nominal_amt",
-        ]
-    ).agg(
-        {
-            "start_step": lambda x: list(x),
-            "tenor": max,
-            "unique_trns_id": lambda x: list(x),
-        }
-    )
-    df_evergreen_lists.rename(
-        columns={"start_step": "list_start_steps"}, inplace=True
-    )
-
-    # find the min and max of each consecutive group of start steps
-    min_in_cons_groups = lambda row: [
-        min(group) for group in consecutive_groups(row["list_start_steps"])
-    ]
-    max_in_cons_groups = lambda row: [
-        max(group) for group in consecutive_groups(row["list_start_steps"])
-    ]
-    df_evergreen_lists["min_start_steps"] = df_evergreen_lists.apply(
-        min_in_cons_groups, axis=1
-    )
-    df_evergreen_lists["max_start_steps"] = df_evergreen_lists.apply(
-        max_in_cons_groups, axis=1
-    )
-
-    # explode the min and max into new lines
-    df_evergreen_clean = df_evergreen_lists.explode(
-        ["min_start_steps", "max_start_steps"]
-    )
-
-    # reset the inedex
-    df_evergreen_clean.reset_index(inplace=True)
-
-    # define the effective observed tenor
-    df_evergreen_clean["tenor"] = (
-        df_evergreen_clean["tenor"]
-        + df_evergreen_clean["max_start_steps"]
-        - df_evergreen_clean["min_start_steps"]
-    )
-    df_evergreen_clean["start_step"] = df_evergreen_clean["min_start_steps"]
-
-    # 4 - build the df_repo transaction
-    df_mmsr_secured_clean = pd.concat(
-        [
-            df_mmsr_secured[df_mmsr_secured["evergreen"] == False],
-            df_evergreen_clean,
-        ]
-    )
     dic_col_mapping = {
-        "proprietary_trns_id": "owner_bank_id",
-        "cntp_proprietary_trns_id": "bank_id",
+        "report_agent_lei": "owner_bank_id",
+        "cntp_lei": "bank_id",
         "unique_trns_id": "trans_id",
         "trns_nominal_amt": "amount",
     }
-    df_rev_repo_trans = df_mmsr_secured_clean.rename(columns=dic_col_mapping)[
+    df_rev_repo_trans = df.rename(columns=dic_col_mapping)[
         [
             "owner_bank_id",
             "bank_id",
@@ -543,9 +648,25 @@ def get_df_rev_repo_trans(df_mmsr_secured, holidays=False, path=False):
     ]
     df_rev_repo_trans["status"] = False
 
-    df_rev_repo_trans.reset_index()
+    df_rev_repo_trans.reset_index(inplace=True, drop=True)
 
     if path:
-        df_rev_repo_trans.to_csv(f"{path}df_rev_repo_trans.csv")
+        df_rev_repo_trans.to_csv(f"{path}pickle/df_rev_repo_trans.csv")
 
     return df_rev_repo_trans
+
+
+def get_df_finrep_clean(df_finrep):
+
+    df_finrep_clean = df_finrep.copy()
+
+    app_func = lambda row: get_closest_bday(row["date"])
+
+    df_finrep_clean["date"] = df_finrep_clean.apply(app_func, axis=1)
+
+    return df_finrep_clean
+
+
+def get_closest_bday(input_timestamp):
+    bbday = pd.offsets.CustomBusinessDay(holidays=dm.holidays)
+    return bbday.rollforward(input_timestamp)

@@ -2,38 +2,36 @@ import numpy as np
 import pandas as pd
 from random import choices
 import parameters as par
+import data_mapping as dm
 
 
-def get_df_mmsr_secured(nb_tran, freq="5h", holidays=False):
+def get_df_mmsr_secured(nb_tran, holidays):
 
     # define the european mmsr calendar
-    if holidays:
-        bbday = pd.offsets.CustomBusinessDay(holidays=holidays)
-    else:
-        bbday = pd.offsets.CustomBusinessDay()
+    bbday = pd.offsets.CustomBusinessDay(holidays=holidays)
 
+    # define the days on which mmsr trasaction can occure
+    days = pd.bdate_range(
+        "2000-01-03", "2024-01-01", freq="C", holidays=dm.holidays
+    )
+
+    # build the mmsr data frame
     df_mmsr = pd.DataFrame(
-        index=range(nb_tran),
         data={
-            "trade_date": pd.period_range(
-                start="2020-01-01", freq=freq, periods=nb_tran
-            ).to_timestamp(),
+            "trade_date": choices(days, k=nb_tran),
             "unique_trns_id": range(nb_tran),
-            "proprietary_trns_id": choices(
+            "report_agent_lei": choices(
                 ["bank_" + str(i) for i in range(10)], k=nb_tran
             ),
-            "cntp_proprietary_trns_id": choices(
+            "cntp_lei": choices(
                 ["bank_" + str(i) for i in range(15)]
                 + ["fund_" + str(i) for i in range(5)],
                 k=nb_tran,
             ),
             "trns_nominal_amt": np.random.rand(nb_tran) * 100,
-            "maturity_date": pd.to_timedelta(
-                np.random.rand(nb_tran) * 50, unit="d"
-            )  # to enhance: count on business days
-            + pd.period_range(
-                start="2020-01-01", freq=freq, periods=nb_tran
-            ).to_timestamp(),
+            "maturity_band": choices(
+                dm.maturity_band, k=nb_tran
+            ),  # WARNING inconstent with the maturity date
             "trns_type": choices(
                 ["BORR", "LEND", "BUYI", "SELL"],
                 k=nb_tran,
@@ -41,19 +39,28 @@ def get_df_mmsr_secured(nb_tran, freq="5h", holidays=False):
         },
     )
 
+    # convert to datetime (stange error when building dates from choices())
+    df_mmsr["trade_date"] = pd.to_datetime(df_mmsr["trade_date"])
+
+    # build the maturity date # WARNING inconstent with the maturity band
+    apply_func = (
+        lambda row: row["trade_date"] + int(np.random.rand(1) * 50) * bbday
+    )
+    df_mmsr["maturity_date"] = df_mmsr.apply(apply_func, axis=1)
+
     # create some evergreens repeating up to x days
     X = 10
-    for days in range(3, X):
+    for nb_repetting_days in range(2, X):
 
         # define the start and end of the selection of lines in df MMSR
-        start = days
-        # end = days + int(nb_tran / (X * 2))  # 50% of evergreen
-        end = days + int(nb_tran / (X))  # 100% of evergreen
+        block_size = int(nb_tran / (X * 2))
+        start = (nb_repetting_days - 1) * block_size
+        end = nb_repetting_days * block_size  # 50% of evergreen
 
         # choose where to cut the evergreen into 2 segments
-        cut = int(days / 2)
+        cut = int(nb_repetting_days / 2)
 
-        for row in range(1, days):
+        for row in range(1, nb_repetting_days):
 
             if row != cut:
 
@@ -90,13 +97,13 @@ def get_df_mmsr_unsecured(nb_tran, freq="5h"):
         index=range(nb_tran),
         data={
             "trade_date": pd.period_range(
-                start="2020-01-01", freq=freq, periods=nb_tran
+                start="2000-01-03", freq=freq, periods=nb_tran
             ).to_timestamp(),
             "unique_trns_id": range(nb_tran),
-            "proprietary_trns_id": choices(
+            "report_agent_lei": choices(
                 ["bank_" + str(i) for i in range(10)], k=nb_tran
             ),
-            "cntp_proprietary_trns_id": choices(
+            "cntp_lei": choices(
                 ["bank_" + str(i) for i in range(15)]
                 + ["fund_" + str(i) for i in range(5)],
                 k=nb_tran,
@@ -132,7 +139,7 @@ def get_df_exposures(lines, freq="5h"):
             ),
             "exposure": np.random.rand(lines) * 100,
             "Setdate": pd.period_range(
-                start="2020-01-01", freq=freq, periods=lines
+                start="2000-01-03", freq=freq, periods=lines
             ).to_timestamp(),
         },
     )
@@ -140,13 +147,12 @@ def get_df_exposures(lines, freq="5h"):
 
 
 def get_df_finrep():
-
     dic_data = {
-        "lei": ["bank_" + str(i) for i in range(50)] * 25,
+        "lei": ["bank_" + str(i) for i in range(50)] * 40,
         "date": sorted(
             list(
                 pd.period_range(
-                    start="2020-01-01", freq="1y", periods=25
+                    start="2000-01-03", freq="1y", periods=40
                 ).to_timestamp()
             )
             * 50
@@ -154,7 +160,7 @@ def get_df_finrep():
     }
 
     for bank_item in par.bank_items:
-        dic_data.update({bank_item: np.random.rand(50 * 25) * 100})
+        dic_data.update({bank_item: np.random.rand(50 * 40) * 100})
 
     df_finrep = pd.DataFrame(
         data=dic_data,
