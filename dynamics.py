@@ -206,6 +206,7 @@ class ClassDynamics:
                 arr_rev_repo_exp_adj=self.arr_rev_repo_exp_adj,
                 days=days,
                 plot_period=self.plot_period,
+                path=f"{self.path_results}exposure_view/core-periphery/",
             )
             if self.heavy_plot:
                 cols = df_cpnet.columns
@@ -236,7 +237,7 @@ class ClassDynamics:
 
         # expost reverse repo transactions stats network level
         df_transaction_stats = em.get_transaction_stats(
-            df_trans=self.Network.df_rev_repo_trans,
+            df_rev_repo_trans=self.Network.df_rev_repo_trans,
             extension=" av. network",
             days=range(self.Network.step + 1),
         )
@@ -281,7 +282,7 @@ class ClassDynamics:
 
             # get transaction stats
             df_transaction_stats = em.get_transaction_stats(
-                df_trans=df_trans,
+                df_rev_repo_trans=df_trans,
                 extension=" av. bank",
                 days=range(self.Network.step + 1),
             )
@@ -343,17 +344,22 @@ class ClassDynamics:
         # loop over the steps to clean values close to zero (or negative)
         for step in range(self.Network.step + 1):
             self.arr_rev_repo_exp_adj[step][
-                self.arr_rev_repo_exp_adj[step] < 0
+                self.arr_rev_repo_exp_adj[step] < self.min_repo_trans_size
             ] = 0
 
-        # save last step to csv
-        os.makedirs(
-            f"{self.path_results}exposure_view/adj_matrices/", exist_ok=True
+        # save to csv for the plot_steps
+        plot_steps = fct.get_plot_steps_from_period(
+            range(self.Network.step + 1), self.plot_period
         )
-        fct.dump_np_array(
-            self.arr_rev_repo_exp_adj[self.Network.step],
-            f"{self.path_results}exposure_view/adj_matrices/arr_reverse_repo_adj_{self.Network.step}.csv",
-        )
+        for step in plot_steps:
+            os.makedirs(
+                f"{self.path_results}exposure_view/adj_matrices/weighted/",
+                exist_ok=True,
+            )
+            fct.dump_np_array(
+                self.arr_rev_repo_exp_adj[self.Network.step],
+                f"{self.path_results}exposure_view/adj_matrices/weighted/arr_reverse_repo_adj_{step}.csv",
+            )
 
     def get_arr_binary_adj(self):
 
@@ -374,21 +380,26 @@ class ClassDynamics:
             self.min_repo_trans_size,
         )
 
+        plot_steps = fct.get_plot_steps_from_period(
+            range(self.Network.step + 1), self.plot_period
+        )
+
         # loop over agg periods
         for period_nb, agg_period in enumerate(par.agg_periods):
 
             # convert array results to dictionaries
             self.dic_arr_binary_adj[agg_period] = arr_binary_adj[period_nb]
 
-            # save last step to csv
-            os.makedirs(
-                f"{self.path_results}exposure_view/adj_matrices/{agg_period}/",
-                exist_ok=True,
-            )
-            fct.dump_np_array(
-                arr_binary_adj[period_nb][self.Network.step],
-                f"{self.path_results}exposure_view/adj_matrices/{agg_period}/arr_binary_adj_on_day_{self.Network.step}.csv",
-            )
+            # save to csv for the plot_steps
+            for step in plot_steps:
+                os.makedirs(
+                    f"{self.path_results}exposure_view/adj_matrices/{agg_period}/",
+                    exist_ok=True,
+                )
+                fct.dump_np_array(
+                    arr_binary_adj[period_nb][step],
+                    f"{self.path_results}exposure_view/adj_matrices/{agg_period}/arr_binary_adj_on_day_{step}.csv",
+                )
 
     def build_adj_matrices(self):
 

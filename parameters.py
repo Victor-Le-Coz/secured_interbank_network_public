@@ -70,7 +70,7 @@ transaction_cols = ["amount", "start_step", "tenor", "status"]
 # -----------------------
 # miscellaneous parameters
 
-# core-periphery algorithms
+# core-periphery algorithms: https://github.com/skojaku/core-periphery-detection
 cp_algos = [
     "KM_ER",  # divide by zero error
     "KM_config",  # divide by zero error

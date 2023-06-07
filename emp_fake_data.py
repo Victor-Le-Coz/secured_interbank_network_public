@@ -4,7 +4,14 @@ from random import choices
 import parameters as par
 
 
-def get_df_mmsr_secured(nb_tran, freq="5h"):
+def get_df_mmsr_secured(nb_tran, freq="5h", holidays=False):
+
+    # define the european mmsr calendar
+    if holidays:
+        bbday = pd.offsets.CustomBusinessDay(holidays=holidays)
+    else:
+        bbday = pd.offsets.CustomBusinessDay()
+
     df_mmsr = pd.DataFrame(
         index=range(nb_tran),
         data={
@@ -23,7 +30,7 @@ def get_df_mmsr_secured(nb_tran, freq="5h"):
             "trns_nominal_amt": np.random.rand(nb_tran) * 100,
             "maturity_date": pd.to_timedelta(
                 np.random.rand(nb_tran) * 50, unit="d"
-            )
+            )  # to enhance: count on business days
             + pd.period_range(
                 start="2020-01-01", freq=freq, periods=nb_tran
             ).to_timestamp(),
@@ -54,12 +61,21 @@ def get_df_mmsr_secured(nb_tran, freq="5h"):
                 df_evergreen = df_mmsr.iloc[start:end]
 
                 # move up the maturity and trade date
-                df_evergreen["trade_date"] = df_evergreen[
-                    "trade_date"
-                ] + pd.Timedelta(days=row)
-                df_evergreen["maturity_date"] = df_evergreen[
-                    "maturity_date"
-                ] + pd.Timedelta(days=row)
+                if holidays:
+                    df_evergreen["trade_date"] = (
+                        df_evergreen["trade_date"] + row * bbday
+                    )
+                    df_evergreen["maturity_date"] = (
+                        df_evergreen["maturity_date"] + row * bbday
+                    )
+
+                else:
+                    df_evergreen["trade_date"] = df_evergreen[
+                        "trade_date"
+                    ] + pd.Timedelta(days=row)
+                    df_evergreen["maturity_date"] = df_evergreen[
+                        "maturity_date"
+                    ] + pd.Timedelta(days=row)
 
                 # add the lines to df_mmsr
                 df_mmsr = pd.concat([df_mmsr, df_evergreen], axis=0)

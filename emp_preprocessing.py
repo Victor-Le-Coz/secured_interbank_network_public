@@ -8,7 +8,7 @@ import parameters as par
 import os
 from more_itertools import consecutive_groups
 
-
+# not used
 def build_from_mmsr(df_mmsr):
     """
     input: mmsr_data: filtered on lend and sell
@@ -22,9 +22,9 @@ def build_from_mmsr(df_mmsr):
     mmsr_trade_dates = sorted(list(set(df_mmsr.index.strftime("%Y-%m-%d"))))
 
     # initialisation of a dictionary of the observed paths
-    dic_obs_matrix_reverse_repo = {}  # for the exposures
+    dic_rev_repo_exp_adj = {}  # for the exposures
     for mmsr_trade_date in mmsr_trade_dates:
-        dic_obs_matrix_reverse_repo.update(
+        dic_rev_repo_exp_adj.update(
             {mmsr_trade_date: pd.DataFrame(columns=leis, index=leis, data=0)}
         )
 
@@ -39,11 +39,11 @@ def build_from_mmsr(df_mmsr):
                 ),
                 freq="1d",
             ).strftime("%Y-%m-%d"):
-                dic_obs_matrix_reverse_repo[date].loc[
+                dic_rev_repo_exp_adj[date].loc[
                     df_mmsr.loc[ts_trade, "cntp_lei"],
                     df_mmsr.loc[ts_trade, "report_agent_lei"],
                 ] = (
-                    dic_obs_matrix_reverse_repo[date].loc[
+                    dic_rev_repo_exp_adj[date].loc[
                         df_mmsr.loc[ts_trade, "cntp_lei"],
                         df_mmsr.loc[ts_trade, "report_agent_lei"],
                     ]
@@ -52,19 +52,18 @@ def build_from_mmsr(df_mmsr):
 
     os.makedirs("./support/", exist_ok=True)
     pickle.dump(
-        dic_obs_matrix_reverse_repo,
-        open("./support/dic_obs_matrix_reverse_repo.pickle", "wb"),
+        dic_rev_repo_exp_adj,
+        open("./support/dic_rev_repo_exp_adj.pickle", "wb"),
         protocol=pickle.HIGHEST_PROTOCOL,
     )
 
-    return dic_obs_matrix_reverse_repo
+    return dic_rev_repo_exp_adj
 
 
-def load_dic_obs_matrix_reverse_repo(path):
-    return pickle.load(open(f"{path}dic_obs_matrix_reverse_repo.pickle", "rb"))
-
-
-def build_from_exposures(df_exposures, path):
+def get_dic_rev_repo_exp_adj_from_exposures(
+    df_exposures, path=False, plot_period=False
+):
+    print("get dic_rev_repo_exp_adj")
 
     # create an Numpy array of the unique LEI of the entities from either report agent or counterparties
     leis = pd.unique(df_exposures[["borr_lei", "lend_lei"]].values.ravel("K"))
@@ -92,14 +91,37 @@ def build_from_exposures(df_exposures, path):
             df_exposures.loc[index, "borr_lei"],
         ] = df_exposures.loc[index, "exposure"]
 
-    os.makedirs(path, exist_ok=True)
-    pickle.dump(
-        dic_rev_repo_exp_adj,
-        open(f"{path}dic_obs_matrix_reverse_repo.pickle", "wb"),
-        protocol=pickle.HIGHEST_PROTOCOL,
-    )
+    # pickle dump
+    if path:
+        os.makedirs(f"{path}pickle/", exist_ok=True)
+        pickle.dump(
+            dic_rev_repo_exp_adj,
+            open(f"{path}pickle/dic_rev_repo_exp_adj.pickle", "wb"),
+            protocol=pickle.HIGHEST_PROTOCOL,
+        )
+
+    # save to csv for the plot_days
+    if plot_period:
+        days = list(dic_rev_repo_exp_adj.keys())
+        plot_days = fct.get_plot_days_from_period(days, plot_period)
+        for day in plot_days:
+
+            day_print = day.strftime("%Y-%m-%d")
+
+            os.makedirs(
+                f"{path}exposure_view/adj_matrices/weighted/",
+                exist_ok=True,
+            )
+            fct.dump_np_array(
+                dic_rev_repo_exp_adj[day],
+                f"{path}exposure_view/adj_matrices/weighted/arr_reverse_repo_adj_{day_print}.csv",
+            )
 
     return dic_rev_repo_exp_adj
+
+
+def load_dic_rev_repo_exp_adj(path):
+    return pickle.load(open(f"{path}pickle/dic_rev_repo_exp_adj.pickle", "rb"))
 
 
 @jit(nopython=True)
@@ -164,7 +186,11 @@ def convert_dic_to_array(dic_obs_matrix_reverse_repo):
     return arr_obs_matrix_reverse_repo
 
 
-def build_rolling_binary_adj(dic_rev_repo_exp_adj, path):
+def get_dic_arr_binary_adj(
+    dic_rev_repo_exp_adj, path=False, plot_period=False
+):
+
+    print("get dic_arr_binary_adj")
 
     # convert dic to array
     bank_ids = list(list(dic_rev_repo_exp_adj.values())[0].index)
@@ -188,19 +214,38 @@ def build_rolling_binary_adj(dic_rev_repo_exp_adj, path):
     for period_nb, agg_period in enumerate(par.agg_periods):
         dic_arr_binary_adj.update({agg_period: arr_binary_adj[period_nb]})
 
-    # dump results
-    os.makedirs(path, exist_ok=True)
-    pickle.dump(
-        dic_arr_binary_adj,
-        open(f"{path}dic_arr_binary_adj.pickle", "wb"),
-        protocol=pickle.HIGHEST_PROTOCOL,
-    )
+    # pickle dump
+    if path:
+        os.makedirs(f"{path}pickle/", exist_ok=True)
+        pickle.dump(
+            dic_arr_binary_adj,
+            open(f"{path}pickle/dic_arr_binary_adj.pickle", "wb"),
+            protocol=pickle.HIGHEST_PROTOCOL,
+        )
+
+    # save to csv for the plot_days
+    if plot_period:
+        days = list(dic_rev_repo_exp_adj.keys())
+        plot_steps = fct.get_plot_steps_from_period(days, plot_period)
+
+        for agg_period in par.agg_periods:
+            # save to csv for the plot_steps
+            for step in plot_steps:
+                day_print = days[step].strftime("%Y-%m-%d")
+                os.makedirs(
+                    f"{path}exposure_view/adj_matrices/{agg_period}/",
+                    exist_ok=True,
+                )
+                fct.dump_np_array(
+                    dic_arr_binary_adj[agg_period][step],
+                    f"{path}exposure_view/adj_matrices/{agg_period}/arr_binary_adj_on_day_{day_print}.csv",
+                )
 
     return dic_arr_binary_adj
 
 
 def load_dic_arr_binary_adj(path):
-    return pickle.load(open(f"{path}dic_arr_binary_adj.pickle", "rb"))
+    return pickle.load(open(f"{path}pickle/dic_arr_binary_adj.pickle", "rb"))
 
 
 def build_arr_total_assets(df_finrep, path):
@@ -216,10 +261,14 @@ def build_arr_total_assets(df_finrep, path):
 
 
 def get_dic_dashed_trajectory(df_finrep):
+
+    print("get dic_dashed_trajectory")
+
     dic_dashed_trajectory = {}
     plot_days = pd.to_datetime(
         sorted(list(set(df_finrep["date"].dt.strftime("%Y-%m-%d"))))
     )
+
     for day in plot_days:
         df_banks = (
             df_finrep[df_finrep["date"] == plot_days[0]]
@@ -348,7 +397,7 @@ def get_df_deposits_variation(df_mmsr, dic_dashed_trajectory, path):
     return df_deposits_variations
 
 
-def get_df_rev_repo_trans(df_mmsr_secured, business_day=False, path=False):
+def get_df_rev_repo_trans(df_mmsr_secured, holidays=False, path=False):
 
     # 1 - build the start_step and tenor columns
 
@@ -356,19 +405,17 @@ def get_df_rev_repo_trans(df_mmsr_secured, business_day=False, path=False):
     df_mmsr_secured["trade_date"] = df_mmsr_secured["trade_date"].dt.date
     df_mmsr_secured["maturity_date"] = df_mmsr_secured["maturity_date"].dt.date
 
-    if (
-        business_day
-    ):  # QUESTION 1: in which convention is each evergreen contract reported ? meaning, how should we measure the tenor from the maturity date ? QUESTION 2: on which days are trade dates repeated ? every calendat day, business day, which bank holidays ?
-        # get the tenor (in business days) # WARNIING: need to add here the list of bank holidays were the transactions are not reported (otherwise we create discontinuities when flaggin the repos)
+    if holidays:
+        # get the tenor (in business days)
         lam_func_diff = lambda row: np.busday_count(
-            row["trade_date"], row["maturity_date"]
+            row["trade_date"], row["maturity_date"], holidays=holidays
         )
         df_mmsr_secured["tenor"] = df_mmsr_secured.apply(lam_func_diff, axis=1)
 
-        # get the start_step (nb of the business day) # WARNIING: need to add here the list of bank holidays were the transactions are not reported (otherwise we create discontinuities when flaggin the repos)
+        # get the start_step (nb of the business day)
         df_mmsr_secured["first_date"] = df_mmsr_secured["trade_date"].min()
         lam_func_diff = lambda row: np.busday_count(
-            row["first_date"], row["trade_date"]
+            row["first_date"], row["trade_date"], holidays=holidays
         )
         df_mmsr_secured["start_step"] = df_mmsr_secured.apply(
             lam_func_diff, axis=1
