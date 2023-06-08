@@ -8,6 +8,47 @@ import parameters as par
 import os
 from more_itertools import consecutive_groups
 import data_mapping as dm
+from random import choice
+
+
+def anonymize(df_mmsr_secured, df_mmsr_unsecured, df_finrep):
+    # get the list of leis used within the input dataframes
+    set_lei = set()
+    set_lei.update(
+        set(
+            pd.unique(
+                df_mmsr_secured[["cntp_lei", "report_agent_lei"]].values.ravel(
+                    "K"
+                )
+            )
+        )
+    )
+    set_lei.update(
+        set(
+            pd.unique(
+                df_mmsr_unsecured[
+                    ["cntp_lei", "report_agent_lei"]
+                ].values.ravel("K")
+            )
+        )
+    )
+    set_lei.update(set(pd.unique(df_finrep[["lei"]].values.ravel("K"))))
+
+    # allocate a random anonymised name to each lei
+    dic_lei = {}
+    for lei in set_lei:
+        dic_lei.update(
+            {lei: choice(["anonymized_" + str(i) for i in range(100)])}
+        )
+
+    # modify the input databases with the ram
+    df_mmsr_secured.replace(
+        {"cntp_lei": dic_lei, "report_agent_lei": dic_lei}, inplace=True
+    )
+    df_mmsr_unsecured.replace(
+        {"cntp_lei": dic_lei, "report_agent_lei": dic_lei}, inplace=True
+    )
+    df_finrep.replace({"lei": dic_lei}, inplace=True)
 
 
 def get_df_mmsr_secured_clean(
@@ -32,12 +73,12 @@ def get_df_mmsr_secured_clean(
             lam_func = lambda row: np.busday_count(
                 row["trade_date_d"], row["maturity_date_d"], holidays=holidays
             )
+            df_mmsr_secured["tenor"] = df_mmsr_secured.apply(lam_func, axis=1)
 
         else:
             # get the tenor (in business days)
-            lam_func = lambda row: dm.dic_tenor[row["maturity_band"]]
-
-        df_mmsr_secured["tenor"] = df_mmsr_secured.apply(lam_func, axis=1)
+            df_mmsr_secured["tenor"] = df_mmsr_secured["maturity_band"]
+            df_mmsr_secured.replace({"tenor": dm.dic_tenor}, inplace=True)
 
         # get the start_step (nb of the business day)
         df_mmsr_secured["first_date"] = df_mmsr_secured["trade_date_d"].min()
