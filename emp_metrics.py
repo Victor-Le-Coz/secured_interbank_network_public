@@ -509,14 +509,15 @@ def run_n_plot_powerlaw(df, path):
         df_powerlaw.loc[col] = fits[1:]
 
         # plot
-        gx.plot_step_item_powerlaw(
-            fits[0],
-            fits[1],
-            fits[2],
-            col,
-            path,
-            auto_xlabel=False,
-        )
+        if not (np.isnan(fits[2])):
+            gx.plot_step_item_powerlaw(
+                fits[0],
+                fits[1],
+                fits[2],
+                col,
+                path,
+                auto_xlabel=False,
+            )
 
     os.makedirs(path, exist_ok=True)
     df_powerlaw.to_csv(f"{path}df_powerlaw.csv")

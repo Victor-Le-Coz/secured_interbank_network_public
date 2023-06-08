@@ -117,6 +117,7 @@ def get_df_mmsr_secured_clean(
             "unique_trns_id": lambda x: list(x),
             "maturity_date": max,
             "trade_date": min,
+            "trns_type": max,  # used for filters
         }
     )
     df_evergreen_lists.rename(
@@ -143,7 +144,7 @@ def get_df_mmsr_secured_clean(
     )
 
     # reset the inedex
-    df_evergreen_clean.reset_index(inplace=True, drop=True)
+    df_evergreen_clean.reset_index(inplace=True)
 
     # define the effective observed tenor
     df_evergreen_clean["tenor"] = (
@@ -506,7 +507,10 @@ def get_df_deposits_variations_by_bank(df_mmsr, dic_dashed_trajectory, path):
     print("get df_deposits_variations_by_bank")
 
     # filter only on the deposits instruments
-    df_mmsr = df_mmsr[df_mmsr["instr_type"] == "DPST"]
+    df_mmsr = df_mmsr[
+        (df_mmsr["instr_type"] == "DPST")
+        & df_mmsr["trns_type"].isin(["BORR", "BUYI"])
+    ]
 
     # set the trade date as index
     df_mmsr.set_index("trade_date", inplace=True)
@@ -574,7 +578,10 @@ def get_df_deposits_variation(df_mmsr, dic_dashed_trajectory, path):
     print("get df_deposits_variation")
 
     # filter only on the deposits instruments
-    df_mmsr = df_mmsr[df_mmsr["instr_type"] == "DPST"]
+    df_mmsr = df_mmsr[
+        (df_mmsr["instr_type"] == "DPST")
+        & df_mmsr["trns_type"].isin(["BORR", "BUYI"])
+    ]
 
     # set the trade date as index
     df_mmsr.set_index("trade_date", inplace=True)
@@ -630,6 +637,7 @@ def get_df_rev_repo_trans(df_mmsr_secured_clean, path=False):
         df_mmsr_secured_clean["trns_type"].isin(["LEND", "SELL"])
     ]
 
+    # rename the columns to match df_rev_repo_trans requirements (given by AB)
     dic_col_mapping = {
         "report_agent_lei": "owner_bank_id",
         "cntp_lei": "bank_id",

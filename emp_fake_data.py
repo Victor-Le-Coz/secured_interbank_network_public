@@ -24,8 +24,8 @@ def get_df_mmsr_secured(nb_tran, holidays):
                 ["bank_" + str(i) for i in range(10)], k=nb_tran
             ),
             "cntp_lei": choices(
-                ["bank_" + str(i) for i in range(15)]
-                + ["fund_" + str(i) for i in range(5)],
+                ["bank_" + str(i) for i in range(15)],
+                # + ["fund_" + str(i) for i in range(5)],
                 k=nb_tran,
             ),
             "trns_nominal_amt": np.random.rand(nb_tran) * 100,
