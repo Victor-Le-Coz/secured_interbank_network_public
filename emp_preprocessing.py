@@ -8,7 +8,7 @@ import parameters as par
 import os
 from more_itertools import consecutive_groups
 import data_mapping as dm
-from random import choice
+import random
 
 
 def anonymize(df_mmsr_secured, df_mmsr_unsecured, df_finrep):
@@ -35,11 +35,10 @@ def anonymize(df_mmsr_secured, df_mmsr_unsecured, df_finrep):
     set_lei.update(set(pd.unique(df_finrep[["lei"]].values.ravel("K"))))
 
     # allocate a random anonymised name to each lei
-    dic_lei = {}
-    for lei in set_lei:
-        dic_lei.update(
-            {lei: choice(["anonymized_" + str(i) for i in range(100)])}
-        )
+    anonymized_leis = random.sample(
+        ["anonymized_" + str(i) for i in range(200)], len(set_lei)
+    )
+    dic_lei = dict(zip(set_lei, anonymized_leis))
 
     # modify the input databases with the ram
     df_mmsr_secured.replace(
@@ -211,7 +210,7 @@ def get_df_mmsr_secured_clean(
 
     # save df_mmsr_secured_clean
     if path:
-        df_mmsr_secured_clean.to_csv(f"{path}df_mmsr_secured_clean.csv")
+        df_mmsr_secured_clean.to_csv(f"{path}pickle/df_mmsr_secured_clean.csv")
 
     return df_mmsr_secured_clean
 
@@ -705,13 +704,16 @@ def get_df_rev_repo_trans(df_mmsr_secured_clean, path=False):
     return df_rev_repo_trans
 
 
-def get_df_finrep_clean(df_finrep):
+def get_df_finrep_clean(df_finrep, path):
 
     df_finrep_clean = df_finrep.copy()
 
     app_func = lambda row: get_closest_bday(row["date"])
 
     df_finrep_clean["date"] = df_finrep_clean.apply(app_func, axis=1)
+
+    if path:
+        df_finrep_clean.to_csv(f"{path}pickle/df_finrep_clean.csv")
 
     return df_finrep_clean
 

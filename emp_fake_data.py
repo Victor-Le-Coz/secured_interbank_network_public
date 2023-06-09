@@ -122,6 +122,7 @@ def get_df_mmsr_unsecured(nb_tran, freq="5h"):
             "instr_type": ["DPST" for i in range(nb_tran)],
         },
     )
+
     return df_mmsr
 
 
