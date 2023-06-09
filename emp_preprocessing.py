@@ -11,7 +11,7 @@ import data_mapping as dm
 import random
 
 
-def anonymize(df_mmsr_secured, df_mmsr_unsecured, df_finrep):
+def anonymize(df_mmsr_secured, df_mmsr_unsecured, df_finrep, path=False):
     # get the list of leis used within the input dataframes
     set_lei = set()
     set_lei.update(
@@ -48,6 +48,11 @@ def anonymize(df_mmsr_secured, df_mmsr_unsecured, df_finrep):
         {"cntp_lei": dic_lei, "report_agent_lei": dic_lei}, inplace=True
     )
     df_finrep.replace({"lei": dic_lei}, inplace=True)
+
+    if path:
+        df_mmsr_secured.to_csv(f"{path}pickle/df_mmsr_secured.csv")
+        df_mmsr_unsecured.to_csv(f"{path}pickle/df_mmsr_unsecured.csv")
+        df_finrep.to_csv(f"{path}pickle/df_finrep.csv")
 
 
 def get_df_mmsr_secured_clean(
@@ -721,3 +726,24 @@ def get_df_finrep_clean(df_finrep, path):
 def get_closest_bday(input_timestamp):
     bbday = pd.offsets.CustomBusinessDay(holidays=dm.holidays)
     return bbday.rollforward(input_timestamp)
+
+
+def load_input_data(path):
+
+    df_mmsr_secured_clean = pd.read_csv(
+        f"{path}pickle/df_mmsr_secured_clean.csv", index_col=0
+    )
+    df_mmsr_unsecured = pd.read_csv(
+        f"{path}pickle/df_mmsr_unsecured.csv", index_col=0
+    )
+    df_finrep_clean = pd.read_csv(
+        f"{path}pickle/df_finrep_clean.csv", index_col=0
+    )
+
+    for col in ["trade_date", "maturity_date"]:
+        df_mmsr_secured_clean[col] = pd.to_datetime(df_mmsr_secured_clean[col])
+        df_mmsr_unsecured[col] = pd.to_datetime(df_mmsr_unsecured[col])
+
+    df_finrep_clean["date"] = pd.to_datetime(df_finrep_clean["date"])
+
+    return df_mmsr_secured_clean, df_mmsr_unsecured, df_finrep_clean
