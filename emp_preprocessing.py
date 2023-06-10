@@ -50,6 +50,7 @@ def anonymize(df_mmsr_secured, df_mmsr_unsecured, df_finrep, path=False):
     df_finrep.replace({"lei": dic_lei}, inplace=True)
 
     if path:
+        os.makedirs(f"{path}pickle/", exist_ok=True)
         df_mmsr_secured.to_csv(f"{path}pickle/df_mmsr_secured.csv")
         df_mmsr_unsecured.to_csv(f"{path}pickle/df_mmsr_unsecured.csv")
         df_finrep.to_csv(f"{path}pickle/df_finrep.csv")
@@ -158,11 +159,11 @@ def get_df_mmsr_secured_clean(
     ).agg(
         {
             "start_step": lambda x: list(x),
-            "tenor": max,
+            "tenor": "last",
             "unique_trns_id": lambda x: list(x),
             "maturity_date": max,
             "trade_date": min,
-            "trns_type": max,  # used for filters
+            "trns_type": "last",  # used for filters
         }
     )
     df_evergreen_lists.rename(
@@ -215,6 +216,7 @@ def get_df_mmsr_secured_clean(
 
     # save df_mmsr_secured_clean
     if path:
+        df_mmsr_secured.to_csv(f"{path}pickle/df_mmsr_secured.csv")
         df_mmsr_secured_clean.to_csv(f"{path}pickle/df_mmsr_secured_clean.csv")
 
     return df_mmsr_secured_clean
@@ -547,134 +549,6 @@ def load_dic_dashed_trajectory(path):
     )
 
 
-def get_df_deposits_variations_by_bank(df_mmsr, dic_dashed_trajectory, path):
-
-    print("get df_deposits_variations_by_bank")
-
-    # filter only on the deposits instruments
-    df_mmsr = df_mmsr[
-        (df_mmsr["instr_type"] == "DPST")
-        & df_mmsr["trns_type"].isin(["BORR", "BUYI"])
-    ]
-
-    # set the trade date as index
-    df_mmsr.set_index("trade_date", inplace=True)
-
-    # build the deposits time series (multi index bank and time)
-    df_deposits = (
-        df_mmsr.groupby("report_agent_lei")
-        .resample("1d")
-        .sum("trns_nominal_amt")
-    )[["trns_nominal_amt"]]
-
-    # get one column per bank
-    df_deposits = df_deposits.unstack(0)
-    df_deposits.columns = df_deposits.columns.droplevel()
-
-    # compute the deposits variations (absolute and relative)
-    df_delta_deposits = df_deposits.diff(1)
-    df_relative_deposits = df_delta_deposits / df_deposits.shift(1)
-
-    # select the bank ids that match df_finrep to build the variation over total assets
-    df_banks = list(dic_dashed_trajectory.values())[
-        -1
-    ]  # take the last value of total assets (to be updated with something more fancy)
-    bank_ids = fct.list_intersection(df_banks.index, df_deposits.columns)
-    df_delta_deposits_over_assets = (
-        df_delta_deposits[bank_ids] / df_banks["total assets"].T[bank_ids]
-    )
-
-    # rename all columns
-    df_delta_deposits.columns = [
-        f"{col} abs. var." for col in df_deposits.columns
-    ]
-    df_relative_deposits.columns = [
-        f"{col} rel. var." for col in df_deposits.columns
-    ]
-    df_delta_deposits_over_assets.columns = [
-        f"{col} var over tot. assets" for col in bank_ids
-    ]
-
-    # merge all data
-    df_deposits_variations_by_bank = pd.merge(
-        df_delta_deposits,
-        df_relative_deposits,
-        right_index=True,
-        left_index=True,
-    )
-    df_deposits_variations_by_bank = pd.merge(
-        df_deposits_variations_by_bank,
-        df_delta_deposits_over_assets,
-        right_index=True,
-        left_index=True,
-    )
-
-    # save df_deposits_variations
-    os.makedirs(path, exist_ok=True)
-    df_deposits_variations_by_bank.to_csv(
-        f"{path}df_deposits_variations_by_bank.csv"
-    )
-
-    return df_deposits_variations_by_bank
-
-
-def get_df_deposits_variation(df_mmsr, dic_dashed_trajectory, path):
-
-    print("get df_deposits_variation")
-
-    # filter only on the deposits instruments
-    df_mmsr = df_mmsr[
-        (df_mmsr["instr_type"] == "DPST")
-        & df_mmsr["trns_type"].isin(["BORR", "BUYI"])
-    ]
-
-    # set the trade date as index
-    df_mmsr.set_index("trade_date", inplace=True)
-
-    # build the deposits time series (multi index bank and time)
-    df_deposits_variations = (
-        df_mmsr.groupby("report_agent_lei")
-        .resample("1d")
-        .sum("trns_nominal_amt")
-    )[["trns_nominal_amt"]]
-    df_deposits_variations.rename(
-        {"trns_nominal_amt": "deposits"}, axis=1, inplace=True
-    )
-
-    # compute the deposits variations (absolute and relative)
-    df_deposits_variations["deposits abs. var."] = df_deposits_variations[
-        "deposits"
-    ].diff(1)
-    df_deposits_variations["deposits rel. var."] = df_deposits_variations[
-        "deposits abs. var."
-    ] / df_deposits_variations["deposits"].shift(1)
-
-    # select the bank ids that match df_finrep to build the variation over total assets
-    df_banks = list(dic_dashed_trajectory.values())[
-        -1
-    ]  # take the last value of total assets (to be updated with something more fancy)
-    df_banks.index.name = "report_agent_lei"
-
-    df_deposits_variations = df_deposits_variations.join(
-        df_banks[["total assets"]], how="inner"
-    )
-
-    df_deposits_variations["deposits var over tot. assets"] = (
-        df_deposits_variations["deposits abs. var."]
-        / df_deposits_variations["total assets"]
-    )
-
-    df_deposits_variations.drop(
-        ["deposits", "total assets"], axis=1, inplace=True
-    )
-
-    # save df_deposits_variations
-    os.makedirs(path, exist_ok=True)
-    df_deposits_variations.to_csv(f"{path}df_deposits_variations.csv")
-
-    return df_deposits_variations
-
-
 def get_df_rev_repo_trans(df_mmsr_secured_clean, path=False):
 
     # filter only on the reverse repo i.e. lending cash
@@ -730,6 +604,9 @@ def get_closest_bday(input_timestamp):
 
 def load_input_data(path):
 
+    df_mmsr_secured = pd.read_csv(
+        f"{path}pickle/df_mmsr_secured.csv", index_col=0
+    )
     df_mmsr_secured_clean = pd.read_csv(
         f"{path}pickle/df_mmsr_secured_clean.csv", index_col=0
     )
@@ -741,9 +618,15 @@ def load_input_data(path):
     )
 
     for col in ["trade_date", "maturity_date"]:
+        df_mmsr_secured[col] = pd.to_datetime(df_mmsr_secured[col])
         df_mmsr_secured_clean[col] = pd.to_datetime(df_mmsr_secured_clean[col])
         df_mmsr_unsecured[col] = pd.to_datetime(df_mmsr_unsecured[col])
 
     df_finrep_clean["date"] = pd.to_datetime(df_finrep_clean["date"])
 
-    return df_mmsr_secured_clean, df_mmsr_unsecured, df_finrep_clean
+    return (
+        df_mmsr_secured,
+        df_mmsr_secured_clean,
+        df_mmsr_unsecured,
+        df_finrep_clean,
+    )

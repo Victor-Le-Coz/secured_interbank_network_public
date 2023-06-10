@@ -561,7 +561,12 @@ def plot_step_item_powerlaw(
     colors = sns.color_palette("flare", n_colors=3)
 
     # ax1 : pdf
-    powerlaw_fit.plot_pdf(color=colors[0], ax=ax1)
+    try:
+        powerlaw_fit.plot_pdf(color=colors[0], ax=ax1)
+
+    except:
+        print(f"bug for {bank_item}")
+
     powerlaw_fit.power_law.plot_pdf(color=colors[1], linestyle="--", ax=ax1)
     powerlaw_fit.exponential.plot_pdf(color=colors[2], linestyle="--", ax=ax1)
     if auto_xlabel:
@@ -906,3 +911,59 @@ def convert_index(df, str_convertion):
     df.index = pd.Index(index)
 
     return df
+
+
+def plot_notional_by_notice_period(
+    df_mmsr_secured, path, plot_period, figsize=par.small_figsize
+):
+
+    # select only the evergreen, with repeated lines by day, tenor is the notice period
+    df = df_mmsr_secured[df_mmsr_secured["evergreen"]]
+
+    # select the dates on which to plot
+    days = pd.to_datetime(
+        sorted(
+            list(set(df_mmsr_secured["trade_date"].dt.strftime("%Y-%m-%d")))
+        )
+    )
+    plot_days = fct.get_plot_days_from_period(days, plot_period)
+
+    # initialize path
+    os.makedirs(f"{path}notional_by_notice_period/", exist_ok=True)
+
+    # looop over the plot days
+    for day in plot_days:
+
+        # build notional by notice period
+        df_notional_by_notice_period = (
+            df[df["trade_date"] == day]
+            .groupby(["tenor"])
+            .agg({"trns_nominal_amt": sum})
+        )
+
+        df_notional_by_notice_period.plot(
+            figsize=figsize,
+            legend=False,
+            colormap=ListedColormap(
+                sns.color_palette("flare", n_colors=len(par.agg_periods))
+            ),
+        )
+        plt.xlabel("notice period (days)")
+        plt.xscale("log")
+        plt.ylabel("notional (monetary units)")
+        plt.grid()
+
+        # define day print
+        day_print = day.strftime("%Y-%m-%d")
+
+        # save file
+        df_notional_by_notice_period.to_csv(
+            f"{path}notional_by_notice_period/df_notional_by_notice_period_on_day_{day_print}.csv"
+        )
+
+        # save fig
+        plt.savefig(
+            f"{path}notional_by_notice_period/notional_by_notice_period_on_day_{day_print}.pdf",
+            bbox_inches="tight",
+        )
+        plt.close()

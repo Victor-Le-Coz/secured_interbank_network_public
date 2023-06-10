@@ -521,3 +521,125 @@ def run_n_plot_powerlaw(df, path):
 
     os.makedirs(path, exist_ok=True)
     df_powerlaw.to_csv(f"{path}df_powerlaw.csv")
+
+
+def get_df_deposits(df_mmsr_unsecured, dic_dashed_trajectory):
+
+    print("get df_deposits")
+
+    # filter only on the deposits instruments
+    df_mmsr_unsecured = df_mmsr_unsecured[
+        (df_mmsr_unsecured["instr_type"] == "DPST")
+        & df_mmsr_unsecured["trns_type"].isin(["BORR", "BUYI"])
+    ]
+
+    # build the deposits time series (multi index bank and time)
+    df_deposits = (
+        df_mmsr_unsecured.groupby(["report_agent_lei", "trade_date"]).sum(
+            "trns_nominal_amt"
+        )
+    )[["trns_nominal_amt"]]
+
+    # get one column per bank
+    df_deposits = df_deposits.unstack(
+        0
+    )  # the unstack ensure the full list of business is in the index (as at least one bank as a depositis positive on each day)
+    df_deposits.columns = df_deposits.columns.droplevel()
+
+    # compute the deposits variations (absolute and relative)
+    df_delta_deposits = df_deposits.diff(1)
+    df_relative_deposits = df_delta_deposits / df_deposits.shift(1)
+
+    # select the bank ids that match df_finrep to build the variation over total assets
+    df_banks = list(dic_dashed_trajectory.values())[
+        -1
+    ]  # take the last value of total assets (to be updated with something more fancy)
+    bank_ids = fct.list_intersection(df_banks.index, df_deposits.columns)
+    df_delta_deposits_over_assets = (
+        df_delta_deposits[bank_ids] / df_banks["total assets"].T[bank_ids]
+    )
+
+    return (
+        df_delta_deposits,
+        df_relative_deposits,
+        df_delta_deposits_over_assets,
+    )
+
+
+def get_df_deposits_variations_by_bank(
+    df_delta_deposits,
+    df_relative_deposits,
+    df_delta_deposits_over_assets,
+    path,
+):
+
+    print("get df_deposits_variations_by_bank")
+
+    # rename all columns
+    df_delta_deposits.rename(
+        columns={col: f"{col} abs. var." for col in df_delta_deposits.columns},
+        inplace=True,
+    )
+    df_relative_deposits.rename(
+        columns={
+            col: f"{col} rel. var." for col in df_relative_deposits.columns
+        },
+        inplace=True,
+    )
+    df_delta_deposits_over_assets.rename(
+        columns={
+            col: f"{col} var over tot. assets"
+            for col in df_delta_deposits_over_assets.columns
+        },
+        inplace=True,
+    )
+
+    # merge all data
+    df_deposits_variations_by_bank = pd.merge(
+        df_delta_deposits,
+        df_relative_deposits,
+        right_index=True,
+        left_index=True,
+    )
+    df_deposits_variations_by_bank = pd.merge(
+        df_deposits_variations_by_bank,
+        df_delta_deposits_over_assets,
+        right_index=True,
+        left_index=True,
+    )
+
+    # save df_deposits_variations
+    os.makedirs(path, exist_ok=True)
+    df_deposits_variations_by_bank.to_csv(
+        f"{path}df_deposits_variations_by_bank.csv"
+    )
+
+    return df_deposits_variations_by_bank
+
+
+def get_df_deposits_variations(
+    df_delta_deposits,
+    df_relative_deposits,
+    df_delta_deposits_over_assets,
+    path,
+):
+
+    print("get df_deposits_variation")
+
+    # build df_deposits variations
+    df_deposits_variations = pd.DataFrame()
+    df_deposits_variations["deposits abs. var."] = df_delta_deposits.stack(
+        dropna=False
+    )
+    df_deposits_variations["deposits rel. var."] = df_relative_deposits.stack(
+        dropna=False
+    )
+    df_deposits_variations[
+        "deposits var over tot. assets"
+    ] = df_delta_deposits_over_assets.stack(dropna=False)
+
+    # save df_deposits_variations
+    os.makedirs(path, exist_ok=True)
+    df_deposits_variations.to_csv(f"{path}df_deposits_variations.csv")
+
+    return df_deposits_variations

@@ -247,11 +247,11 @@ powerlaw_alpha = [
 powerlaw_pvalue = [
     [
         f"powerlaw p-value {bank_item}",
-        r"power law p-value (%)",
+        r"power law p-value",
         f"{bank_item}",
-        "linear",
+        "log",
         ".-",
-        "%",
+        "",
     ]
     for bank_item in bank_items
 ]

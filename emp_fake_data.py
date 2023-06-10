@@ -92,13 +92,20 @@ def get_df_mmsr_secured(nb_tran, holidays):
     return df_mmsr
 
 
-def get_df_mmsr_unsecured(nb_tran, freq="5h"):
+def get_df_mmsr_unsecured(nb_tran, holidays):
+
+    # define the european mmsr calendar
+    bbday = pd.offsets.CustomBusinessDay(holidays=holidays)
+
+    # define the days on which mmsr trasaction can occure
+    days = pd.bdate_range(
+        "2000-01-03", "2024-01-01", freq="C", holidays=dm.holidays
+    )
+
     df_mmsr = pd.DataFrame(
         index=range(nb_tran),
         data={
-            "trade_date": pd.period_range(
-                start="2000-01-03", freq=freq, periods=nb_tran
-            ).to_timestamp(),
+            "trade_date": choices(days, k=nb_tran),
             "unique_trns_id": range(nb_tran),
             "report_agent_lei": choices(
                 ["bank_" + str(i) for i in range(10)], k=nb_tran
@@ -109,12 +116,6 @@ def get_df_mmsr_unsecured(nb_tran, freq="5h"):
                 k=nb_tran,
             ),
             "trns_nominal_amt": np.random.rand(nb_tran) * 100,
-            "maturity_date": pd.to_timedelta(
-                np.random.rand(nb_tran) * 10, unit="d"
-            )
-            + pd.period_range(
-                start="2020-01-01", freq=freq, periods=nb_tran
-            ).to_timestamp(),
             "trns_type": choices(
                 ["BORR", "LEND", "BUYI", "SELL"],
                 k=nb_tran,
@@ -122,6 +123,15 @@ def get_df_mmsr_unsecured(nb_tran, freq="5h"):
             "instr_type": ["DPST" for i in range(nb_tran)],
         },
     )
+
+    # convert to datetime (stange error when building dates from choices())
+    df_mmsr["trade_date"] = pd.to_datetime(df_mmsr["trade_date"])
+
+    # build the maturity date # WARNING inconstent with the maturity band
+    apply_func = (
+        lambda row: row["trade_date"] + int(np.random.rand(1) * 50) * bbday
+    )
+    df_mmsr["maturity_date"] = df_mmsr.apply(apply_func, axis=1)
 
     return df_mmsr
 
