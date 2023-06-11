@@ -1,5 +1,6 @@
 import datetime
 import numpy as np
+import pandas as pd
 
 dic_finrep_columns = {
     "total_assets": "total assets",
@@ -20,6 +21,18 @@ dic_finrep_columns = {
 # balance_sheet_data_clean.dta	"stock_nominal_sec_gov"# qu'est ce que c'est ?
 # balance_sheet_data_clean.dta	"sec_holdings_assets_n" # qu'est ce que c'est ?
 
+mmsr_secured_clean_columns = [
+    "report_agent_lei",
+    "cntp_lei",
+    "start_step",
+    "trns_nominal_amt",
+    "tenor",
+    "unique_trns_id",
+    "maturity_date",
+    "trade_date",
+    "trns_type",
+    "coll_isin",
+]
 
 holidays = [
     datetime.date(2000, 1, 1),
@@ -174,6 +187,9 @@ holidays = [
     datetime.date(2024, 12, 26),
 ]
 
+days = pd.bdate_range("2000-01-03", "2024-01-01", freq="C", holidays=holidays)
+
+dic_ECB_calendar = {item: index for index, item in enumerate(days)}
 
 maturity_band = [
     "O/N",

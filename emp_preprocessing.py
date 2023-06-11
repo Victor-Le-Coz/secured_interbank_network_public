@@ -57,7 +57,10 @@ def anonymize(df_mmsr_secured, df_mmsr_unsecured, df_finrep, path=False):
 
 
 def get_df_mmsr_secured_clean(
-    df_mmsr_secured, compute_tenor=False, holidays=False, path=False
+    df_mmsr_secured,
+    compute_tenor=False,
+    holidays=False,
+    path=False,
 ):
 
     print("get df_mmsr_secured_clean")
@@ -71,21 +74,8 @@ def get_df_mmsr_secured_clean(
         "maturity_date"
     ].dt.date
 
+    # get the start_step (nb of the business day)
     if holidays:
-
-        if compute_tenor:
-            # get the tenor (in business days)
-            lam_func = lambda row: np.busday_count(
-                row["trade_date_d"], row["maturity_date_d"], holidays=holidays
-            )
-            df_mmsr_secured["tenor"] = df_mmsr_secured.apply(lam_func, axis=1)
-
-        else:
-            # get the tenor (in business days)
-            df_mmsr_secured["tenor"] = df_mmsr_secured["maturity_band"]
-            df_mmsr_secured.replace({"tenor": dm.dic_tenor}, inplace=True)
-
-        # get the start_step (nb of the business day)
         df_mmsr_secured["first_date"] = df_mmsr_secured["trade_date_d"].min()
         lam_func = lambda row: np.busday_count(
             row["first_date"], row["trade_date_d"], holidays=holidays
@@ -93,17 +83,32 @@ def get_df_mmsr_secured_clean(
         df_mmsr_secured["start_step"] = df_mmsr_secured.apply(lam_func, axis=1)
 
     else:
-        # get the tenor
-        df_mmsr_secured["tenor"] = (
-            df_mmsr_secured["maturity_date_d"]
-            - df_mmsr_secured["trade_date_d"]
-        ).dt.days
-
-        # get the start_step
         df_mmsr_secured["first_date"] = df_mmsr_secured["trade_date_d"].min()
         df_mmsr_secured["start_step"] = (
             df_mmsr_secured["trade_date_d"] - df_mmsr_secured["first_date"]
         ).dt.days
+
+    # get the tenor (in business days)
+    if compute_tenor:
+
+        if holidays:
+            # # opt1 count
+            lam_func = lambda row: np.busday_count(
+                row["trade_date_d"], row["maturity_date_d"], holidays=holidays
+            )
+            df_mmsr_secured["tenor"] = df_mmsr_secured.apply(lam_func, axis=1)
+
+        else:
+            # get the tenor
+            df_mmsr_secured["tenor"] = (
+                df_mmsr_secured["maturity_date_d"]
+                - df_mmsr_secured["trade_date_d"]
+            ).dt.days
+
+    else:
+        # from the maturity band
+        df_mmsr_secured["tenor"] = df_mmsr_secured["maturity_band"]
+        df_mmsr_secured.replace({"tenor": dm.dic_tenor}, inplace=True)
 
     # drop unnecessary columns
     df_mmsr_secured.drop(
@@ -112,7 +117,35 @@ def get_df_mmsr_secured_clean(
 
     # ------------------------------------------
     # 2 - flag the evergreen repos
+    flag_evergreen_repo(df_mmsr_secured)
 
+    # ------------------------------------------
+    # 3 - set the start step as the min of each consecutive group of evergreens
+    df_evergreen_clean = set_start_step_as_min_groups(df_mmsr_secured)
+
+    # ------------------------------------------
+    # 4 - build the df_mmsr_secured_clean
+
+    # concatenate the evergreen and the other transactions
+    df_mmsr_secured_clean = pd.concat(
+        [
+            df_mmsr_secured[df_mmsr_secured["evergreen"] == False],
+            df_evergreen_clean,
+        ]
+    )[dm.mmsr_secured_clean_columns]
+
+    # reset the index
+    df_mmsr_secured_clean.reset_index(inplace=True, drop=True)
+
+    # save df_mmsr_secured_clean
+    if path:
+        df_mmsr_secured.to_csv(f"{path}pickle/df_mmsr_secured.csv")
+        df_mmsr_secured_clean.to_csv(f"{path}pickle/df_mmsr_secured_clean.csv")
+
+    return df_mmsr_secured_clean
+
+
+def flag_evergreen_repo(df_mmsr_secured):
     # select only the columns common across an evergreen
     df_restricted = df_mmsr_secured[
         [
@@ -143,8 +176,8 @@ def get_df_mmsr_secured_clean(
     # we take the logical OR between the 2 flags
     df_mmsr_secured["evergreen"] = equal_rows | equal_rows_shift
 
-    # ------------------------------------------
-    # 3 - set the start step as the min of each consecutive group of evergreens
+
+def set_start_step_as_min_groups(df_mmsr_secured):
 
     # select only the flagged evergreens
     df_evergreen = df_mmsr_secured[df_mmsr_secured["evergreen"]]
@@ -201,42 +234,14 @@ def get_df_mmsr_secured_clean(
     )
     df_evergreen_clean["start_step"] = df_evergreen_clean["min_start_steps"]
 
-    # ------------------------------------------
-    # 4 - build the df_mmsr_secured_clean
-
-    # concatenate the evergreen and the other transactions
-    df_mmsr_secured_clean = pd.concat(
-        [
-            df_mmsr_secured[df_mmsr_secured["evergreen"] == False],
-            df_evergreen_clean,
-        ]
-    )[
-        [
-            "report_agent_lei",
-            "cntp_lei",
-            "trns_nominal_amt",
-            "start_step",
-            "tenor",
-            "unique_trns_id",
-            "maturity_date",
-            "trade_date",
-            "trns_type",
-            "coll_isin",
-        ]
-    ]
-
-    # reset the index
-    df_mmsr_secured_clean.reset_index(inplace=True, drop=True)
-
-    # save df_mmsr_secured_clean
-    if path:
-        df_mmsr_secured.to_csv(f"{path}pickle/df_mmsr_secured.csv")
-        df_mmsr_secured_clean.to_csv(f"{path}pickle/df_mmsr_secured_clean.csv")
-
-    return df_mmsr_secured_clean
+    return df_evergreen_clean
 
 
-def get_df_mmsr_secured_expanded(df_mmsr_secured_clean, path=False):
+def get_df_mmsr_secured_expanded(
+    df_mmsr_secured_clean,
+    holidays=False,
+    path=False,
+):
     """
     This function creates a dataframw where each contract is repeated on each line for each day it is active.
     """
@@ -247,10 +252,16 @@ def get_df_mmsr_secured_expanded(df_mmsr_secured_clean, path=False):
     df = df_mmsr_secured_clean
 
     # Create a list of dates for each contract
-    date_ranges = [
-        pd.bdate_range(start, end, freq="C", holidays=dm.holidays)
-        for start, end in zip(df["trade_date"], df["maturity_date"])
-    ]
+    if holidays:
+        date_ranges = [
+            pd.bdate_range(start, end, freq="C", holidays=holidays)
+            for start, end in zip(df["trade_date"], df["maturity_date"])
+        ]
+    else:
+        date_ranges = [
+            pd.date_range(start, end)
+            for start, end in zip(df["trade_date"], df["maturity_date"])
+        ]
 
     # Duplicate rows based on date ranges
     df_mmsr_secured_expanded = df.loc[
