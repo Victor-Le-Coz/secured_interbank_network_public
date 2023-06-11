@@ -164,6 +164,7 @@ def get_df_mmsr_secured_clean(
             "maturity_date": max,
             "trade_date": min,
             "trns_type": "last",  # used for filters
+            "coll_isin": "last",  # used for reuse estimate
         }
     )
     df_evergreen_lists.rename(
@@ -209,7 +210,20 @@ def get_df_mmsr_secured_clean(
             df_mmsr_secured[df_mmsr_secured["evergreen"] == False],
             df_evergreen_clean,
         ]
-    )
+    )[
+        [
+            "report_agent_lei",
+            "cntp_lei",
+            "trns_nominal_amt",
+            "start_step",
+            "tenor",
+            "unique_trns_id",
+            "maturity_date",
+            "trade_date",
+            "trns_type",
+            "coll_isin",
+        ]
+    ]
 
     # reset the index
     df_mmsr_secured_clean.reset_index(inplace=True, drop=True)
@@ -220,6 +234,98 @@ def get_df_mmsr_secured_clean(
         df_mmsr_secured_clean.to_csv(f"{path}pickle/df_mmsr_secured_clean.csv")
 
     return df_mmsr_secured_clean
+
+
+def get_df_mmsr_secured_expanded(df_mmsr_secured_clean, path=False):
+    """
+    This function creates a dataframw where each contract is repeated on each line for each day it is active.
+    """
+
+    print("get df_mmsr_secured_expanded")
+
+    # Create sample DataFrame
+    df = df_mmsr_secured_clean
+
+    # Create a list of dates for each contract
+    date_ranges = [
+        pd.bdate_range(start, end, freq="C", holidays=dm.holidays)
+        for start, end in zip(df["trade_date"], df["maturity_date"])
+    ]
+
+    # Duplicate rows based on date ranges
+    df_mmsr_secured_expanded = df.loc[
+        df.index.repeat([len(dates) for dates in date_ranges])
+    ].copy()
+    df_mmsr_secured_expanded["current_date"] = [
+        date for dates in date_ranges for date in dates
+    ]
+
+    # Reset the index
+    df_mmsr_secured_expanded.reset_index(drop=True, inplace=True)
+
+    # save df_mmsr_secured_clean
+    if path:
+        df_mmsr_secured_expanded.to_csv(
+            f"{path}pickle/df_mmsr_secured_expanded.csv"
+        )
+
+    return df_mmsr_secured_expanded
+
+
+def get_dic_rev_repo_exp_adj_from_df_mmsr_secured_expanded(
+    df_mmsr_secured_expanded, path=False, plot_period=False
+):
+
+    print("get dic_rev_repo_exp_adj from df_mmsr_secured_expanded")
+
+    df = df_mmsr_secured_expanded.groupby(
+        ["current_date", "report_agent_lei", "cntp_lei"]
+    ).agg({"trns_nominal_amt": sum})
+    days = df.index.get_level_values("current_date").unique()
+    leis = list(
+        set(
+            list(df.index.get_level_values("report_agent_lei"))
+            + list(df.index.get_level_values("cntp_lei"))
+        )
+    )
+
+    dic_rev_repo_exp_adj = {}
+    for day in days:
+        dic_rev_repo_exp_adj.update(
+            {day: pd.DataFrame(columns=leis, index=leis, data=0)}
+        )
+        df_rev_repo_exp = df.loc[day].unstack("cntp_lei").droplevel(0, axis=1)
+        dic_rev_repo_exp_adj[day].loc[
+            df_rev_repo_exp.index, df_rev_repo_exp.columns
+        ] = df_rev_repo_exp
+
+    # pickle dump
+    if path:
+        os.makedirs(f"{path}pickle/", exist_ok=True)
+        pickle.dump(
+            dic_rev_repo_exp_adj,
+            open(f"{path}pickle/dic_rev_repo_exp_adj.pickle", "wb"),
+            protocol=pickle.HIGHEST_PROTOCOL,
+        )
+
+    # save to csv for the plot_days
+    if plot_period:
+        days = list(dic_rev_repo_exp_adj.keys())
+        plot_days = fct.get_plot_days_from_period(days, plot_period)
+        for day in plot_days:
+
+            day_print = day.strftime("%Y-%m-%d")
+
+            os.makedirs(
+                f"{path}exposure_view/adj_matrices/weighted/",
+                exist_ok=True,
+            )
+            fct.dump_np_array(
+                dic_rev_repo_exp_adj[day],
+                f"{path}exposure_view/adj_matrices/weighted/arr_reverse_repo_adj_{day_print}.csv",
+            )
+
+    return dic_rev_repo_exp_adj
 
 
 def get_dic_rev_repo_exp_adj_from_mmsr_secured_clean(
@@ -610,6 +716,10 @@ def load_input_data(path):
     df_mmsr_secured_clean = pd.read_csv(
         f"{path}pickle/df_mmsr_secured_clean.csv", index_col=0
     )
+    df_mmsr_secured_expanded = pd.read_csv(
+        f"{path}pickle/df_mmsr_secured_expanded.csv", index_col=0
+    )
+
     df_mmsr_unsecured = pd.read_csv(
         f"{path}pickle/df_mmsr_unsecured.csv", index_col=0
     )
@@ -620,13 +730,20 @@ def load_input_data(path):
     for col in ["trade_date", "maturity_date"]:
         df_mmsr_secured[col] = pd.to_datetime(df_mmsr_secured[col])
         df_mmsr_secured_clean[col] = pd.to_datetime(df_mmsr_secured_clean[col])
+        df_mmsr_secured_expanded[col] = pd.to_datetime(
+            df_mmsr_secured_expanded[col]
+        )
         df_mmsr_unsecured[col] = pd.to_datetime(df_mmsr_unsecured[col])
 
+    df_mmsr_secured_expanded["current_date"] = pd.to_datetime(
+        df_mmsr_secured_expanded["current_date"]
+    )
     df_finrep_clean["date"] = pd.to_datetime(df_finrep_clean["date"])
 
     return (
         df_mmsr_secured,
         df_mmsr_secured_clean,
+        df_mmsr_secured_expanded,
         df_mmsr_unsecured,
         df_finrep_clean,
     )

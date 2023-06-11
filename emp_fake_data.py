@@ -15,6 +15,9 @@ def get_df_mmsr_secured(nb_tran, holidays):
         "2000-01-03", "2024-01-01", freq="C", holidays=dm.holidays
     )
 
+    # define the set of existing collateral isin codes
+    isins = [f"isin_{i}" for i in range(50)]
+
     # build the mmsr data frame
     df_mmsr = pd.DataFrame(
         data={
@@ -36,6 +39,7 @@ def get_df_mmsr_secured(nb_tran, holidays):
                 ["BORR", "LEND", "BUYI", "SELL"],
                 k=nb_tran,
             ),
+            "coll_isin": choices(isins, k=nb_tran),
         },
     )
 

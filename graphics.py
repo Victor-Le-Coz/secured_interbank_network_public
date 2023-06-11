@@ -18,7 +18,7 @@ def plot(Dynamics):
 
     # create paths
     path_results = Dynamics.path_results
-    os.makedirs(f"{path_results}accounting_view/power_law/", exist_ok=True)
+    os.makedirs(f"{path_results}accounting_view/static/", exist_ok=True)
     os.makedirs(f"{path_results}transaction_view/", exist_ok=True)
     os.makedirs(f"{path_results}exposure_view/core-periphery/", exist_ok=True)
 
@@ -541,7 +541,7 @@ def plot_powerlaw(
                     powerlaw_alpha,
                     powerlaw_pvalue,
                     bank_item,
-                    f"{path}power_law/on_day_{day_print}/",
+                    f"{path}static/on_day_{day_print}/",
                     figsize=figsize,
                 )
 
@@ -964,6 +964,36 @@ def plot_notional_by_notice_period(
         # save fig
         plt.savefig(
             f"{path}notional_by_notice_period/notional_by_notice_period_on_day_{day_print}.pdf",
+            bbox_inches="tight",
+        )
+        plt.close()
+
+
+def plot_collateral_reuse(df_isin, path, plot_period):
+
+    days = df_isin.index.get_level_values("current_date").unique()
+    plot_days = fct.get_plot_days_from_period(days, plot_period)
+
+    # do a for loop here
+    day = plot_days[2]
+
+    for day in plot_days:
+        df_isin.loc[day, "trns_nominal_amt"].hist(
+            figsize=par.small_figsize,
+            legend=False,
+            color=sns.color_palette("flare", n_colors=1),
+        )
+
+        plt.xlabel("collateral reuse (#)")
+        plt.ylabel("frequency")
+        plt.grid()
+
+        # define day print
+        day_print = day.strftime("%Y-%m-%d")
+
+        # save fig
+        plt.savefig(
+            f"{path}collateral_reuse/collateral_reuse_on_day_{day_print}.pdf",
             bbox_inches="tight",
         )
         plt.close()

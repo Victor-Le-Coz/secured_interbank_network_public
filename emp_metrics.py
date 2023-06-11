@@ -643,3 +643,18 @@ def get_df_deposits_variations(
     df_deposits_variations.to_csv(f"{path}df_deposits_variations.csv")
 
     return df_deposits_variations
+
+
+def get_df_isin(df_mmsr_secured_expanded, path=False):
+
+    df = df_mmsr_secured_expanded.reset_index(drop=False, inplace=False)
+
+    df_isin = df.groupby(["current_date", "coll_isin"]).agg(
+        {"trns_nominal_amt": "count"}
+    )
+
+    # save file
+    if path:
+        os.makedirs(f"{path}collateral_reuse/", exist_ok=True)
+        df_isin.to_csv(f"{path}collateral_reuse/df_isin.csv")
+    return df_isin
