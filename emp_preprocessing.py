@@ -301,7 +301,7 @@ def get_dic_rev_repo_exp_adj_from_df_mmsr_secured_expanded(
     )
 
     dic_rev_repo_exp_adj = {}
-    for day in days:
+    for day in tqdm(days):
         dic_rev_repo_exp_adj.update(
             {day: pd.DataFrame(columns=leis, index=leis, data=0)}
         )
