@@ -305,7 +305,7 @@ def get_dic_rev_repo_exp_adj_from_df_mmsr_secured_expanded(
         dic_rev_repo_exp_adj.update(
             {day: pd.DataFrame(columns=leis, index=leis, data=0)}
         )
-        df_rev_repo_exp = df.loc[day].unstack("cntp_lei").droplevel(0, axis=1)
+        df_rev_repo_exp = df.loc[day].unstack("cntp_lei").droplevel(0, axis=1).fillna(0)
         dic_rev_repo_exp_adj[day].loc[
             df_rev_repo_exp.index, df_rev_repo_exp.columns
         ] = df_rev_repo_exp

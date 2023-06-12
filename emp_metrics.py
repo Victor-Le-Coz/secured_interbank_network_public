@@ -290,7 +290,7 @@ def get_cpnet(
         ],
     )
 
-    for agg_period in list(dic_arr_binary_adj.keys()) + ["weighted"]:
+    for agg_period in tqdm(list(dic_arr_binary_adj.keys()) + ["weighted"]):
 
         # case dijonction for the dictionary of adjency periods
         if agg_period == "weighted":
