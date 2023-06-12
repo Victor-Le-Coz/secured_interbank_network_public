@@ -553,7 +553,7 @@ def plot_step_item_powerlaw(
     bank_item,
     path,
     figsize=par.small_figsize,
-    auto_xlabel=True,
+    auto_xlabel=False,
 ):
 
     # define the figure and colors

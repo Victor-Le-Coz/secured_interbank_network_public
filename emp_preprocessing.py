@@ -32,7 +32,7 @@ def anonymize(df_mmsr_secured, df_mmsr_unsecured, df_finrep, path=False):
             )
         )
     )
-    set_lei.update(set(pd.unique(df_finrep[["lei"]].values.ravel("K"))))
+    set_lei.update(set(pd.unique(df_finrep[["report_agent_lei"]].values.ravel("K"))))
 
     # allocate a random anonymised name to each lei
     anonymized_leis = random.sample(
@@ -47,7 +47,7 @@ def anonymize(df_mmsr_secured, df_mmsr_unsecured, df_finrep, path=False):
     df_mmsr_unsecured.replace(
         {"cntp_lei": dic_lei, "report_agent_lei": dic_lei}, inplace=True
     )
-    df_finrep.replace({"lei": dic_lei}, inplace=True)
+    df_finrep.replace({"report_agent_lei": dic_lei}, inplace=True)
 
     if path:
         os.makedirs(f"{path}pickle/", exist_ok=True)
@@ -622,7 +622,7 @@ def load_dic_arr_binary_adj(path):
 def build_arr_total_assets(df_finrep, path):
 
     # build the total asset per bank
-    df_total_assets = df_finrep.set_index(["date", "lei"]).unstack()
+    df_total_assets = df_finrep.set_index(["qdate", "report_agent_lei"]).unstack()
     arr_total_assets = np.array(df_total_assets)
 
     os.makedirs(path, exist_ok=True)
@@ -637,14 +637,14 @@ def get_dic_dashed_trajectory(df_finrep, path=False):
 
     dic_dashed_trajectory = {}
     plot_days = pd.to_datetime(
-        sorted(list(set(df_finrep["date"].dt.strftime("%Y-%m-%d"))))
+        sorted(list(set(df_finrep["qdate"].dt.strftime("%Y-%m-%d"))))
     )
 
     for day in plot_days:
         df_banks = (
-            df_finrep[df_finrep["date"] == plot_days[0]]
-            .set_index("lei")
-            .drop("date", axis=1)
+            df_finrep[df_finrep["qdate"] == plot_days[0]]
+            .set_index("report_agent_lei")
+            .drop("qdate", axis=1)
         )
         dic_dashed_trajectory.update({day: df_banks})
 
@@ -704,9 +704,10 @@ def get_df_finrep_clean(df_finrep, path):
 
     df_finrep_clean = df_finrep.copy()
 
-    app_func = lambda row: get_closest_bday(row["date"])
+    # addapt the day to the lastest business day
+    app_func = lambda row: get_closest_bday(row["qdate"])
 
-    df_finrep_clean["date"] = df_finrep_clean.apply(app_func, axis=1)
+    df_finrep_clean["qdate"] = df_finrep_clean.apply(app_func, axis=1)
 
     if path:
         df_finrep_clean.to_csv(f"{path}pickle/df_finrep_clean.csv")
@@ -749,7 +750,7 @@ def load_input_data(path):
     df_mmsr_secured_expanded["current_date"] = pd.to_datetime(
         df_mmsr_secured_expanded["current_date"]
     )
-    df_finrep_clean["date"] = pd.to_datetime(df_finrep_clean["date"])
+    df_finrep_clean["qdate"] = pd.to_datetime(df_finrep_clean["qdate"])
 
     return (
         df_mmsr_secured,
@@ -758,3 +759,10 @@ def load_input_data(path):
         df_mmsr_unsecured,
         df_finrep_clean,
     )
+
+
+def add_ratios_in_df_finrep_clean(df_finrep_clean):
+    columns = fct.list_exclusion(df_finrep_clean.columns,["report_agent_lei","qdate"])
+
+    for column in columns:
+        df_finrep_clean[f"{column} over total assets"] = df_finrep_clean[column] /df_finrep_clean["total assets"] 

@@ -163,8 +163,8 @@ def get_df_exposures(lines, freq="5h"):
 
 def get_df_finrep():
     dic_data = {
-        "lei": ["bank_" + str(i) for i in range(50)] * 40,
-        "date": sorted(
+        "report_agent_lei": ["bank_" + str(i) for i in range(50)] * 40, # comes from a maping of FINREP lei to MMSR lei 
+        "qdate": sorted(
             list(
                 pd.period_range(
                     start="2000-01-03", freq="1y", periods=40

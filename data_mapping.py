@@ -8,18 +8,20 @@ dic_finrep_columns = {
     "cash": "cash",
     "deposits": "deposits",
     "loans": "loans",
-    "stock_market_sec_gov": "securities collateral",
+    "stock_market_sec_gov": "securities collateral SHSG",
+    "gov_securities": "securities collateral FINREP",
 }
 
 # list of the column in FINREP fake data (to be added)
-# balance_sheet_data_clean.dta	"own_funds_assets" # qu'est ce que c'est ?
-# balance_sheet_data_clean.dta	"cash_assets" # qu'est ce que c'est ?
-# balance_sheet_data_clean.dta	"deposits_assets" # qu'est ce que c'est ?
-# balance_sheet_data_clean.dta	loans_assets # qu'est ce que c'est ?
-# balance_sheet_data_clean.dta	"stock_market_sec_gov"# qu'est ce que c'est ?
-# balance_sheet_data_clean.dta	"sec_holdings_assets_m"# qu'est ce que c'est ?
-# balance_sheet_data_clean.dta	"stock_nominal_sec_gov"# qu'est ce que c'est ?
-# balance_sheet_data_clean.dta	"sec_holdings_assets_n" # qu'est ce que c'est ?
+# balance_sheet_data_clean.dta  "own_funds_assets" # Equity / Assets
+# balance_sheet_data_clean.dta  "cash_assets" # Cash / Assets
+# balance_sheet_data_clean.dta  "deposits_assets" # Deposits / Assets
+# balance_sheet_data_clean.dta  loans_assets # Loans / Assets
+# balance_sheet_data_clean.dta  "stock_market_sec_gov"# Total Market Value of Government Securities Held by a Given Bank
+# balance_sheet_data_clean.dta  "sec_holdings_assets_m"# Total Market Value of Gov Securities / Assets
+# balance_sheet_data_clean.dta  "stock_nominal_sec_gov"# Total Nominal Value of Government Securities Held by a Given Bank
+# balance_sheet_data_clean.dta  "sec_holdings_assets_n" # Total Nominal Value of Gov Securities / Assets
+
 
 mmsr_secured_clean_columns = [
     "report_agent_lei",

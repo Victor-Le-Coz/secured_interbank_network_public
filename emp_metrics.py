@@ -516,7 +516,6 @@ def run_n_plot_powerlaw(df, path):
                 fits[2],
                 col,
                 path,
-                auto_xlabel=False,
             )
 
     os.makedirs(path, exist_ok=True)
@@ -658,3 +657,5 @@ def get_df_isin(df_mmsr_secured_expanded, path=False):
         os.makedirs(f"{path}collateral_reuse/", exist_ok=True)
         df_isin.to_csv(f"{path}collateral_reuse/df_isin.csv")
     return df_isin
+
+
