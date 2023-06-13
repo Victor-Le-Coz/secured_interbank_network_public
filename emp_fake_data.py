@@ -91,7 +91,7 @@ def get_df_mmsr_secured(nb_tran, holidays):
                 # add the lines to df_mmsr
                 df_mmsr = pd.concat([df_mmsr, df_evergreen], axis=0)
 
-    df_mmsr.reset_index(inplace=True)
+    df_mmsr.reset_index(inplace=True, drop=True)
 
     return df_mmsr
 

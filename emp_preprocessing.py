@@ -12,6 +12,9 @@ import random
 
 
 def anonymize(df_mmsr_secured, df_mmsr_unsecured, df_finrep, path=False):
+
+    print("anonymize data")
+
     # get the list of leis used within the input dataframes
     set_lei = set()
     set_lei.update(
@@ -36,16 +39,27 @@ def anonymize(df_mmsr_secured, df_mmsr_unsecured, df_finrep, path=False):
 
     # allocate a random anonymised name to each lei
     anonymized_leis = random.sample(range(15000), len(set_lei))
-    dic_lei = dict(zip(set_lei, anonymized_leis))
 
     # modify the input databases with the ram
-    df_mmsr_secured.replace(
-        {"cntp_lei": dic_lei, "report_agent_lei": dic_lei}, inplace=True
-    )
-    df_mmsr_unsecured.replace(
-        {"cntp_lei": dic_lei, "report_agent_lei": dic_lei}, inplace=True
-    )
-    df_finrep.replace({"report_agent_lei": dic_lei}, inplace=True)
+    df_lei = pd.DataFrame(index=list(set_lei),data={"anonymized_leis":anonymized_leis})
+
+    df_mmsr_unsecured = df_mmsr_unsecured.merge(df_lei,left_on="cntp_lei", right_index=True,how="left")
+    df_mmsr_unsecured.drop(columns="cntp_lei", inplace=True)
+    df_mmsr_unsecured.rename({"anonymized_leis":"cntp_lei"},axis=1,inplace=True)
+    df_mmsr_unsecured = df_mmsr_unsecured.merge(df_lei,left_on="report_agent_lei", right_index=True,how="left")
+    df_mmsr_unsecured.drop(columns="report_agent_lei", inplace=True)
+    df_mmsr_unsecured.rename({"anonymized_leis":"report_agent_lei"},axis=1,inplace=True)
+
+    df_mmsr_secured = df_mmsr_secured.merge(df_lei,left_on="cntp_lei", right_index=True,how="left")
+    df_mmsr_secured.drop(columns="cntp_lei", inplace=True)
+    df_mmsr_secured.rename({"anonymized_leis":"cntp_lei"},axis=1,inplace=True)
+    df_mmsr_secured = df_mmsr_secured.merge(df_lei,left_on="report_agent_lei", right_index=True,how="left")
+    df_mmsr_secured.drop(columns="report_agent_lei", inplace=True)
+    df_mmsr_secured.rename({"anonymized_leis":"report_agent_lei"},axis=1,inplace=True)
+
+    df_finrep = df_finrep.merge(df_lei,left_on="report_agent_lei", right_index=True,how="left")
+    df_finrep.drop(columns="report_agent_lei", inplace=True)
+    df_finrep.rename({"anonymized_leis":"report_agent_lei"},axis=1,inplace=True)
 
     if path:
         os.makedirs(f"{path}pickle/", exist_ok=True)
@@ -53,14 +67,19 @@ def anonymize(df_mmsr_secured, df_mmsr_unsecured, df_finrep, path=False):
         df_mmsr_unsecured.to_csv(f"{path}pickle/df_mmsr_unsecured.csv")
         df_finrep.to_csv(f"{path}pickle/df_finrep.csv")
 
+    return df_mmsr_secured, df_mmsr_unsecured, df_finrep
+
 
 def reduce_size(df_mmsr_secured, df_mmsr_unsecured, path):
+    
+    print("reduce size")
+    
     # enhance memory usage
     df_mmsr_secured.replace({"trns_type":{"BORR":False,"LEND":True, "BUYI":False, "SELL":True}}, inplace=True)
-    df_mmsr_secured = df_mmsr_secured.astype({"index":np.int32,"report_agent_lei":np.int16,"cntp_lei":np.int16, "trns_nominal_amt":np.float32})
+    df_mmsr_secured = df_mmsr_secured.astype({"report_agent_lei":np.int16,"cntp_lei":np.int16, "trns_nominal_amt":np.float32})
 
     df_mmsr_unsecured.replace({"trns_type":{"BORR":False,"LEND":True, "BUYI":False, "SELL":True}}, inplace=True)
-    df_mmsr_secured = df_mmsr_secured.astype({"index":np.int32,"report_agent_lei":np.int16,"cntp_lei":np.int16, "trns_nominal_amt":np.float32})
+    df_mmsr_secured = df_mmsr_secured.astype({"report_agent_lei":np.int16,"cntp_lei":np.int16, "trns_nominal_amt":np.float32})
     if path:
         os.makedirs(f"{path}pickle/", exist_ok=True)
         df_mmsr_secured.to_csv(f"{path}pickle/df_mmsr_secured.csv")
