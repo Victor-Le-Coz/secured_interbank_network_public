@@ -1011,14 +1011,23 @@ def plot_collateral_reuse(df_isin, path, plot_period, figsize=par.small_figsize)
 
 def plot_dyn_powerlaw_tranverse(df_powerlaw,path, figsize=par.small_figsize):
 
-    for col in df_powerlaw.columns:
-        df_powerlaw[col].plot(
-            figsize=par.small_figsize,
-            legend=False,
-            color=sns.color_palette("flare", n_colors=1),
-        )
+    bank_ids = [ind.split(" ")[0] for ind in df_powerlaw.index]
+    extensions = [" abs. var.",  "rel. var.", " var over tot. assets"]
+    indexes = [fct.list_intersection([f"{bank_id}{extension}" for bank_id in bank_ids],list(df_powerlaw.index)) for extension in extensions]
 
-        plt.xlabel("banks")
+    for col in df_powerlaw.columns:
+
+        fig, ax = plt.subplots(figsize=figsize)
+        colors = sns.color_palette("flare", n_colors=len(extensions))
+
+        for i, (index, ext) in enumerate(zip(indexes,extensions)):
+            plt.plot(
+                [ind.split(" ")[0] for ind in index],
+                df_powerlaw.loc[index,col],
+                color=colors[i],
+            )
+
+        plt.xlabel("bank ids")
         plt.ylabel(f"{col}")
         plt.grid()
 

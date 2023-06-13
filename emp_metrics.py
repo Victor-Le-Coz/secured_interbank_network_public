@@ -494,7 +494,7 @@ def get_powerlaw(
     return df_powerlaw
 
 
-def run_n_plot_powerlaw(df, path):
+def run_n_plot_powerlaw(df, path, transverse=False):
 
     df_powerlaw = pd.DataFrame(
         index=df.columns,
@@ -520,7 +520,9 @@ def run_n_plot_powerlaw(df, path):
 
     os.makedirs(path, exist_ok=True)
     df_powerlaw.to_csv(f"{path}df_powerlaw.csv")
-    gx.plot_dyn_powerlaw_tranverse(df_powerlaw,f"{path}")
+
+    if transverse:
+        gx.plot_dyn_powerlaw_tranverse(df_powerlaw,f"{path}")
 
 
 def get_df_deposits(df_mmsr_unsecured, dic_dashed_trajectory):

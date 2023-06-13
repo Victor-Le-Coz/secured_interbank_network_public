@@ -35,9 +35,7 @@ def anonymize(df_mmsr_secured, df_mmsr_unsecured, df_finrep, path=False):
     set_lei.update(set(pd.unique(df_finrep[["report_agent_lei"]].values.ravel("K"))))
 
     # allocate a random anonymised name to each lei
-    anonymized_leis = random.sample(
-        ["anonymized_" + str(i) for i in range(200)], len(set_lei)
-    )
+    anonymized_leis = random.sample(range(200), len(set_lei))
     dic_lei = dict(zip(set_lei, anonymized_leis))
 
     # modify the input databases with the ram

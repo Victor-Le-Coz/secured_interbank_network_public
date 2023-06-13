@@ -18,7 +18,6 @@ mmsr_secured_clean_columns = [
     "start_step",
     "trns_nominal_amt",
     "tenor",
-    "unique_trns_id",
     "maturity_date",
     "trade_date",
     "trns_type",
