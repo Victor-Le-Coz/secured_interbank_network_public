@@ -204,7 +204,7 @@ def plot_step_weighted_adj_network(
         pos,
         width=log_weights,
         with_labels=True,
-        node_size=node_sizes,
+        node_size=list(node_sizes),
     )
 
     # show the plot
@@ -951,32 +951,33 @@ def plot_notional_by_notice_period(
             .agg({"trns_nominal_amt": sum})
         )
 
-        df_notional_by_notice_period.plot(
-            figsize=figsize,
-            legend=False,
-            colormap=ListedColormap(
-                sns.color_palette("flare", n_colors=len(par.agg_periods))
-            ),
-        )
-        plt.xlabel("notice period (days)")
-        plt.xscale("log")
-        plt.ylabel("notional (monetary units)")
-        plt.grid()
+        if not(df_notional_by_notice_period.empty):
+            df_notional_by_notice_period.plot(
+                figsize=figsize,
+                legend=False,
+                colormap=ListedColormap(
+                    sns.color_palette("flare", n_colors=len(par.agg_periods))
+                ),
+            )
+            plt.xlabel("notice period (days)")
+            plt.xscale("log")
+            plt.ylabel("notional (monetary units)")
+            plt.grid()
 
-        # define day print
-        day_print = day.strftime("%Y-%m-%d")
+            # define day print
+            day_print = day.strftime("%Y-%m-%d")
 
-        # save file
-        df_notional_by_notice_period.to_csv(
-            f"{path}notional_by_notice_period/df_notional_by_notice_period_on_day_{day_print}.csv"
-        )
+            # save file
+            df_notional_by_notice_period.to_csv(
+                f"{path}notional_by_notice_period/df_notional_by_notice_period_on_day_{day_print}.csv"
+            )
 
         # save fig
-        plt.savefig(
-            f"{path}notional_by_notice_period/notional_by_notice_period_on_day_{day_print}.pdf",
-            bbox_inches="tight",
-        )
-        plt.close()
+            plt.savefig(
+                f"{path}notional_by_notice_period/notional_by_notice_period_on_day_{day_print}.pdf",
+                bbox_inches="tight",
+            )
+            plt.close()
 
 
 def plot_collateral_reuse(df_isin, path, plot_period, figsize=par.small_figsize):

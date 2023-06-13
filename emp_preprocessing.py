@@ -341,12 +341,12 @@ def get_dic_rev_repo_exp_adj_from_df_mmsr_secured_expanded(
             day_print = day.strftime("%Y-%m-%d")
 
             os.makedirs(
-                f"{path}exposure_view/adj_matrices/weighted/",
+                f"{path}data/exposure_view/adj_matrices/weighted/",
                 exist_ok=True,
             )
             fct.dump_np_array(
                 dic_rev_repo_exp_adj[day],
-                f"{path}exposure_view/adj_matrices/weighted/arr_reverse_repo_adj_{day_print}.csv",
+                f"{path}data/exposure_view/adj_matrices/weighted/arr_reverse_repo_adj_{day_print}.csv",
             )
 
     return dic_rev_repo_exp_adj
@@ -435,12 +435,12 @@ def get_dic_rev_repo_exp_adj_from_mmsr_secured_clean(
             day_print = day.strftime("%Y-%m-%d")
 
             os.makedirs(
-                f"{path}exposure_view/adj_matrices/weighted/",
+                f"{path}data/exposure_view/adj_matrices/weighted/",
                 exist_ok=True,
             )
             fct.dump_np_array(
                 dic_rev_repo_exp_adj[day],
-                f"{path}exposure_view/adj_matrices/weighted/arr_reverse_repo_adj_{day_print}.csv",
+                f"{path}data/exposure_view/adj_matrices/weighted/arr_reverse_repo_adj_{day_print}.csv",
             )
 
     return dic_rev_repo_exp_adj
@@ -495,12 +495,12 @@ def get_dic_rev_repo_exp_adj_from_exposures(
             day_print = day.strftime("%Y-%m-%d")
 
             os.makedirs(
-                f"{path}exposure_view/adj_matrices/weighted/",
+                f"{path}data/exposure_view/adj_matrices/weighted/",
                 exist_ok=True,
             )
             fct.dump_np_array(
                 dic_rev_repo_exp_adj[day],
-                f"{path}exposure_view/adj_matrices/weighted/arr_reverse_repo_adj_{day_print}.csv",
+                f"{path}data/exposure_view/adj_matrices/weighted/arr_reverse_repo_adj_{day_print}.csv",
             )
 
     return dic_rev_repo_exp_adj
