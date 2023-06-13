@@ -9,8 +9,6 @@ from matplotlib.colors import ListedColormap
 import functions as fct
 import parameters as par
 import emp_metrics as em
-import powerlaw
-import sys
 from tqdm import tqdm
 
 
@@ -58,12 +56,17 @@ def plot_network_trajectory(
     df = convert_data(df[cols], par.df_plt.loc[cols[0], "convertion"])
 
     for i, col in enumerate(cols):
-        plt.plot(
-            df.index,
-            df[col],
-            par.df_plt.loc[col, "style"],
-            color=colors[i],
-        )
+        try:
+            plt.plot(
+                df.index,
+                df[col],
+                par.df_plt.loc[col, "style"],
+                color=colors[i],
+            )
+
+        except:
+            print(f"bug for {col}")
+
     plt.legend(
         par.df_plt.loc[cols, "legend"],
         loc="upper left",
@@ -510,9 +513,13 @@ def plot_powerlaw(
     path,
     figsize=par.small_figsize,
     plot_days=False,
+    bank_items=False,
 ):
     if not (plot_days):
         plot_days = fct.get_plot_days_from_period(days, plot_period)
+
+    if not(bank_items):
+        bank_items = par.bank_items
 
     for day in plot_days:
 
@@ -521,7 +528,7 @@ def plot_powerlaw(
         else:
             day_print = day
 
-        for bank_item in par.bank_items:
+        for bank_item in bank_items:
 
             # retrive the information to plot
             powerlaw_fit = df_network_trajectory.loc[
@@ -600,7 +607,10 @@ def plot_step_item_powerlaw(
     # adjust the space between the 2 charts
     plt.subplots_adjust(wspace=0.4)
     os.makedirs(path, exist_ok=True)
-    plt.savefig(f"{path}{bank_item}.pdf", bbox_inches="tight")
+    try:
+        plt.savefig(f"{path}{bank_item}.pdf", bbox_inches="tight")
+    except:
+        print(f"bug for {bank_item}")
     plt.close()
 
 
@@ -969,7 +979,7 @@ def plot_notional_by_notice_period(
         plt.close()
 
 
-def plot_collateral_reuse(df_isin, path, plot_period):
+def plot_collateral_reuse(df_isin, path, plot_period, figsize=par.small_figsize):
 
     days = df_isin.index.get_level_values("current_date").unique()
     plot_days = fct.get_plot_days_from_period(days, plot_period)
@@ -979,7 +989,7 @@ def plot_collateral_reuse(df_isin, path, plot_period):
 
     for day in plot_days:
         df_isin.loc[day, "trns_nominal_amt"].hist(
-            figsize=par.small_figsize,
+            figsize=figsize,
             legend=False,
             color=sns.color_palette("flare", n_colors=1),
         )
@@ -994,6 +1004,27 @@ def plot_collateral_reuse(df_isin, path, plot_period):
         # save fig
         plt.savefig(
             f"{path}collateral_reuse/collateral_reuse_on_day_{day_print}.pdf",
+            bbox_inches="tight",
+        )
+        plt.close()
+
+
+def plot_dyn_powerlaw_tranverse(df_powerlaw,path, figsize=par.small_figsize):
+
+    for col in df_powerlaw.columns:
+        df_powerlaw[col].plot(
+            figsize=par.small_figsize,
+            legend=False,
+            color=sns.color_palette("flare", n_colors=1),
+        )
+
+        plt.xlabel("banks")
+        plt.ylabel(f"{col}")
+        plt.grid()
+
+        # save fig
+        plt.savefig(
+            f"{path}dyn_powerlaw_{col}.pdf",
             bbox_inches="tight",
         )
         plt.close()

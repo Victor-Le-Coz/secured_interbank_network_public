@@ -139,6 +139,7 @@ def get_df_mmsr_secured_clean(
 
     # save df_mmsr_secured_clean
     if path:
+        os.makedirs(f"{path}pickle/", exist_ok=True)
         df_mmsr_secured.to_csv(f"{path}pickle/df_mmsr_secured.csv")
         df_mmsr_secured_clean.to_csv(f"{path}pickle/df_mmsr_secured_clean.csv")
 
@@ -323,6 +324,8 @@ def get_dic_rev_repo_exp_adj_from_df_mmsr_secured_expanded(
     if plot_period:
         days = list(dic_rev_repo_exp_adj.keys())
         plot_days = fct.get_plot_days_from_period(days, plot_period)
+    else:
+        plot_days = list(dic_rev_repo_exp_adj.keys())
         for day in plot_days:
 
             day_print = day.strftime("%Y-%m-%d")
@@ -415,6 +418,8 @@ def get_dic_rev_repo_exp_adj_from_mmsr_secured_clean(
     if plot_period:
         days = list(dic_rev_repo_exp_adj.keys())
         plot_days = fct.get_plot_days_from_period(days, plot_period)
+    else:
+        plot_days = list(dic_rev_repo_exp_adj.keys())
         for day in plot_days:
 
             day_print = day.strftime("%Y-%m-%d")
@@ -604,12 +609,12 @@ def get_dic_arr_binary_adj(
             for step in plot_steps:
                 day_print = days[step].strftime("%Y-%m-%d")
                 os.makedirs(
-                    f"{path}exposure_view/adj_matrices/{agg_period}/",
+                    f"{path}data/exposure_view/adj_matrices/{agg_period}/",
                     exist_ok=True,
                 )
                 fct.dump_np_array(
                     dic_arr_binary_adj[agg_period][step],
-                    f"{path}exposure_view/adj_matrices/{agg_period}/arr_binary_adj_on_day_{day_print}.csv",
+                    f"{path}data/exposure_view/adj_matrices/{agg_period}/arr_binary_adj_on_day_{day_print}.csv",
                 )
 
     return dic_arr_binary_adj
@@ -641,12 +646,18 @@ def get_dic_dashed_trajectory(df_finrep, path=False):
     )
 
     for day in plot_days:
+
         df_banks = (
             df_finrep[df_finrep["qdate"] == plot_days[0]]
             .set_index("report_agent_lei")
             .drop("qdate", axis=1)
         )
         dic_dashed_trajectory.update({day: df_banks})
+
+        if path:
+            day_print = day.strftime("%Y-%m-%d")
+            os.makedirs(f"{path}data/dashed_trajectory/", exist_ok=True)
+            df_banks.to_csv(f"{path}data/dashed_trajectory/df_banks_on_day_{day_print}.csv")
 
     # pickle dump
     if path:
@@ -656,6 +667,8 @@ def get_dic_dashed_trajectory(df_finrep, path=False):
             open(f"{path}pickle/dic_dashed_trajectory.pickle", "wb"),
             protocol=pickle.HIGHEST_PROTOCOL,
         )
+
+    
 
     return dic_dashed_trajectory
 
@@ -761,8 +774,11 @@ def load_input_data(path):
     )
 
 
-def add_ratios_in_df_finrep_clean(df_finrep_clean):
-    columns = fct.list_exclusion(df_finrep_clean.columns,["report_agent_lei","qdate"])
+def add_ratios_in_df_finrep_clean(df_finrep_clean, path=False):
+    columns = fct.list_exclusion(df_finrep_clean.columns,["report_agent_lei","qdate", "total assets"])
 
     for column in columns:
-        df_finrep_clean[f"{column} over total assets"] = df_finrep_clean[column] /df_finrep_clean["total assets"] 
+        df_finrep_clean[f"{column} over total assets"] = df_finrep_clean[column] /df_finrep_clean["total assets"]
+
+    if path:
+        df_finrep_clean.to_csv(f"{path}pickle/df_finrep_clean.csv")

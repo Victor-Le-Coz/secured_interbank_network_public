@@ -12,17 +12,6 @@ dic_finrep_columns = {
     "gov_securities": "securities collateral FINREP",
 }
 
-# list of the column in FINREP fake data (to be added)
-# balance_sheet_data_clean.dta  "own_funds_assets" # Equity / Assets
-# balance_sheet_data_clean.dta  "cash_assets" # Cash / Assets
-# balance_sheet_data_clean.dta  "deposits_assets" # Deposits / Assets
-# balance_sheet_data_clean.dta  loans_assets # Loans / Assets
-# balance_sheet_data_clean.dta  "stock_market_sec_gov"# Total Market Value of Government Securities Held by a Given Bank
-# balance_sheet_data_clean.dta  "sec_holdings_assets_m"# Total Market Value of Gov Securities / Assets
-# balance_sheet_data_clean.dta  "stock_nominal_sec_gov"# Total Nominal Value of Government Securities Held by a Given Bank
-# balance_sheet_data_clean.dta  "sec_holdings_assets_n" # Total Nominal Value of Gov Securities / Assets
-
-
 mmsr_secured_clean_columns = [
     "report_agent_lei",
     "cntp_lei",

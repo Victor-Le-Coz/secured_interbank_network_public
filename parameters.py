@@ -1,4 +1,8 @@
 import pandas as pd
+import data_mapping as dm
+
+def list_exclusion(list1, list2):
+    return [x for x in list1 if x not in set(list2)]
 
 # -----------------
 # run features
@@ -46,9 +50,10 @@ other_items = [
     "excess liquidity",
     "total liabilities",
 ]
+finrep_items = list_exclusion(list(dm.dic_finrep_columns.values()),accounting_items+other_items)
 
 # bank items
-bank_items = accounting_items + other_items
+bank_items = accounting_items + other_items + finrep_items
 
 # shocks modeling approaches
 shocks_methods = [
@@ -119,7 +124,7 @@ accounting_metrics = [
         False,
     ]
     for metric in bank_items
-    for extension in [" av. network", " tot. network", ""]
+    for extension in [" av. network", " tot. network", "", " over total assets"]
 ]
 collateral_reuse = [
     "collateral reuse",
@@ -235,25 +240,27 @@ cpnet_pvalue = [
 ]
 powerlaw_alpha = [
     [
-        f"powerlaw alpha {bank_item}",
+        f"powerlaw alpha {bank_item}{extension}",
         r"power law alpha",
-        f"{bank_item}",
+        f"{bank_item}{extension}",
         "linear",
         ".-",
         "",
     ]
     for bank_item in bank_items
+    for extension in ["", " over total assets"]
 ]
 powerlaw_pvalue = [
     [
-        f"powerlaw p-value {bank_item}",
+        f"powerlaw p-value {bank_item}{extension}",
         r"power law p-value",
-        f"{bank_item}",
+        f"{bank_item}{extension}",
         "log",
         ".-",
         "",
     ]
     for bank_item in bank_items
+    for extension in ["", " over total assets"]
 ]
 
 # input parameters
