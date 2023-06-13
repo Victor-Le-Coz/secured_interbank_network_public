@@ -532,7 +532,7 @@ def get_df_deposits(df_mmsr_unsecured, dic_dashed_trajectory):
     # filter only on the deposits instruments
     df_mmsr_unsecured = df_mmsr_unsecured[
         (df_mmsr_unsecured["instr_type"] == "DPST")
-        & df_mmsr_unsecured["trns_type"].isin(["BORR", "BUYI"])
+        & ~df_mmsr_unsecured["trns_type"]
     ]
 
     # build the deposits time series (multi index bank and time)

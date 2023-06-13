@@ -54,6 +54,18 @@ def anonymize(df_mmsr_secured, df_mmsr_unsecured, df_finrep, path=False):
         df_finrep.to_csv(f"{path}pickle/df_finrep.csv")
 
 
+def reduce_size(df_mmsr_secured, df_mmsr_unsecured, path):
+    # enhance memory usage
+    df_mmsr_secured.replace({"trns_type":{"BORR":False,"LEND":True, "BUYI":False, "SELL":True}}, inplace=True)
+    df_mmsr_secured = df_mmsr_secured.astype({"index":np.int32,"report_agent_lei":np.int16,"cntp_lei":np.int16, "trns_nominal_amt":np.float32})
+
+    df_mmsr_unsecured.replace({"trns_type":{"BORR":False,"LEND":True, "BUYI":False, "SELL":True}}, inplace=True)
+    df_mmsr_secured = df_mmsr_secured.astype({"index":np.int32,"report_agent_lei":np.int16,"cntp_lei":np.int16, "trns_nominal_amt":np.float32})
+    if path:
+        os.makedirs(f"{path}pickle/", exist_ok=True)
+        df_mmsr_secured.to_csv(f"{path}pickle/df_mmsr_secured.csv")
+        df_mmsr_unsecured.to_csv(f"{path}pickle/df_mmsr_unsecured.csv")
+
 def get_df_mmsr_secured_clean(
     df_mmsr_secured,
     compute_tenor=False,
@@ -348,7 +360,7 @@ def get_dic_rev_repo_exp_adj_from_mmsr_secured_clean(
 
     # filter only on the reverse repo i.e. lending cash
     df_mmsr_secured_clean = df_mmsr_secured_clean[
-        df_mmsr_secured_clean["trns_type"].isin(["LEND", "SELL"])
+        df_mmsr_secured_clean["trns_type"]
     ]
 
     # create an Numpy array of the unique LEI of the entities from either report agent or counterparties
@@ -681,21 +693,19 @@ def get_df_rev_repo_trans(df_mmsr_secured_clean, path=False):
 
     # filter only on the reverse repo i.e. lending cash
     df = df_mmsr_secured_clean[
-        df_mmsr_secured_clean["trns_type"].isin(["LEND", "SELL"])
+        df_mmsr_secured_clean["trns_type"]
     ]
 
     # rename the columns to match df_rev_repo_trans requirements (given by AB)
     dic_col_mapping = {
         "report_agent_lei": "owner_bank_id",
         "cntp_lei": "bank_id",
-        "unique_trns_id": "trans_id",
         "trns_nominal_amt": "amount",
     }
     df_rev_repo_trans = df.rename(columns=dic_col_mapping)[
         [
             "owner_bank_id",
             "bank_id",
-            "trans_id",
             "amount",
             "start_step",
             "tenor",
