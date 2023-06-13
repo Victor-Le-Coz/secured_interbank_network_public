@@ -666,8 +666,8 @@ def get_dic_dashed_trajectory(df_finrep, path=False):
 
         if path:
             day_print = day.strftime("%Y-%m-%d")
-            os.makedirs(f"{path}data/dashed_trajectory/", exist_ok=True)
-            df_banks.to_csv(f"{path}data/dashed_trajectory/df_banks_on_day_{day_print}.csv")
+            os.makedirs(f"{path}data/accounting_view/dashed_trajectory/", exist_ok=True)
+            df_banks.to_csv(f"{path}data/accounting_view/dashed_trajectory/df_banks_on_day_{day_print}.csv")
 
     # pickle dump
     if path:
