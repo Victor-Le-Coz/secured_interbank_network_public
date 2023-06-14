@@ -985,9 +985,6 @@ def plot_collateral_reuse(df_isin, path, plot_period, figsize=par.small_figsize)
     days = df_isin.index.get_level_values("current_date").unique()
     plot_days = fct.get_plot_days_from_period(days, plot_period)
 
-    # do a for loop here
-    day = plot_days[2]
-
     for day in plot_days:
         df_isin.loc[day, "trns_nominal_amt"].hist(
             figsize=figsize,

@@ -74,12 +74,17 @@ def reduce_size(df_mmsr_secured, df_mmsr_unsecured, path):
     
     print("reduce size")
     
-    # enhance memory usage
+    # reduce memory usage
+
+    # for secured
     df_mmsr_secured.replace({"trns_type":{"BORR":False,"LEND":True, "BUYI":False, "SELL":True}}, inplace=True)
     df_mmsr_secured = df_mmsr_secured.astype({"report_agent_lei":np.int16,"cntp_lei":np.int16, "trns_nominal_amt":np.float32})
 
+    # for unsecured
     df_mmsr_unsecured.replace({"trns_type":{"BORR":False,"LEND":True, "BUYI":False, "SELL":True}}, inplace=True)
     df_mmsr_secured = df_mmsr_secured.astype({"report_agent_lei":np.int16,"cntp_lei":np.int16, "trns_nominal_amt":np.float32})
+
+    # save
     if path:
         os.makedirs(f"{path}pickle/", exist_ok=True)
         df_mmsr_secured.to_csv(f"{path}pickle/df_mmsr_secured.csv")
@@ -91,6 +96,15 @@ def get_df_mmsr_secured_clean(
     holidays=False,
     path=False,
 ):
+    """
+    **MMSR reporting instructions for evergreen repos**
+
+    The reporting of evergreen repos is defined by the MMSR reporting instruction, paragraph 3.1 https://www.ecb.europa.eu/stats/money/mmss/shared/files/MMSR-Reporting_instructions.pdf
+
+    Evergreen are reported with the notice period defined as the maturity date and rolled over every day (reporting a new line in MMSR each day) until the product is cancelled.
+
+    To detect an evergreen we flag all transactions that are repeted across several days with the exact same counterparties, nominal amount and tenor.
+    """
 
     print("get df_mmsr_secured_clean")
 
@@ -267,6 +281,7 @@ def set_start_step_as_min_groups(df_mmsr_secured):
     return df_evergreen_clean
 
 
+
 def get_df_mmsr_secured_expanded(
     df_mmsr_secured_clean,
     holidays=False,
@@ -278,8 +293,12 @@ def get_df_mmsr_secured_expanded(
 
     print("get df_mmsr_secured_expanded")
 
-    # Create sample DataFrame
-    df = df_mmsr_secured_clean
+    # filter only on the reverse repo i.e. lending cash
+    df = df_mmsr_secured_clean[
+        df_mmsr_secured_clean["trns_type"]
+    ]
+
+    df.drop("trns_type", axis=1, inplace=True)
 
     # Create a list of dates for each contract
     if holidays:
@@ -312,7 +331,6 @@ def get_df_mmsr_secured_expanded(
 
     return df_mmsr_secured_expanded
 
-
 def get_dic_rev_repo_exp_adj_from_df_mmsr_secured_expanded(
     df_mmsr_secured_expanded, path=False, plot_period=False
 ):
@@ -322,7 +340,11 @@ def get_dic_rev_repo_exp_adj_from_df_mmsr_secured_expanded(
     df = df_mmsr_secured_expanded.groupby(
         ["current_date", "report_agent_lei", "cntp_lei"]
     ).agg({"trns_nominal_amt": sum})
+
     days = df.index.get_level_values("current_date").unique()
+    max_day = max(pd.to_datetime(df_mmsr_secured_expanded["trade_date"]))
+    days = [day for day in days if day < max_day]
+
     leis = list(
         set(
             list(df.index.get_level_values("report_agent_lei"))
@@ -449,66 +471,6 @@ def get_dic_rev_repo_exp_adj_from_mmsr_secured_clean(
         plot_days = fct.get_plot_days_from_period(days, plot_period)
     else:
         plot_days = list(dic_rev_repo_exp_adj.keys())
-        for day in plot_days:
-
-            day_print = day.strftime("%Y-%m-%d")
-
-            os.makedirs(
-                f"{path}data/exposure_view/adj_matrices/weighted/",
-                exist_ok=True,
-            )
-            fct.dump_np_array(
-                dic_rev_repo_exp_adj[day],
-                f"{path}data/exposure_view/adj_matrices/weighted/arr_reverse_repo_adj_{day_print}.csv",
-            )
-
-    return dic_rev_repo_exp_adj
-
-
-def get_dic_rev_repo_exp_adj_from_exposures(
-    df_exposures, path=False, plot_period=False
-):
-    print("get dic_rev_repo_exp_adj from exposure")
-
-    # create an Numpy array of the unique LEI of the entities from either report agent or counterparties
-    leis = pd.unique(df_exposures[["borr_lei", "lend_lei"]].values.ravel("K"))
-
-    # define the list of dates in the mmsr database
-    # mmsr_trade_dates = pd.unique(df_exposures["Setdate"])
-    mmsr_trade_dates = pd.to_datetime(
-        sorted(list(set(df_exposures["Setdate"].dt.strftime("%Y-%m-%d"))))
-    )
-
-    # initialisation of a dictionary of the observed paths
-    dic_rev_repo_exp_adj = {}  # for the exposures
-    for mmsr_trade_date in mmsr_trade_dates:
-        dic_rev_repo_exp_adj.update(
-            {mmsr_trade_date: pd.DataFrame(columns=leis, index=leis, data=0)}
-        )
-
-    # building of the matrices and storage in the dictionary observed_path
-    for index in tqdm(df_exposures.index):
-        ts_trade = pd.to_datetime(
-            df_exposures.loc[index, "Setdate"].strftime("%Y-%m-%d")
-        )
-        dic_rev_repo_exp_adj[ts_trade].loc[
-            df_exposures.loc[index, "lend_lei"],
-            df_exposures.loc[index, "borr_lei"],
-        ] = df_exposures.loc[index, "exposure"]
-
-    # pickle dump
-    if path:
-        os.makedirs(f"{path}pickle/", exist_ok=True)
-        pickle.dump(
-            dic_rev_repo_exp_adj,
-            open(f"{path}pickle/dic_rev_repo_exp_adj.pickle", "wb"),
-            protocol=pickle.HIGHEST_PROTOCOL,
-        )
-
-    # save to csv for the plot_days
-    if plot_period:
-        days = list(dic_rev_repo_exp_adj.keys())
-        plot_days = fct.get_plot_days_from_period(days, plot_period)
         for day in plot_days:
 
             day_print = day.strftime("%Y-%m-%d")
@@ -710,10 +672,7 @@ def load_dic_dashed_trajectory(path):
 
 def get_df_rev_repo_trans(df_mmsr_secured_clean, path=False):
 
-    # filter only on the reverse repo i.e. lending cash
-    df = df_mmsr_secured_clean[
-        df_mmsr_secured_clean["trns_type"]
-    ]
+    print("get df_rev_repo_trans")
 
     # rename the columns to match df_rev_repo_trans requirements (given by AB)
     dic_col_mapping = {
@@ -721,7 +680,7 @@ def get_df_rev_repo_trans(df_mmsr_secured_clean, path=False):
         "cntp_lei": "bank_id",
         "trns_nominal_amt": "amount",
     }
-    df_rev_repo_trans = df.rename(columns=dic_col_mapping)[
+    df_rev_repo_trans = df_mmsr_secured_clean.rename(columns=dic_col_mapping)[
         [
             "owner_bank_id",
             "bank_id",
@@ -802,7 +761,7 @@ def load_input_data(path):
 
 
 def add_ratios_in_df_finrep_clean(df_finrep_clean, path=False):
-    columns = fct.list_exclusion(df_finrep_clean.columns,["report_agent_lei","qdate", "total assets"])
+    columns = fct.list_exclusion(df_finrep_clean.columns,["report_agent_lei","qdate", "total assets", 'riad_code', 'entity_id', 'signinst', 'ulssmparent_riad_code', 'date', 'group_riad_code', 'head',])
 
     for column in columns:
         df_finrep_clean[f"{column} over total assets"] = df_finrep_clean[column] /df_finrep_clean["total assets"]

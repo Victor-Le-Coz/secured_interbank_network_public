@@ -8,9 +8,11 @@ dic_finrep_columns = {
     "cash": "cash",
     "deposits": "deposits",
     "loans": "loans",
-    "stock_market_sec_gov": "securities collateral SHSG",
+    "sec_holdings_assets_m": "securities collateral SHSG (market value)",
+    "sec_holdings_assets_n": "securities collateral SHSG (nominal value)",
     "gov_securities": "securities collateral FINREP",
 }
+
 
 mmsr_secured_clean_columns = [
     "report_agent_lei",
