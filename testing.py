@@ -30,7 +30,7 @@ df_finrep = ef.get_df_finrep()
 
 # opt 2: directly from mmsr
 df_mmsr_secured_clean = ep.get_df_mmsr_secured_clean(
-    df_mmsr_secured, holidays=dm.holidays, path=path, compute_tenor=True
+    df_mmsr_secured, bday=dm.holidays, path=path, compute_tenor=True
 )
 dic_rev_repo_exp_adj = ep.get_dic_rev_repo_exp_adj_from_mmsr_secured_clean(
     df_mmsr_secured_clean, path=path, plot_period=plot_period

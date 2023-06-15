@@ -990,8 +990,10 @@ def plot_collateral_reuse(df_isin, path, plot_period, figsize=par.small_figsize)
             figsize=figsize,
             legend=False,
             color=sns.color_palette("flare", n_colors=1),
+            bins=200,
         )
 
+        ax.set_xscale('symlog', linthresh=10)
         plt.xlabel("collateral reuse (#)")
         plt.ylabel("frequency")
         plt.grid()

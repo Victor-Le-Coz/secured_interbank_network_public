@@ -179,9 +179,9 @@ holidays = [
     datetime.date(2024, 12, 26),
 ]
 
-# days = pd.bdate_range("2000-01-03", "2024-01-01", freq="C", holidays=holidays)
+days = pd.bdate_range("2000-01-03", "2024-01-01", freq="C", holidays=holidays)
 
-# dic_ECB_calendar = {item: index for index, item in enumerate(days)}
+df_ECB_calendar = pd.DataFrame(index=days, data={"bday":range(len(days))})
 
 maturity_band = [
     "O/N",

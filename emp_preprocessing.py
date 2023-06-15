@@ -93,7 +93,8 @@ def reduce_size(df_mmsr_secured, df_mmsr_unsecured, path):
 def get_df_mmsr_secured_clean(
     df_mmsr_secured,
     compute_tenor=False,
-    holidays=False,
+    flag_isin=False,
+    sett_filter=False,
     path=False,
 ):
     """
@@ -111,174 +112,118 @@ def get_df_mmsr_secured_clean(
     # ------------------------------------------
     # 1 - build the start_step and tenor columns
 
-    # convert datetime to date
-    df_mmsr_secured["trade_date_d"] = df_mmsr_secured["trade_date"].dt.date
-    df_mmsr_secured["maturity_date_d"] = df_mmsr_secured[
-        "maturity_date"
-    ].dt.date
-
     # get the start_step (nb of the business day)
-    if holidays:
-        df_mmsr_secured["first_date"] = df_mmsr_secured["trade_date_d"].min()
-        lam_func = lambda row: np.busday_count(
-            row["first_date"], row["trade_date_d"], holidays=holidays
-        )
-        df_mmsr_secured["start_step"] = df_mmsr_secured.apply(lam_func, axis=1)
-
-    else:
-        df_mmsr_secured["first_date"] = df_mmsr_secured["trade_date_d"].min()
-        df_mmsr_secured["start_step"] = (
-            df_mmsr_secured["trade_date_d"] - df_mmsr_secured["first_date"]
-        ).dt.days
+    df_mmsr_secured =df_mmsr_secured.merge(dm.df_ECB_calendar,left_on="trade_date",right_index=True)
+    df_mmsr_secured.rename(columns = {"bday":"start_step"}, inplace=True)
 
     # get the tenor (in business days)
     if compute_tenor:
-
-        if holidays:
-            # # opt1 count
-            lam_func = lambda row: np.busday_count(
-                row["trade_date_d"], row["maturity_date_d"], holidays=holidays
-            )
-            df_mmsr_secured["tenor"] = df_mmsr_secured.apply(lam_func, axis=1)
-
-        else:
-            # get the tenor
-            df_mmsr_secured["tenor"] = (
-                df_mmsr_secured["maturity_date_d"]
-                - df_mmsr_secured["trade_date_d"]
-            ).dt.days
+        df_mmsr_secured =df_mmsr_secured.merge(dm.df_ECB_calendar,left_on="maturity_date",right_index=True)
+        df_mmsr_secured.rename(columns = {"bday":"end_step"}, inplace=True)
+        df_mmsr_secured["tenor"] = df_mmsr_secured["end_step"] - df_mmsr_secured["start_step"]
 
     else:
         # from the maturity band
         df_mmsr_secured["tenor"] = df_mmsr_secured["maturity_band"]
         df_mmsr_secured.replace({"tenor": dm.dic_tenor}, inplace=True)
 
-    # drop unnecessary columns
-    df_mmsr_secured.drop(
-        columns=["trade_date_d", "maturity_date_d"], inplace=True
-    )
+    # ------------------------------------------
+    # 3 - find the evergreen and clean them
+    df_evergreen, df_evergreen_clean = get_df_evergreen(df_mmsr_secured,  flag_isin, sett_filter)
 
     # ------------------------------------------
-    # 2 - flag the evergreen repos
-    flag_evergreen_repo(df_mmsr_secured)
-
-    # ------------------------------------------
-    # 3 - set the start step as the min of each consecutive group of evergreens
-    df_evergreen_clean = set_start_step_as_min_groups(df_mmsr_secured)
+    # 2 - flag the evergreen repos in the mmsr data base
+    df_mmsr_secured =df_mmsr_secured.merge(df_evergreen["evergreen"],left_index=True, right_index=True,how="left")
+    df_mmsr_secured["evergreen"].fillna(False, inplace=True)
 
     # ------------------------------------------
     # 4 - build the df_mmsr_secured_clean
-
-    # concatenate the evergreen and the other transactions
     df_mmsr_secured_clean = pd.concat(
         [
-            df_mmsr_secured[df_mmsr_secured["evergreen"] == False],
-            df_evergreen_clean,
+            df_mmsr_secured[~df_mmsr_secured["evergreen"]],
+            df_evergreen_clean[df_evergreen_clean["evergreen"]],
         ]
     )[dm.mmsr_secured_clean_columns]
-
-    # reset the index
     df_mmsr_secured_clean.reset_index(inplace=True, drop=True)
 
-    # save df_mmsr_secured_clean
+    # ------------------------------------------
+    # 5 - save
     if path:
         os.makedirs(f"{path}pickle/", exist_ok=True)
         df_mmsr_secured.to_csv(f"{path}pickle/df_mmsr_secured.csv")
         df_mmsr_secured_clean.to_csv(f"{path}pickle/df_mmsr_secured_clean.csv")
 
-    return df_mmsr_secured_clean
+    return df_mmsr_secured, df_mmsr_secured_clean
 
 
-def flag_evergreen_repo(df_mmsr_secured):
-    # select only the columns common across an evergreen
-    df_restricted = df_mmsr_secured[
-        [
-            "start_step",
-            "report_agent_lei",
-            "cntp_lei",
-            "trns_nominal_amt",
-            "tenor",
-        ]
-    ]
 
-    # build a copy with start_step+1
-    df_restricted_shift = df_restricted.copy()
-    df_restricted_shift["start_step"] = df_restricted["start_step"] + 1
-
-    # flags all the lines of an evergreen but the first one
-    merged_df = df_restricted.merge(
-        df_restricted_shift, indicator=True, how="left"
-    )
-    equal_rows = merged_df["_merge"] == "both"
-
-    # the first line is obtained from the shifted copy (start_step+1)
-    merged_df = df_restricted_shift.merge(
-        df_restricted, indicator=True, how="left"
-    )
-    equal_rows_shift = merged_df["_merge"] == "both"
-
-    # we take the logical OR between the 2 flags
-    df_mmsr_secured["evergreen"] = equal_rows | equal_rows_shift
-
-
-def set_start_step_as_min_groups(df_mmsr_secured):
+def get_df_evergreen(df_mmsr_secured, flag_isin, sett_filter):
 
     # select only the flagged evergreens
-    df_evergreen = df_mmsr_secured[df_mmsr_secured["evergreen"]]
+    if sett_filter:
+        df_evergreen = df_mmsr_secured[df_mmsr_secured["settlement_date"]==df_mmsr_secured["trade_date"]]
+    else:
+        df_evergreen = df_mmsr_secured
 
-    # group the evergreen of same counterparties and amount
-    df_evergreen_lists = df_evergreen.groupby(
-        [
+    # create a unique transaction id, as the one reported is not sufficient
+    df_evergreen["line_id"] = df_evergreen.index
+
+    # columns defining and evergreen
+    columns = [
             "report_agent_lei",
             "cntp_lei",
+            "tenor",
             "trns_nominal_amt",
         ]
+
+    if flag_isin:
+        columns = columns + ["coll_isin"]
+
+    # group the lines by increasing start step
+    df_evergreen_lists = df_evergreen.groupby( columns + 
+        [
+            "start_step",
+        ], 
+        as_index=False, 
+        dropna=False,
     ).agg(
-        {
-            "start_step": lambda x: list(x),
-            "tenor": "last",
-            "unique_trns_id": lambda x: list(x),
-            "maturity_date": max,
-            "trade_date": min,
-            "trns_type": "last",  # used for filters
-            "coll_isin": "last",  # used for reuse estimate
-        }
-    )
-    df_evergreen_lists.rename(
-        columns={"start_step": "list_start_steps"}, inplace=True
+        { "line_id": tuple}
     )
 
-    # find the min and max of each consecutive group of start steps
-    min_in_cons_groups = lambda row: [
-        min(group) for group in consecutive_groups(row["list_start_steps"])
-    ]
-    max_in_cons_groups = lambda row: [
-        max(group) for group in consecutive_groups(row["list_start_steps"])
-    ]
-    df_evergreen_lists["min_start_steps"] = df_evergreen_lists.apply(
-        min_in_cons_groups, axis=1
-    )
-    df_evergreen_lists["max_start_steps"] = df_evergreen_lists.apply(
-        max_in_cons_groups, axis=1
+    # spot non consecutive dates
+    breaks = df_evergreen_lists["start_step"].diff() != 1
+    df_evergreen_lists["evergreen_group"] = breaks.cumsum()
+
+    # restaure the initional line_id as index  
+    df_evergreen_explode = df_evergreen_lists.explode("line_id")
+    df_evergreen_explode.set_index("line_id", inplace=True)
+
+    # add the collumn evergreen group to the initial df
+    df_evergreen = df_evergreen.merge(df_evergreen_explode["evergreen_group"], left_index=True, right_index=True)
+
+    # group the evergreen 
+    df_evergreen_clean = df_evergreen.groupby(
+        columns + ["evergreen_group"],
+        dropna=False,
+        ).agg(
+            start_steps=("start_step", lambda x: sorted(tuple(x))),
+            evergreen=("start_step", lambda x: len(tuple(x))>1),
+            line_id=("line_id", tuple),
+            trade_date=("trade_date", min),
+            maturity_date=("maturity_date", max),
+            start_step=("start_step", min),
+            trns_type=("trns_type", "last"),
+            coll_isin=("coll_isin", "last"),
     )
 
-    # explode the min and max into new lines
-    df_evergreen_clean = df_evergreen_lists.explode(
-        ["min_start_steps", "max_start_steps"]
-    )
+    if flag_isin:
+        df_evergreen_clean.drop("coll_isin", axis=1, inplace=True)
 
-    # reset the inedex
-    df_evergreen_clean.reset_index(inplace=True)
+    # get back the initial granularity of mmsr data base from the line_id
+    df_evergreen = df_evergreen_clean.explode("line_id").reset_index()
+    df_evergreen.set_index("line_id", inplace=True)
 
-    # define the effective observed tenor
-    df_evergreen_clean["tenor"] = (
-        df_evergreen_clean["tenor"]
-        + df_evergreen_clean["max_start_steps"]
-        - df_evergreen_clean["min_start_steps"]
-    )
-    df_evergreen_clean["start_step"] = df_evergreen_clean["min_start_steps"]
-
-    return df_evergreen_clean
+    return df_evergreen, df_evergreen_clean
 
 
 
