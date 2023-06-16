@@ -277,6 +277,75 @@ def get_df_evergreen(df_mmsr_secured, flag_isin, sett_filter):
 
 
 
+def get_df_expanded(
+    df_clean,
+    holidays=False,
+    path=False,
+    lending=True,
+    var_name=False,
+):
+    """
+    This function creates a dataframw where each contract is repeated on each line for each day it is active.
+    """
+
+    print("get df_mmsr_secured_expanded")
+
+    # filter only on the reverse repo i.e. lending cash (except user choose the oposite)
+    if lending:
+        df = df_clean[
+            df_clean["trns_type"]
+        ]
+    else:
+        df = df_clean[
+            ~df_clean["trns_type"]
+        ]
+    df.drop("trns_type", axis=1, inplace=True)
+
+
+    # get the max day from the max of the trade dates
+    max_day = max(pd.to_datetime(df["trade_date"]))
+    clipped_maturity_date = df["maturity_date"].clip(upper=max_day)
+
+    # Create a list of dates for each contract
+    if holidays:
+        date_ranges = [
+            pd.bdate_range(start, end, freq="C", holidays=holidays)
+            for start, end in zip(df["trade_date"], clipped_maturity_date)
+        ]
+    else:
+        date_ranges = [
+            pd.date_range(start, end)
+            for start, end in zip(df["trade_date"], clipped_maturity_date)
+        ]
+
+    # Duplicate rows based on date ranges
+    df_expanded = df.loc[
+        df.index.repeat([len(dates) for dates in date_ranges])
+    ].copy()
+    df_expanded["current_date"] = [
+        date for dates in date_ranges for date in dates
+    ]
+
+    # Reset the index
+    df_expanded.reset_index(drop=True, inplace=True)
+
+    # save df_mmsr_secured_clean
+    if path:
+        df_expanded.to_csv(
+            f"{path}pickle/{var_name}.csv"
+        )
+        pickle.dump(
+            df_expanded,
+            open(f"{path}pickle/{var_name}.pickle", "wb"),
+            protocol=pickle.HIGHEST_PROTOCOL,
+        )
+
+
+    return df_expanded
+
+
+
+
 def get_df_mmsr_secured_expanded(
     df_mmsr_secured_clean,
     holidays=False,
@@ -335,6 +404,7 @@ def get_df_mmsr_secured_expanded(
 
 
     return df_mmsr_secured_expanded
+
 
 def get_dic_rev_repo_exp_adj_from_df_mmsr_secured_expanded(
     df_mmsr_secured_expanded, path=False, plot_period=False
