@@ -791,7 +791,7 @@ def load_input_data_pickle(path):
 
 
 def add_ratios_in_df_finrep_clean(df_finrep_clean, path=False):
-    columns = fct.list_exclusion(df_finrep_clean.columns,["report_agent_lei","qdate", "total assets", 'riad_code', 'entity_id', 'signinst', 'ulssmparent_riad_code', 'date', 'group_riad_code', 'head',])
+    columns = fct.list_exclusion(df_finrep_clean.columns,["report_agent_lei","qdate", "total assets", 'riad_code', 'entity_id', 'signinst', 'ulssmparent_riad_code', 'date', 'group_riad_code', 'head',"ulssmparent_riad_code", "source"])
 
     for column in columns:
         df_finrep_clean[f"{column} over total assets"] = df_finrep_clean[column] /df_finrep_clean["total assets"]
