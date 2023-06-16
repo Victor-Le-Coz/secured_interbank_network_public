@@ -924,16 +924,16 @@ def convert_index(df, str_convertion):
 
 
 def plot_notional_by_notice_period(
-    df_mmsr_secured, path, plot_period, figsize=par.small_figsize
+    df_mmsr_secured_expanded, path, plot_period, figsize=par.small_figsize
 ):
 
     # select only the evergreen, with repeated lines by day, tenor is the notice period
-    df = df_mmsr_secured[df_mmsr_secured["evergreen"]]
+    df = df_mmsr_secured_expanded[df_mmsr_secured_expanded["evergreen"]]
 
     # select the dates on which to plot
     days = pd.to_datetime(
         sorted(
-            list(set(df_mmsr_secured["trade_date"].dt.strftime("%Y-%m-%d")))
+            list(set(df_mmsr_secured_expanded["trade_date"].dt.strftime("%Y-%m-%d")))
         )
     )
     plot_days = fct.get_plot_days_from_period(days, plot_period)
@@ -952,7 +952,7 @@ def plot_notional_by_notice_period(
         )
 
         if not(df_notional_by_notice_period.empty):
-            df_notional_by_notice_period.plot(
+            df_notional_by_notice_period.plot.bar(
                 figsize=figsize,
                 legend=False,
                 colormap=ListedColormap(
@@ -960,7 +960,7 @@ def plot_notional_by_notice_period(
                 ),
             )
             plt.xlabel("notice period (days)")
-            plt.xscale("log")
+            # plt.xscale("log")
             plt.ylabel("notional (monetary units)")
             plt.grid()
 
@@ -986,7 +986,7 @@ def plot_collateral_reuse(df_isin, path, plot_period, figsize=par.small_figsize)
     plot_days = fct.get_plot_days_from_period(days, plot_period)
 
     for day in plot_days:
-        df_isin.loc[day, "trns_nominal_amt"].hist(
+        ax = df_isin.loc[day, "nb_use"].hist(
             figsize=figsize,
             legend=False,
             color=sns.color_palette("flare", n_colors=1),

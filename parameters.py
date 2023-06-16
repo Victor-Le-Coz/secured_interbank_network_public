@@ -149,7 +149,7 @@ repo_transactions_maturity_av_network = [
     [
         f"repo transactions maturity{extension}",
         r"maturity (days)",
-        r"maturity (days)",
+        f"repo transactions maturity{extension}",
         "linear",
         "",
         False,
@@ -160,7 +160,7 @@ repo_transactions_notional_av_network = [
     [
         f"repo transactions notional{extension}",
         r"notional (monetary units)",
-        r"notional (monetary units)",
+        f"repo transactions notional{extension}",
         "linear",
         "",
         False,
@@ -171,7 +171,7 @@ number_repo_transactions_av_network = [
     [
         f"number repo transactions{extension}",
         r"Nb transactions (#)",
-        r"Nb transactions (#)",
+        f"number repo transactions{extension}",
         "linear",
         "",
         False,
@@ -231,9 +231,9 @@ cpnet_pvalue = [
         f"cpnet p-value {algo}-{agg_period}",
         r"core-periphery p-value (%)",
         f"{algo}-{agg_period} day(s)",
-        "linear",
+        "log",
         ".-",
-        "%",
+        "",
     ]
     for algo in cp_algos
     for agg_period in agg_periods + ["weighted"]

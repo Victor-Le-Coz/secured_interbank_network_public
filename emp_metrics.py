@@ -545,7 +545,7 @@ def get_df_deposits(df_mmsr_unsecured, dic_dashed_trajectory):
     # get one column per bank
     df_deposits = df_deposits.unstack(
         0
-    )  # the unstack ensure the full list of business is in the index (as at least one bank as a depositis positive on each day)
+    )  # the unstack ensure the full list of business days is in the index (as at least one bank as a depositis positive on each day)
     df_deposits.columns = df_deposits.columns.droplevel()
 
     # compute the deposits variations (absolute and relative)
@@ -578,22 +578,19 @@ def get_df_deposits_variations_by_bank(
     print("get df_deposits_variations_by_bank")
 
     # rename all columns
-    df_delta_deposits.rename(
+    df_delta_deposits = df_delta_deposits.rename(
         columns={col: f"{col} abs. var." for col in df_delta_deposits.columns},
-        inplace=True,
     )
-    df_relative_deposits.rename(
+    df_relative_deposits = df_relative_deposits.rename(
         columns={
             col: f"{col} rel. var." for col in df_relative_deposits.columns
         },
-        inplace=True,
     )
-    df_delta_deposits_over_assets.rename(
+    df_delta_deposits_over_assets = df_delta_deposits_over_assets.rename(
         columns={
             col: f"{col} var over tot. assets"
             for col in df_delta_deposits_over_assets.columns
         },
-        inplace=True,
     )
 
     # merge all data
@@ -652,7 +649,8 @@ def get_df_isin(df_mmsr_secured_expanded, path=False):
     df = df_mmsr_secured_expanded.reset_index(drop=False, inplace=False)
 
     df_isin = df.groupby(["current_date", "coll_isin"]).agg(
-        {"trns_nominal_amt": "count"}
+        nb_use=("trns_nominal_amt","count"),
+        total_amt=("trns_nominal_amt",sum),
     )
 
     # save file

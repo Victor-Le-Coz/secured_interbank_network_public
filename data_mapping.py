@@ -13,6 +13,10 @@ dic_finrep_columns = {
     "gov_securities": "securities collateral FINREP",
 }
 
+dic_mmsr_secured_columns = {
+    "settlmnt_date": "settlement_date",
+}
+
 
 mmsr_secured_clean_columns = [
     "report_agent_lei",
@@ -24,6 +28,7 @@ mmsr_secured_clean_columns = [
     "trade_date",
     "trns_type",
     "coll_isin",
+    "evergreen",
 ]
 
 holidays = [
@@ -179,7 +184,7 @@ holidays = [
     datetime.date(2024, 12, 26),
 ]
 
-days = pd.bdate_range("2000-01-03", "2024-01-01", freq="C", holidays=holidays)
+days = pd.bdate_range("2016-01-08", "2024-01-01", freq="C", holidays=holidays)
 
 df_ECB_calendar = pd.DataFrame(index=days, data={"bday":range(len(days))})
 

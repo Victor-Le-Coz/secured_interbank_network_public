@@ -62,10 +62,31 @@ def anonymize(df_mmsr_secured, df_mmsr_unsecured, df_finrep, path=False):
     df_finrep.rename({"anonymized_leis":"report_agent_lei"},axis=1,inplace=True)
 
     if path:
+        
+        # csv save
         os.makedirs(f"{path}pickle/", exist_ok=True)
         df_mmsr_secured.to_csv(f"{path}pickle/df_mmsr_secured.csv")
         df_mmsr_unsecured.to_csv(f"{path}pickle/df_mmsr_unsecured.csv")
         df_finrep.to_csv(f"{path}pickle/df_finrep.csv")
+
+        # pickle save
+        pickle.dump(
+            df_mmsr_secured,
+            open(f"{path}pickle/df_mmsr_secured.pickle", "wb"),
+            protocol=pickle.HIGHEST_PROTOCOL,
+        )
+        pickle.dump(
+            df_mmsr_unsecured,
+            open(f"{path}pickle/df_mmsr_unsecured.pickle", "wb"),
+            protocol=pickle.HIGHEST_PROTOCOL,
+        )
+        pickle.dump(
+            df_finrep,
+            open(f"{path}pickle/df_finrep.pickle", "wb"),
+            protocol=pickle.HIGHEST_PROTOCOL,
+        )
+
+
 
     return df_mmsr_secured, df_mmsr_unsecured, df_finrep
 
@@ -90,6 +111,18 @@ def reduce_size(df_mmsr_secured, df_mmsr_unsecured, path):
         df_mmsr_secured.to_csv(f"{path}pickle/df_mmsr_secured.csv")
         df_mmsr_unsecured.to_csv(f"{path}pickle/df_mmsr_unsecured.csv")
 
+        pickle.dump(
+            df_mmsr_secured,
+            open(f"{path}pickle/df_mmsr_secured.pickle", "wb"),
+            protocol=pickle.HIGHEST_PROTOCOL,
+        )
+        pickle.dump(
+            df_mmsr_unsecured,
+            open(f"{path}pickle/df_mmsr_unsecured.pickle", "wb"),
+            protocol=pickle.HIGHEST_PROTOCOL,
+        )
+    
+
 def get_df_mmsr_secured_clean(
     df_mmsr_secured,
     compute_tenor=False,
@@ -112,13 +145,15 @@ def get_df_mmsr_secured_clean(
     # ------------------------------------------
     # 1 - build the start_step and tenor columns
 
+    print("count the business days")
+
     # get the start_step (nb of the business day)
-    df_mmsr_secured =df_mmsr_secured.merge(dm.df_ECB_calendar,left_on="trade_date",right_index=True)
+    df_mmsr_secured =df_mmsr_secured.merge(dm.df_ECB_calendar,left_on="trade_date",right_index=True, how="left")
     df_mmsr_secured.rename(columns = {"bday":"start_step"}, inplace=True)
 
     # get the tenor (in business days)
     if compute_tenor:
-        df_mmsr_secured =df_mmsr_secured.merge(dm.df_ECB_calendar,left_on="maturity_date",right_index=True)
+        df_mmsr_secured =df_mmsr_secured.merge(dm.df_ECB_calendar,left_on="maturity_date",right_index=True, how="left")
         df_mmsr_secured.rename(columns = {"bday":"end_step"}, inplace=True)
         df_mmsr_secured["tenor"] = df_mmsr_secured["end_step"] - df_mmsr_secured["start_step"]
 
@@ -153,11 +188,24 @@ def get_df_mmsr_secured_clean(
         df_mmsr_secured.to_csv(f"{path}pickle/df_mmsr_secured.csv")
         df_mmsr_secured_clean.to_csv(f"{path}pickle/df_mmsr_secured_clean.csv")
 
+        pickle.dump(
+            df_mmsr_secured,
+            open(f"{path}pickle/df_mmsr_secured.pickle", "wb"),
+            protocol=pickle.HIGHEST_PROTOCOL,
+        )
+        pickle.dump(
+            df_mmsr_secured_clean,
+            open(f"{path}pickle/df_mmsr_secured_clean.pickle", "wb"),
+            protocol=pickle.HIGHEST_PROTOCOL,
+        )
+
     return df_mmsr_secured, df_mmsr_secured_clean
 
 
 
 def get_df_evergreen(df_mmsr_secured, flag_isin, sett_filter):
+
+    print("get df_evergreen_clean")
 
     # select only the flagged evergreens
     if sett_filter:
@@ -216,11 +264,13 @@ def get_df_evergreen(df_mmsr_secured, flag_isin, sett_filter):
             coll_isin=("coll_isin", "last"),
     )
 
+    # reset the index of df_evergreen_clean
     if flag_isin:
         df_evergreen_clean.drop("coll_isin", axis=1, inplace=True)
+    df_evergreen_clean = df_evergreen_clean.reset_index()
 
     # get back the initial granularity of mmsr data base from the line_id
-    df_evergreen = df_evergreen_clean.explode("line_id").reset_index()
+    df_evergreen = df_evergreen_clean.explode("line_id")
     df_evergreen.set_index("line_id", inplace=True)
 
     return df_evergreen, df_evergreen_clean
@@ -242,19 +292,23 @@ def get_df_mmsr_secured_expanded(
     df = df_mmsr_secured_clean[
         df_mmsr_secured_clean["trns_type"]
     ]
-
     df.drop("trns_type", axis=1, inplace=True)
+
+
+    # get the max day from the max of the trade dates
+    max_day = max(pd.to_datetime(df["trade_date"]))
+    clipped_maturity_date = df["maturity_date"].clip(upper=max_day)
 
     # Create a list of dates for each contract
     if holidays:
         date_ranges = [
             pd.bdate_range(start, end, freq="C", holidays=holidays)
-            for start, end in zip(df["trade_date"], df["maturity_date"])
+            for start, end in zip(df["trade_date"], clipped_maturity_date)
         ]
     else:
         date_ranges = [
             pd.date_range(start, end)
-            for start, end in zip(df["trade_date"], df["maturity_date"])
+            for start, end in zip(df["trade_date"], clipped_maturity_date)
         ]
 
     # Duplicate rows based on date ranges
@@ -273,6 +327,12 @@ def get_df_mmsr_secured_expanded(
         df_mmsr_secured_expanded.to_csv(
             f"{path}pickle/df_mmsr_secured_expanded.csv"
         )
+        pickle.dump(
+            df_mmsr_secured_expanded,
+            open(f"{path}pickle/df_mmsr_secured_expanded.pickle", "wb"),
+            protocol=pickle.HIGHEST_PROTOCOL,
+        )
+
 
     return df_mmsr_secured_expanded
 
@@ -287,8 +347,8 @@ def get_dic_rev_repo_exp_adj_from_df_mmsr_secured_expanded(
     ).agg({"trns_nominal_amt": sum})
 
     days = df.index.get_level_values("current_date").unique()
-    max_day = max(pd.to_datetime(df_mmsr_secured_expanded["trade_date"]))
-    days = [day for day in days if day < max_day]
+    # max_day = max(pd.to_datetime(df_mmsr_secured_expanded["trade_date"]))
+    # days = [day for day in days if day < max_day]
 
     leis = list(
         set(
@@ -655,6 +715,11 @@ def get_df_finrep_clean(df_finrep, path):
 
     if path:
         df_finrep_clean.to_csv(f"{path}pickle/df_finrep_clean.csv")
+        pickle.dump(
+            df_finrep_clean,
+            open(f"{path}pickle/df_finrep_clean.pickle", "wb"),
+            protocol=pickle.HIGHEST_PROTOCOL,
+        )
 
     return df_finrep_clean
 
@@ -664,7 +729,7 @@ def get_closest_bday(input_timestamp):
     return bbday.rollforward(input_timestamp)
 
 
-def load_input_data(path):
+def load_input_data_csv(path):
 
     df_mmsr_secured = pd.read_csv(
         f"{path}pickle/df_mmsr_secured.csv", index_col=0
@@ -705,6 +770,26 @@ def load_input_data(path):
     )
 
 
+
+def load_input_data_pickle(path):
+
+    df_mmsr_secured = pickle.load(open(f"{path}pickle/df_mmsr_secured.pickle", "rb"))
+    df_mmsr_secured_clean = pickle.load(open(f"{path}pickle/df_mmsr_secured_clean.pickle", "rb"))
+    df_mmsr_secured_expanded = pickle.load(open(f"{path}pickle/df_mmsr_secured_expanded.pickle", "rb"))
+    df_mmsr_unsecured = pickle.load(open(f"{path}pickle/df_mmsr_unsecured.pickle", "rb"))
+    df_finrep_clean = pickle.load(open(f"{path}pickle/df_finrep_clean.pickle", "rb"))
+
+    return (
+        df_mmsr_secured,
+        df_mmsr_secured_clean,
+        df_mmsr_secured_expanded,
+        df_mmsr_unsecured,
+        df_finrep_clean,
+    )
+
+
+
+
 def add_ratios_in_df_finrep_clean(df_finrep_clean, path=False):
     columns = fct.list_exclusion(df_finrep_clean.columns,["report_agent_lei","qdate", "total assets", 'riad_code', 'entity_id', 'signinst', 'ulssmparent_riad_code', 'date', 'group_riad_code', 'head',])
 
@@ -713,3 +798,9 @@ def add_ratios_in_df_finrep_clean(df_finrep_clean, path=False):
 
     if path:
         df_finrep_clean.to_csv(f"{path}pickle/df_finrep_clean.csv")
+        pickle.dump(
+            df_finrep_clean,
+            open(f"{path}pickle/df_finrep_clean.pickle", "wb"),
+            protocol=pickle.HIGHEST_PROTOCOL,
+        )
+        
