@@ -29,6 +29,7 @@ mmsr_secured_clean_columns = [
     "trns_type",
     "coll_isin",
     "evergreen",
+    # "start_steps",  # for debug (but too heavy for actual run)
 ]
 
 holidays = [
@@ -186,7 +187,7 @@ holidays = [
 
 days = pd.bdate_range("2016-01-08", "2024-01-01", freq="C", holidays=holidays)
 
-df_ECB_calendar = pd.DataFrame(index=days, data={"bday":range(len(days))})
+df_ECB_calendar = pd.DataFrame(index=days, data={"bday": range(len(days))})
 
 maturity_band = [
     "O/N",

@@ -12,7 +12,7 @@ def get_df_mmsr_secured(nb_tran, holidays):
 
     # define the days on which mmsr trasaction can occure
     days = pd.bdate_range(
-        "2000-01-03", "2024-01-01", freq="C", holidays=dm.holidays
+        "2016-01-08", "2024-01-01", freq="C", holidays=dm.holidays
     )
 
     # define the set of existing collateral isin codes
@@ -53,7 +53,7 @@ def get_df_mmsr_secured(nb_tran, holidays):
     df_mmsr["maturity_date"] = df_mmsr.apply(apply_func, axis=1)
 
     # create some evergreens repeating up to x days
-    X = 10
+    X = 50
     for nb_repetting_days in range(2, X):
 
         # define the start and end of the selection of lines in df MMSR
@@ -66,7 +66,9 @@ def get_df_mmsr_secured(nb_tran, holidays):
 
         for row in range(1, nb_repetting_days):
 
-            if row != cut:
+            if not (
+                row in [cut, cut + 1, cut + 2, cut + 3, cut + 5]
+            ):  # allow up to 5 days without reporting
 
                 # take the lines from df_mmsr
                 df_evergreen = df_mmsr.iloc[start:end]
@@ -91,6 +93,8 @@ def get_df_mmsr_secured(nb_tran, holidays):
                 # add the lines to df_mmsr
                 df_mmsr = pd.concat([df_mmsr, df_evergreen], axis=0)
 
+    df_mmsr["settlement_date"] = df_mmsr["trade_date"]
+
     df_mmsr.reset_index(inplace=True, drop=True)
 
     return df_mmsr
@@ -103,7 +107,7 @@ def get_df_mmsr_unsecured(nb_tran, holidays):
 
     # define the days on which mmsr trasaction can occure
     days = pd.bdate_range(
-        "2000-01-03", "2024-01-01", freq="C", holidays=dm.holidays
+        "2016-01-08", "2024-01-01", freq="C", holidays=dm.holidays
     )
 
     df_mmsr = pd.DataFrame(
@@ -163,7 +167,8 @@ def get_df_exposures(lines, freq="5h"):
 
 def get_df_finrep():
     dic_data = {
-        "report_agent_lei": ["bank_" + str(i) for i in range(50)] * 40, # comes from a maping of FINREP lei to MMSR lei 
+        "report_agent_lei": ["bank_" + str(i) for i in range(50)]
+        * 40,  # comes from a maping of FINREP lei to MMSR lei
         "qdate": sorted(
             list(
                 pd.period_range(

@@ -35,34 +35,58 @@ def anonymize(df_mmsr_secured, df_mmsr_unsecured, df_finrep, path=False):
             )
         )
     )
-    set_lei.update(set(pd.unique(df_finrep[["report_agent_lei"]].values.ravel("K"))))
+    set_lei.update(
+        set(pd.unique(df_finrep[["report_agent_lei"]].values.ravel("K")))
+    )
 
     # allocate a random anonymised name to each lei
     anonymized_leis = random.sample(range(15000), len(set_lei))
 
     # modify the input databases with the ram
-    df_lei = pd.DataFrame(index=list(set_lei),data={"anonymized_leis":anonymized_leis})
+    df_lei = pd.DataFrame(
+        index=list(set_lei), data={"anonymized_leis": anonymized_leis}
+    )
 
-    df_mmsr_unsecured = df_mmsr_unsecured.merge(df_lei,left_on="cntp_lei", right_index=True,how="left")
+    df_mmsr_unsecured = df_mmsr_unsecured.merge(
+        df_lei, left_on="cntp_lei", right_index=True, how="left"
+    )
     df_mmsr_unsecured.drop(columns="cntp_lei", inplace=True)
-    df_mmsr_unsecured.rename({"anonymized_leis":"cntp_lei"},axis=1,inplace=True)
-    df_mmsr_unsecured = df_mmsr_unsecured.merge(df_lei,left_on="report_agent_lei", right_index=True,how="left")
+    df_mmsr_unsecured.rename(
+        {"anonymized_leis": "cntp_lei"}, axis=1, inplace=True
+    )
+    df_mmsr_unsecured = df_mmsr_unsecured.merge(
+        df_lei, left_on="report_agent_lei", right_index=True, how="left"
+    )
     df_mmsr_unsecured.drop(columns="report_agent_lei", inplace=True)
-    df_mmsr_unsecured.rename({"anonymized_leis":"report_agent_lei"},axis=1,inplace=True)
+    df_mmsr_unsecured.rename(
+        {"anonymized_leis": "report_agent_lei"}, axis=1, inplace=True
+    )
 
-    df_mmsr_secured = df_mmsr_secured.merge(df_lei,left_on="cntp_lei", right_index=True,how="left")
+    df_mmsr_secured = df_mmsr_secured.merge(
+        df_lei, left_on="cntp_lei", right_index=True, how="left"
+    )
     df_mmsr_secured.drop(columns="cntp_lei", inplace=True)
-    df_mmsr_secured.rename({"anonymized_leis":"cntp_lei"},axis=1,inplace=True)
-    df_mmsr_secured = df_mmsr_secured.merge(df_lei,left_on="report_agent_lei", right_index=True,how="left")
+    df_mmsr_secured.rename(
+        {"anonymized_leis": "cntp_lei"}, axis=1, inplace=True
+    )
+    df_mmsr_secured = df_mmsr_secured.merge(
+        df_lei, left_on="report_agent_lei", right_index=True, how="left"
+    )
     df_mmsr_secured.drop(columns="report_agent_lei", inplace=True)
-    df_mmsr_secured.rename({"anonymized_leis":"report_agent_lei"},axis=1,inplace=True)
+    df_mmsr_secured.rename(
+        {"anonymized_leis": "report_agent_lei"}, axis=1, inplace=True
+    )
 
-    df_finrep = df_finrep.merge(df_lei,left_on="report_agent_lei", right_index=True,how="left")
+    df_finrep = df_finrep.merge(
+        df_lei, left_on="report_agent_lei", right_index=True, how="left"
+    )
     df_finrep.drop(columns="report_agent_lei", inplace=True)
-    df_finrep.rename({"anonymized_leis":"report_agent_lei"},axis=1,inplace=True)
+    df_finrep.rename(
+        {"anonymized_leis": "report_agent_lei"}, axis=1, inplace=True
+    )
 
     if path:
-        
+
         # csv save
         os.makedirs(f"{path}pickle/", exist_ok=True)
         df_mmsr_secured.to_csv(f"{path}pickle/df_mmsr_secured.csv")
@@ -86,24 +110,54 @@ def anonymize(df_mmsr_secured, df_mmsr_unsecured, df_finrep, path=False):
             protocol=pickle.HIGHEST_PROTOCOL,
         )
 
-
-
     return df_mmsr_secured, df_mmsr_unsecured, df_finrep
 
 
 def reduce_size(df_mmsr_secured, df_mmsr_unsecured, path):
-    
+
     print("reduce size")
-    
+
     # reduce memory usage
 
     # for secured
-    df_mmsr_secured.replace({"trns_type":{"BORR":False,"LEND":True, "BUYI":False, "SELL":True}}, inplace=True)
-    df_mmsr_secured = df_mmsr_secured.astype({"report_agent_lei":np.int16,"cntp_lei":np.int16, "trns_nominal_amt":np.float32})
+    df_mmsr_secured.replace(
+        {
+            "trns_type": {
+                "BORR": False,
+                "LEND": True,
+                "BUYI": False,
+                "SELL": True,
+            }
+        },
+        inplace=True,
+    )
+    df_mmsr_secured = df_mmsr_secured.astype(
+        {
+            "report_agent_lei": np.int16,
+            "cntp_lei": np.int16,
+            "trns_nominal_amt": np.float32,
+        }
+    )
 
     # for unsecured
-    df_mmsr_unsecured.replace({"trns_type":{"BORR":False,"LEND":True, "BUYI":False, "SELL":True}}, inplace=True)
-    df_mmsr_secured = df_mmsr_secured.astype({"report_agent_lei":np.int16,"cntp_lei":np.int16, "trns_nominal_amt":np.float32})
+    df_mmsr_unsecured.replace(
+        {
+            "trns_type": {
+                "BORR": False,
+                "LEND": True,
+                "BUYI": False,
+                "SELL": True,
+            }
+        },
+        inplace=True,
+    )
+    df_mmsr_secured = df_mmsr_secured.astype(
+        {
+            "report_agent_lei": np.int16,
+            "cntp_lei": np.int16,
+            "trns_nominal_amt": np.float32,
+        }
+    )
 
     # save
     if path:
@@ -121,7 +175,7 @@ def reduce_size(df_mmsr_secured, df_mmsr_unsecured, path):
             open(f"{path}pickle/df_mmsr_unsecured.pickle", "wb"),
             protocol=pickle.HIGHEST_PROTOCOL,
         )
-    
+
 
 def get_df_mmsr_secured_clean(
     df_mmsr_secured,
@@ -148,14 +202,23 @@ def get_df_mmsr_secured_clean(
     print("count the business days")
 
     # get the start_step (nb of the business day)
-    df_mmsr_secured =df_mmsr_secured.merge(dm.df_ECB_calendar,left_on="trade_date",right_index=True, how="left")
-    df_mmsr_secured.rename(columns = {"bday":"start_step"}, inplace=True)
+    df_mmsr_secured = df_mmsr_secured.merge(
+        dm.df_ECB_calendar, left_on="trade_date", right_index=True, how="left"
+    )
+    df_mmsr_secured.rename(columns={"bday": "start_step"}, inplace=True)
 
     # get the tenor (in business days)
     if compute_tenor:
-        df_mmsr_secured =df_mmsr_secured.merge(dm.df_ECB_calendar,left_on="maturity_date",right_index=True, how="left")
-        df_mmsr_secured.rename(columns = {"bday":"end_step"}, inplace=True)
-        df_mmsr_secured["tenor"] = df_mmsr_secured["end_step"] - df_mmsr_secured["start_step"]
+        df_mmsr_secured = df_mmsr_secured.merge(
+            dm.df_ECB_calendar,
+            left_on="maturity_date",
+            right_index=True,
+            how="left",
+        )
+        df_mmsr_secured.rename(columns={"bday": "end_step"}, inplace=True)
+        df_mmsr_secured["tenor"] = (
+            df_mmsr_secured["end_step"] - df_mmsr_secured["start_step"]
+        )
 
     else:
         # from the maturity band
@@ -164,11 +227,18 @@ def get_df_mmsr_secured_clean(
 
     # ------------------------------------------
     # 3 - find the evergreen and clean them
-    df_evergreen, df_evergreen_clean = get_df_evergreen(df_mmsr_secured,  flag_isin, sett_filter)
+    df_evergreen, df_evergreen_clean = get_df_evergreen(
+        df_mmsr_secured, flag_isin, sett_filter
+    )
 
     # ------------------------------------------
     # 2 - flag the evergreen repos in the mmsr data base
-    df_mmsr_secured =df_mmsr_secured.merge(df_evergreen["evergreen"],left_index=True, right_index=True,how="left")
+    df_mmsr_secured = df_mmsr_secured.merge(
+        df_evergreen["evergreen"],
+        left_index=True,
+        right_index=True,
+        how="left",
+    )
     df_mmsr_secured["evergreen"].fillna(False, inplace=True)
 
     # ------------------------------------------
@@ -202,14 +272,15 @@ def get_df_mmsr_secured_clean(
     return df_mmsr_secured, df_mmsr_secured_clean
 
 
-
 def get_df_evergreen(df_mmsr_secured, flag_isin, sett_filter):
 
     print("get df_evergreen_clean")
 
     # select only the flagged evergreens
     if sett_filter:
-        df_evergreen = df_mmsr_secured[df_mmsr_secured["settlement_date"]==df_mmsr_secured["trade_date"]]
+        df_evergreen = df_mmsr_secured[
+            df_mmsr_secured["settlement_date"] == df_mmsr_secured["trade_date"]
+        ]
     else:
         df_evergreen = df_mmsr_secured
 
@@ -218,50 +289,53 @@ def get_df_evergreen(df_mmsr_secured, flag_isin, sett_filter):
 
     # columns defining and evergreen
     columns = [
-            "report_agent_lei",
-            "cntp_lei",
-            "tenor",
-            "trns_nominal_amt",
-        ]
+        "report_agent_lei",
+        "cntp_lei",
+        "tenor",
+        "trns_nominal_amt",
+    ]
 
     if flag_isin:
         columns = columns + ["coll_isin"]
 
     # group the lines by increasing start step
-    df_evergreen_lists = df_evergreen.groupby( columns + 
-        [
+    df_evergreen_lists = df_evergreen.groupby(
+        columns
+        + [
             "start_step",
-        ], 
-        as_index=False, 
+        ],
+        as_index=False,
         dropna=False,
-    ).agg(
-        { "line_id": tuple}
-    )
+    ).agg({"line_id": tuple})
 
     # spot non consecutive dates
-    breaks = df_evergreen_lists["start_step"].diff() != 1
+    breaks = ~df_evergreen_lists["start_step"].diff().isin([1, 2, 3, 4, 5])
     df_evergreen_lists["evergreen_group"] = breaks.cumsum()
 
-    # restaure the initional line_id as index  
+    # restaure the initional line_id as index
     df_evergreen_explode = df_evergreen_lists.explode("line_id")
     df_evergreen_explode.set_index("line_id", inplace=True)
 
     # add the collumn evergreen group to the initial df
-    df_evergreen = df_evergreen.merge(df_evergreen_explode["evergreen_group"], left_index=True, right_index=True)
+    df_evergreen = df_evergreen.merge(
+        df_evergreen_explode["evergreen_group"],
+        left_index=True,
+        right_index=True,
+    )
 
-    # group the evergreen 
+    # group the evergreen
     df_evergreen_clean = df_evergreen.groupby(
         columns + ["evergreen_group"],
         dropna=False,
-        ).agg(
-            start_steps=("start_step", lambda x: sorted(tuple(x))),
-            evergreen=("start_step", lambda x: len(tuple(x))>1),
-            line_id=("line_id", tuple),
-            trade_date=("trade_date", min),
-            maturity_date=("maturity_date", max),
-            start_step=("start_step", min),
-            trns_type=("trns_type", "last"),
-            coll_isin=("coll_isin", "last"),
+    ).agg(
+        start_steps=("start_step", lambda x: sorted(tuple(x))),
+        evergreen=("start_step", lambda x: len(tuple(x)) > 1),
+        line_id=("line_id", tuple),
+        trade_date=("trade_date", min),
+        maturity_date=("maturity_date", max),
+        start_step=("start_step", min),
+        trns_type=("trns_type", "last"),
+        coll_isin=("coll_isin", "last"),
     )
 
     # reset the index of df_evergreen_clean
@@ -274,7 +348,6 @@ def get_df_evergreen(df_mmsr_secured, flag_isin, sett_filter):
     df_evergreen.set_index("line_id", inplace=True)
 
     return df_evergreen, df_evergreen_clean
-
 
 
 def get_df_expanded(
@@ -292,15 +365,10 @@ def get_df_expanded(
 
     # filter only on the reverse repo i.e. lending cash (except user choose the oposite)
     if lending:
-        df = df_clean[
-            df_clean["trns_type"]
-        ]
+        df = df_clean[df_clean["trns_type"]]
     else:
-        df = df_clean[
-            ~df_clean["trns_type"]
-        ]
+        df = df_clean[~df_clean["trns_type"]]
     df.drop("trns_type", axis=1, inplace=True)
-
 
     # get the max day from the max of the trade dates
     max_day = max(pd.to_datetime(df["trade_date"]))
@@ -331,19 +399,14 @@ def get_df_expanded(
 
     # save df_mmsr_secured_clean
     if path:
-        df_expanded.to_csv(
-            f"{path}pickle/{var_name}.csv"
-        )
+        df_expanded.to_csv(f"{path}pickle/{var_name}.csv")
         pickle.dump(
             df_expanded,
             open(f"{path}pickle/{var_name}.pickle", "wb"),
             protocol=pickle.HIGHEST_PROTOCOL,
         )
 
-
     return df_expanded
-
-
 
 
 def get_df_mmsr_secured_expanded(
@@ -358,11 +421,8 @@ def get_df_mmsr_secured_expanded(
     print("get df_mmsr_secured_expanded")
 
     # filter only on the reverse repo i.e. lending cash
-    df = df_mmsr_secured_clean[
-        df_mmsr_secured_clean["trns_type"]
-    ]
+    df = df_mmsr_secured_clean[df_mmsr_secured_clean["trns_type"]]
     df.drop("trns_type", axis=1, inplace=True)
-
 
     # get the max day from the max of the trade dates
     max_day = max(pd.to_datetime(df["trade_date"]))
@@ -402,7 +462,6 @@ def get_df_mmsr_secured_expanded(
             protocol=pickle.HIGHEST_PROTOCOL,
         )
 
-
     return df_mmsr_secured_expanded
 
 
@@ -432,7 +491,9 @@ def get_dic_rev_repo_exp_adj_from_df_mmsr_secured_expanded(
         dic_rev_repo_exp_adj.update(
             {day: pd.DataFrame(columns=leis, index=leis, data=0)}
         )
-        df_rev_repo_exp = df.loc[day].unstack("cntp_lei").droplevel(0, axis=1).fillna(0)
+        df_rev_repo_exp = (
+            df.loc[day].unstack("cntp_lei").droplevel(0, axis=1).fillna(0)
+        )
         dic_rev_repo_exp_adj[day].loc[
             df_rev_repo_exp.index, df_rev_repo_exp.columns
         ] = df_rev_repo_exp
@@ -693,7 +754,9 @@ def load_dic_arr_binary_adj(path):
 def build_arr_total_assets(df_finrep, path):
 
     # build the total asset per bank
-    df_total_assets = df_finrep.set_index(["qdate", "report_agent_lei"]).unstack()
+    df_total_assets = df_finrep.set_index(
+        ["qdate", "report_agent_lei"]
+    ).unstack()
     arr_total_assets = np.array(df_total_assets)
 
     os.makedirs(path, exist_ok=True)
@@ -722,8 +785,12 @@ def get_dic_dashed_trajectory(df_finrep, path=False):
 
         if path:
             day_print = day.strftime("%Y-%m-%d")
-            os.makedirs(f"{path}data/accounting_view/dashed_trajectory/", exist_ok=True)
-            df_banks.to_csv(f"{path}data/accounting_view/dashed_trajectory/df_banks_on_day_{day_print}.csv")
+            os.makedirs(
+                f"{path}data/accounting_view/dashed_trajectory/", exist_ok=True
+            )
+            df_banks.to_csv(
+                f"{path}data/accounting_view/dashed_trajectory/df_banks_on_day_{day_print}.csv"
+            )
 
     # pickle dump
     if path:
@@ -733,8 +800,6 @@ def get_dic_dashed_trajectory(df_finrep, path=False):
             open(f"{path}pickle/dic_dashed_trajectory.pickle", "wb"),
             protocol=pickle.HIGHEST_PROTOCOL,
         )
-
-    
 
     return dic_dashed_trajectory
 
@@ -840,14 +905,25 @@ def load_input_data_csv(path):
     )
 
 
-
 def load_input_data_pickle(path):
 
-    df_mmsr_secured = pickle.load(open(f"{path}pickle/df_mmsr_secured.pickle", "rb"))
-    df_mmsr_secured_clean = pickle.load(open(f"{path}pickle/df_mmsr_secured_clean.pickle", "rb"))
-    df_mmsr_secured_expanded = pickle.load(open(f"{path}pickle/df_mmsr_secured_expanded.pickle", "rb"))
-    df_mmsr_unsecured = pickle.load(open(f"{path}pickle/df_mmsr_unsecured.pickle", "rb"))
-    df_finrep_clean = pickle.load(open(f"{path}pickle/df_finrep_clean.pickle", "rb"))
+    df_mmsr_secured = pickle.load(
+        open(f"{path}pickle/df_mmsr_secured.pickle", "rb")
+    )
+    df_mmsr_secured_clean = pickle.load(
+        open(f"{path}pickle/df_mmsr_secured_clean.pickle", "rb")
+    )
+    if os.path.isfile(f"{path}pickle/df_expanded.pickle"):
+        df_mmsr_secured_expanded = pickle.load(
+            open(f"{path}pickle/df_expanded.pickle", "rb")
+        )
+    df_mmsr_unsecured = pickle.load(
+        open(f"{path}pickle/df_mmsr_unsecured.pickle", "rb")
+    )
+    if os.path.isfile(f"{path}pickle/df_finrep_clean.pickle"):
+        df_finrep_clean = pickle.load(
+            open(f"{path}pickle/df_finrep_clean.pickle", "rb")
+        )
 
     return (
         df_mmsr_secured,
@@ -858,13 +934,29 @@ def load_input_data_pickle(path):
     )
 
 
-
-
 def add_ratios_in_df_finrep_clean(df_finrep_clean, path=False):
-    columns = fct.list_exclusion(df_finrep_clean.columns,["report_agent_lei","qdate", "total assets", 'riad_code', 'entity_id', 'signinst', 'ulssmparent_riad_code', 'date', 'group_riad_code', 'head',"ulssmparent_riad_code", "source"])
+    columns = fct.list_exclusion(
+        df_finrep_clean.columns,
+        [
+            "report_agent_lei",
+            "qdate",
+            "total assets",
+            "riad_code",
+            "entity_id",
+            "signinst",
+            "ulssmparent_riad_code",
+            "date",
+            "group_riad_code",
+            "head",
+            "ulssmparent_riad_code",
+            "source",
+        ],
+    )
 
     for column in columns:
-        df_finrep_clean[f"{column} over total assets"] = df_finrep_clean[column] /df_finrep_clean["total assets"]
+        df_finrep_clean[f"{column} over total assets"] = (
+            df_finrep_clean[column] / df_finrep_clean["total assets"]
+        )
 
     if path:
         df_finrep_clean.to_csv(f"{path}pickle/df_finrep_clean.csv")
@@ -873,4 +965,3 @@ def add_ratios_in_df_finrep_clean(df_finrep_clean, path=False):
             open(f"{path}pickle/df_finrep_clean.pickle", "wb"),
             protocol=pickle.HIGHEST_PROTOCOL,
         )
-        
