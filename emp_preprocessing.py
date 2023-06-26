@@ -276,7 +276,7 @@ def get_df_evergreen(df_mmsr_secured, flag_isin, sett_filter):
 
     print("get df_evergreen_clean")
 
-    # select only the flagged evergreens
+    # option: select only the cases where settlement date ==  trade date but it doesn't work for the first line of the evergreen...
     if sett_filter:
         df_evergreen = df_mmsr_secured[
             df_mmsr_secured["settlement_date"] == df_mmsr_secured["trade_date"]
@@ -332,8 +332,9 @@ def get_df_evergreen(df_mmsr_secured, flag_isin, sett_filter):
         evergreen=("start_step", lambda x: len(tuple(x)) > 1),
         line_id=("line_id", tuple),
         trade_date=("trade_date", min),
-        maturity_date=("maturity_date", max),
+        maturity_date=("trade_date", max),
         start_step=("start_step", min),
+        end_step=("start_step", max),
         trns_type=("trns_type", "last"),
         coll_isin=("coll_isin", "last"),
     )
@@ -342,6 +343,12 @@ def get_df_evergreen(df_mmsr_secured, flag_isin, sett_filter):
     if flag_isin:
         df_evergreen_clean.drop("coll_isin", axis=1, inplace=True)
     df_evergreen_clean = df_evergreen_clean.reset_index()
+
+    # define the current tenor columnns as the notice period and build the true effective tenor
+    df_evergreen_clean["notice_period"] = df_evergreen_clean["tenor"]
+    df_evergreen_clean["tenor"] = (
+        df_evergreen_clean["end_step"] - df_evergreen_clean["start_step"]
+    )
 
     # get back the initial granularity of mmsr data base from the line_id
     df_evergreen = df_evergreen_clean.explode("line_id")

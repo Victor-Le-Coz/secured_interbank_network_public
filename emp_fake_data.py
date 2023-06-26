@@ -12,7 +12,7 @@ def get_df_mmsr_secured(nb_tran, holidays):
 
     # define the days on which mmsr trasaction can occure
     days = pd.bdate_range(
-        "2016-01-08", "2024-01-01", freq="C", holidays=dm.holidays
+        "2016-01-08", "2023-01-01", freq="C", holidays=dm.holidays
     )
 
     # define the set of existing collateral isin codes
@@ -107,7 +107,7 @@ def get_df_mmsr_unsecured(nb_tran, holidays):
 
     # define the days on which mmsr trasaction can occure
     days = pd.bdate_range(
-        "2016-01-08", "2024-01-01", freq="C", holidays=dm.holidays
+        "2016-01-08", "2023-01-01", freq="C", holidays=dm.holidays
     )
 
     df_mmsr = pd.DataFrame(

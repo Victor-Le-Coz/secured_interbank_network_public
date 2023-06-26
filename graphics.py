@@ -518,7 +518,7 @@ def plot_powerlaw(
     if not (plot_days):
         plot_days = fct.get_plot_days_from_period(days, plot_period)
 
-    if not(bank_items):
+    if not (bank_items):
         bank_items = par.bank_items
 
     for day in plot_days:
@@ -933,7 +933,13 @@ def plot_notional_by_notice_period(
     # select the dates on which to plot
     days = pd.to_datetime(
         sorted(
-            list(set(df_mmsr_secured_expanded["trade_date"].dt.strftime("%Y-%m-%d")))
+            list(
+                set(
+                    df_mmsr_secured_expanded["trade_date"].dt.strftime(
+                        "%Y-%m-%d"
+                    )
+                )
+            )
         )
     )
     plot_days = fct.get_plot_days_from_period(days, plot_period)
@@ -947,11 +953,11 @@ def plot_notional_by_notice_period(
         # build notional by notice period
         df_notional_by_notice_period = (
             df[df["trade_date"] == day]
-            .groupby(["tenor"])
+            .groupby(["notice_period"])
             .agg({"trns_nominal_amt": sum})
         )
 
-        if not(df_notional_by_notice_period.empty):
+        if not (df_notional_by_notice_period.empty):
             df_notional_by_notice_period.plot.bar(
                 figsize=figsize,
                 legend=False,
@@ -972,7 +978,7 @@ def plot_notional_by_notice_period(
                 f"{path}notional_by_notice_period/df_notional_by_notice_period_on_day_{day_print}.csv"
             )
 
-        # save fig
+            # save fig
             plt.savefig(
                 f"{path}notional_by_notice_period/notional_by_notice_period_on_day_{day_print}.pdf",
                 bbox_inches="tight",
@@ -980,7 +986,9 @@ def plot_notional_by_notice_period(
             plt.close()
 
 
-def plot_collateral_reuse(df_isin, path, plot_period, figsize=par.small_figsize):
+def plot_collateral_reuse(
+    df_isin, path, plot_period, figsize=par.small_figsize
+):
 
     days = df_isin.index.get_level_values("current_date").unique()
     plot_days = fct.get_plot_days_from_period(days, plot_period)
@@ -993,7 +1001,7 @@ def plot_collateral_reuse(df_isin, path, plot_period, figsize=par.small_figsize)
             bins=200,
         )
 
-        ax.set_xscale('symlog', linthresh=10)
+        ax.set_xscale("symlog", linthresh=10)
         plt.xlabel("collateral reuse (#)")
         plt.ylabel("frequency")
         plt.grid()
@@ -1009,21 +1017,27 @@ def plot_collateral_reuse(df_isin, path, plot_period, figsize=par.small_figsize)
         plt.close()
 
 
-def plot_dyn_powerlaw_tranverse(df_powerlaw,path, figsize=par.small_figsize):
+def plot_dyn_powerlaw_tranverse(df_powerlaw, path, figsize=par.small_figsize):
 
     bank_ids = [ind.split(" ")[0] for ind in df_powerlaw.index]
-    extensions = [" abs. var.",  "rel. var.", " var over tot. assets"]
-    indexes = [fct.list_intersection([f"{bank_id}{extension}" for bank_id in bank_ids],list(df_powerlaw.index)) for extension in extensions]
+    extensions = [" abs. var.", "rel. var.", " var over tot. assets"]
+    indexes = [
+        fct.list_intersection(
+            [f"{bank_id}{extension}" for bank_id in bank_ids],
+            list(df_powerlaw.index),
+        )
+        for extension in extensions
+    ]
 
     for col in df_powerlaw.columns:
 
         fig, ax = plt.subplots(figsize=figsize)
         colors = sns.color_palette("flare", n_colors=len(extensions))
 
-        for i, (index, ext) in enumerate(zip(indexes,extensions)):
+        for i, (index, ext) in enumerate(zip(indexes, extensions)):
             plt.plot(
                 [ind.split(" ")[0] for ind in index],
-                df_powerlaw.loc[index,col],
+                df_powerlaw.loc[index, col],
                 color=colors[i],
             )
 
