@@ -1019,8 +1019,8 @@ def plot_collateral_reuse(
 
 def plot_dyn_powerlaw_tranverse(df_powerlaw, path, figsize=par.small_figsize):
 
-    bank_ids = [ind.split(" ")[0] for ind in df_powerlaw.index]
-    extensions = [" abs. var.", "rel. var.", " var over tot. assets"]
+    bank_ids = list(set([ind.split(" ")[0] for ind in df_powerlaw.index]))
+    extensions = [" abs. var.", " rel. var.", " var over tot. assets"]
     indexes = [
         fct.list_intersection(
             [f"{bank_id}{extension}" for bank_id in bank_ids],
@@ -1029,25 +1029,45 @@ def plot_dyn_powerlaw_tranverse(df_powerlaw, path, figsize=par.small_figsize):
         for extension in extensions
     ]
 
+    # need to define the position of each bank with an int
+    df_ticks = pd.Series(index=bank_ids, data=range(len(bank_ids)))
+
     for col in df_powerlaw.columns:
 
         fig, ax = plt.subplots(figsize=figsize)
         colors = sns.color_palette("flare", n_colors=len(extensions))
 
         for i, (index, ext) in enumerate(zip(indexes, extensions)):
+
+            xticks_labels = [ind.split(" ")[0] for ind in index]
+
             plt.plot(
-                [ind.split(" ")[0] for ind in index],
+                df_ticks.loc[
+                    [ind.split(" ")[0] for ind in df_powerlaw.loc[index].index]
+                ],
                 df_powerlaw.loc[index, col],
+                ".",
                 color=colors[i],
             )
 
+        plt.xticks(rotation=90)
+
         plt.xlabel("bank ids")
         plt.ylabel(f"{col}")
+
+        plt.yscale("log")
         plt.grid()
+
+        plt.legend(
+            extensions,
+            loc="upper left",
+            bbox_to_anchor=(1.0, 1.0),
+        )
 
         # save fig
         plt.savefig(
             f"{path}dyn_powerlaw_{col}.pdf",
             bbox_inches="tight",
         )
+
         plt.close()

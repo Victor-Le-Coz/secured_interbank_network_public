@@ -522,7 +522,7 @@ def run_n_plot_powerlaw(df, path, transverse=False):
     df_powerlaw.to_csv(f"{path}df_powerlaw.csv")
 
     if transverse:
-        gx.plot_dyn_powerlaw_tranverse(df_powerlaw,f"{path}")
+        gx.plot_dyn_powerlaw_tranverse(df_powerlaw, f"{path}")
 
 
 def get_df_deposits(df_mmsr_unsecured, dic_dashed_trajectory):
@@ -649,8 +649,11 @@ def get_df_isin(df_mmsr_secured_expanded, path=False):
     df = df_mmsr_secured_expanded.reset_index(drop=False, inplace=False)
 
     df_isin = df.groupby(["current_date", "coll_isin"]).agg(
-        nb_use=("trns_nominal_amt","count"),
-        total_amt=("trns_nominal_amt",sum),
+        nb_use=("trns_nominal_amt", "count"),
+        total_amt=(
+            "trns_nominal_amt",
+            "last",
+        ),  # is it always the same amont associated to an ising code ?
     )
 
     # save file
@@ -658,5 +661,3 @@ def get_df_isin(df_mmsr_secured_expanded, path=False):
         os.makedirs(f"{path}collateral_reuse/", exist_ok=True)
         df_isin.to_csv(f"{path}collateral_reuse/df_isin.csv")
     return df_isin
-
-
