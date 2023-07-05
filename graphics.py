@@ -531,22 +531,20 @@ def plot_powerlaw(
         for bank_item in bank_items:
 
             # retrive the information to plot
-            powerlaw_fit = df_network_trajectory.loc[
-                day, f"powerlaw fit {bank_item}"
-            ]
-            powerlaw_alpha = df_network_trajectory.loc[
-                day, f"powerlaw alpha {bank_item}"
-            ]
-            powerlaw_pvalue = df_network_trajectory.loc[
-                day, f"powerlaw p-value {bank_item}"
+            sr_powerlaw = df_network_trajectory.loc[
+                day,
+                [f"powerlaw fit {bank_item}", f"powerlaw alpha {bank_item}"]
+                + [
+                    f"{ind} {benchmark_law} {bank_item}"
+                    for benchmark_law in par.benchmark_laws
+                    for ind in ["powerlaw direction", "powerlaw p-value"]
+                ],
             ]
 
             # plot
-            if not (np.isnan(powerlaw_pvalue)):
+            if not (np.isnan(sr_powerlaw[2])):
                 plot_step_item_powerlaw(
-                    powerlaw_fit,
-                    powerlaw_alpha,
-                    powerlaw_pvalue,
+                    sr_powerlaw,
                     bank_item,
                     f"{path}static/on_day_{day_print}/",
                     figsize=figsize,
@@ -554,9 +552,7 @@ def plot_powerlaw(
 
 
 def plot_step_item_powerlaw(
-    powerlaw_fit,
-    powerlaw_alpha,
-    powerlaw_pvalue,
+    sr_powerlaw,
     bank_item,
     path,
     figsize=par.small_figsize,
@@ -565,41 +561,57 @@ def plot_step_item_powerlaw(
 
     # define the figure and colors
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
-    colors = sns.color_palette("flare", n_colors=3)
+    colors = sns.color_palette("flare", n_colors=5)
 
     # ax1 : pdf
     try:
-        powerlaw_fit.plot_pdf(color=colors[0], ax=ax1)
+        sr_powerlaw[0].plot_pdf(color=colors[0], ax=ax1)
 
     except:
         print(f"bug for {bank_item}")
 
-    powerlaw_fit.power_law.plot_pdf(color=colors[1], linestyle="--", ax=ax1)
-    powerlaw_fit.exponential.plot_pdf(color=colors[2], linestyle="--", ax=ax1)
+    sr_powerlaw[0].power_law.plot_pdf(color=colors[1], linestyle="--", ax=ax1)
+    sr_powerlaw[0].exponential.plot_pdf(
+        color=colors[2], linestyle="--", ax=ax1
+    )
+    sr_powerlaw[0].lognormal.plot_pdf(color=colors[3], linestyle="--", ax=ax1)
+    sr_powerlaw[0].truncated_power_law.plot_pdf(
+        color=colors[4], linestyle="--", ax=ax1
+    )
     if auto_xlabel:
         ax1.set_xlabel(par.df_plt.loc[bank_item, "legend"])
     ax1.set_ylabel("pdf")
     ax1.grid()
 
     # ax2 : ccdf
-    powerlaw_fit.plot_ccdf(color=colors[0], ax=ax2)
-    powerlaw_fit.power_law.plot_ccdf(color=colors[1], linestyle="--", ax=ax2)
-    powerlaw_fit.exponential.plot_ccdf(color=colors[2], linestyle="--", ax=ax2)
+    sr_powerlaw[0].plot_ccdf(color=colors[0], ax=ax2)
+    sr_powerlaw[0].power_law.plot_ccdf(color=colors[1], linestyle="--", ax=ax2)
+    sr_powerlaw[0].exponential.plot_ccdf(
+        color=colors[2], linestyle="--", ax=ax2
+    )
+    sr_powerlaw[0].lognormal.plot_ccdf(color=colors[3], linestyle="--", ax=ax2)
+    sr_powerlaw[0].truncated_power_law.plot_ccdf(
+        color=colors[4], linestyle="--", ax=ax2
+    )
     if auto_xlabel:
         ax2.set_xlabel(par.df_plt.loc[bank_item, "legend"])
     ax2.set_ylabel("ccdf")
     ax2.grid()
 
     # legend
-    powerlaw_alpha_fm = "{:.1f}".format(powerlaw_alpha)
-    powerlaw_pvalue_fm = "{:.1f}".format(powerlaw_pvalue)
+    powerlaw_alpha_fm = "{:.1f}".format(sr_powerlaw[1])
+    labels = ["data", r"power law fit, $\alpha =$" + f"{powerlaw_alpha_fm}"]
+    for benchmark_law in par.benchmark_laws:
+        R_fm = "{:.1f}".format(
+            sr_powerlaw.loc[f"powerlaw direction {benchmark_law} {bank_item}"]
+        )
+        p_fm = "{:.2f}".format(
+            sr_powerlaw.loc[f"powerlaw p-value {benchmark_law} {bank_item}"]
+        )
+        labels.append(f"{benchmark_law}, R={R_fm}, p-value ={p_fm}")
+
     ax2.legend(
-        [
-            "data",
-            r"power law fit, $\alpha =$"
-            + f"{powerlaw_alpha_fm}, p-value = {powerlaw_pvalue_fm}",
-            "exponential",
-        ],
+        labels,
         loc="upper left",
         bbox_to_anchor=(1.0, 1.0),
     )
@@ -1017,14 +1029,14 @@ def plot_collateral_reuse(
         plt.close()
 
 
-def plot_dyn_powerlaw_tranverse(df_powerlaw, path, figsize=par.small_figsize):
+def plot_dyn_powerlaw_tranverse(df_powerlaw_neg, df_powerlaw_pos, path):
 
-    bank_ids = list(set([ind.split(" ")[0] for ind in df_powerlaw.index]))
+    bank_ids = list(set([ind.split(" ")[0] for ind in df_powerlaw_neg.index]))
     extensions = [" abs. var.", " rel. var.", " var over tot. assets"]
     indexes = [
         fct.list_intersection(
             [f"{bank_id}{extension}" for bank_id in bank_ids],
-            list(df_powerlaw.index),
+            list(df_powerlaw_neg.index),
         )
         for extension in extensions
     ]
@@ -1032,42 +1044,48 @@ def plot_dyn_powerlaw_tranverse(df_powerlaw, path, figsize=par.small_figsize):
     # need to define the position of each bank with an int
     df_ticks = pd.Series(index=bank_ids, data=range(len(bank_ids)))
 
-    for col in df_powerlaw.columns:
+    fig, arr_ax = plt.subplots(2, 2, figsize=(6, 6))
 
-        fig, ax = plt.subplots(figsize=figsize)
-        colors = sns.color_palette("flare", n_colors=len(extensions))
+    for j, df_powerlaw in enumerate([df_powerlaw_neg, df_powerlaw_pos]):
 
-        for i, (index, ext) in enumerate(zip(indexes, extensions)):
+        axs = arr_ax[:, j]
 
-            xticks_labels = [ind.split(" ")[0] for ind in index]
+        for i, col in enumerate(df_powerlaw.columns):
 
-            plt.plot(
-                df_ticks.loc[
-                    [ind.split(" ")[0] for ind in df_powerlaw.loc[index].index]
-                ],
-                df_powerlaw.loc[index, col],
-                ".",
-                color=colors[i],
+            colors = sns.color_palette("flare", n_colors=len(extensions))
+
+            for k, (index, ext) in enumerate(zip(indexes, extensions)):
+
+                xticks_labels = [ind.split(" ")[0] for ind in index]
+
+                axs[i].plot(
+                    df_ticks.loc[
+                        [
+                            ind.split(" ")[0]
+                            for ind in df_powerlaw.loc[index].index
+                        ]
+                    ],
+                    df_powerlaw.loc[index, col],
+                    ".",
+                    color=colors[k],
+                )
+
+            axs[i].xticks(rotation=90)
+
+            axs[i].xlabel("bank ids")
+            axs[i].ylabel(f"{col}")
+
+            axs[i].yscale("log")
+            axs[i].grid()
+
+            axs[i].legend(
+                extensions,
+                loc="best",
+                bbox_to_anchor=(1.0, 1.0),
             )
 
-        plt.xticks(rotation=90)
-
-        plt.xlabel("bank ids")
-        plt.ylabel(f"{col}")
-
-        plt.yscale("log")
-        plt.grid()
-
-        plt.legend(
-            extensions,
-            loc="upper left",
-            bbox_to_anchor=(1.0, 1.0),
-        )
-
-        # save fig
-        plt.savefig(
-            f"{path}dyn_powerlaw_{col}.pdf",
-            bbox_inches="tight",
-        )
-
-        plt.close()
+    # save fig
+    plt.savefig(
+        f"{path}deposits_variations.pdf",
+        bbox_inches="tight",
+    )

@@ -856,6 +856,7 @@ def get_df_finrep_clean(df_finrep, path):
     df_finrep_clean["qdate"] = df_finrep_clean.apply(app_func, axis=1)
 
     if path:
+        os.makedirs(f"{path}pickle/", exist_ok=True)
         df_finrep_clean.to_csv(f"{path}pickle/df_finrep_clean.csv")
         pickle.dump(
             df_finrep_clean,

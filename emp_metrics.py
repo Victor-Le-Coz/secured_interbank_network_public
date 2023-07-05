@@ -423,27 +423,39 @@ def get_exposure_stats(arr_rev_repo_exp_adj, days, path=False):
 
 def step_item_powerlaw(sr_data):
 
+    sr_powerlaw = pd.Series(
+        index=["powerlaw fit", "powerlaw alpha"]
+        + [
+            f"{ind} {benchmark_law}"
+            for ind in ["powerlaw direction", "powerlaw p-value"]
+            for benchmark_law in par.benchmark_laws
+        ]
+    )
+
     # at least 2 data points required with non negligeable size
     if (len(sr_data.dropna()) > 1) and (sr_data.abs().sum() > par.float_limit):
 
         # fit the data with the powerlaw librairy
         powerlaw_fit = powerlaw.Fit(sr_data.dropna())
+        sr_powerlaw.loc[f"powerlaw fit"] = powerlaw_fit
 
         # retrieve the alpha and p-value
-        powerlaw_alpha = powerlaw_fit.power_law.alpha
-        R, powerlaw_pvalue = powerlaw_fit.distribution_compare(
-            "power_law", "exponential"
-        )
+        sr_powerlaw.loc[
+            f"powerlaw alpha"
+        ] = powerlaw_fit.truncated_power_law.alpha
+
+        for benchmark_law in par.benchmark_laws:
+            R, p = powerlaw_fit.distribution_compare(
+                "truncated_power_law", benchmark_law, normalized_ratio=True
+            )
+            sr_powerlaw.loc[f"powerlaw direction {benchmark_law}"] = R
+            sr_powerlaw.loc[f"powerlaw p-value {benchmark_law}"] = p
 
     # fill with nan otherwise
     else:
-        powerlaw_fit = np.nan
-        powerlaw_alpha = np.nan
-        powerlaw_pvalue = np.nan
+        sr_powerlaw = pd.Series()
 
-    fits = [powerlaw_fit, powerlaw_alpha, powerlaw_pvalue]
-
-    return fits
+    return sr_powerlaw
 
 
 def get_powerlaw(
@@ -461,9 +473,9 @@ def get_powerlaw(
         columns=[
             f"{metric} {bank_item}"
             for metric in [
-                "powerlaw fit",
-                "powerlaw alpha",
-                "powerlaw p-value",
+                f"{ind} {benchmark_law}"
+                for ind in ["powerlaw direction", "powerlaw p-value"]
+                for benchmark_law in par.benchmark_laws
             ]
             for bank_item in list(dic_dashed_trajectory.values())[0].columns
         ],
@@ -482,10 +494,19 @@ def get_powerlaw(
         df = df_banks.mask(df_banks <= 0)
 
         for bank_item in df.columns:
-            fits = step_item_powerlaw(df[bank_item])
-            df_powerlaw.loc[day, f"powerlaw fit {bank_item}"] = fits[0]
-            df_powerlaw.loc[day, f"powerlaw alpha {bank_item}"] = fits[1]
-            df_powerlaw.loc[day, f"powerlaw p-value {bank_item}"] = fits[2]
+            sr_powerlaw = step_item_powerlaw(df[bank_item])
+            df_powerlaw.loc[
+                day, f"powerlaw fit {bank_item}"
+            ] = sr_powerlaw.loc["powerlaw fit"]
+            df_powerlaw.loc[
+                day, f"powerlaw alpha {bank_item}"
+            ] = sr_powerlaw.loc["powerlaw alpha"]
+
+            for ind in ["powerlaw direction", "powerlaw p-value"]:
+                for benchmark_law in par.benchmark_laws:
+                    df_powerlaw.loc[
+                        day, f"{ind} {benchmark_law} {bank_item}"
+                    ] = sr_powerlaw.loc[f"{ind} {benchmark_law}"]
 
     if path:
         os.makedirs(path, exist_ok=True)
@@ -498,31 +519,33 @@ def run_n_plot_powerlaw(df, path, transverse=False):
 
     df_powerlaw = pd.DataFrame(
         index=df.columns,
-        columns=["powerlaw alpha", "powerlaw p-value"],
+        columns=["powerlaw alpha"]
+        + [
+            f"{ind} {benchmark_law}"
+            for ind in ["powerlaw direction", "powerlaw p-value"]
+            for benchmark_law in par.benchmark_laws
+        ],
     )
 
     # loop over the banks
     for col in df.columns:
 
         # get the fits
-        fits = step_item_powerlaw(df[col])
-        df_powerlaw.loc[col] = fits[1:]
+        sr_powerlaw = step_item_powerlaw(df[col])
+        df_powerlaw.loc[col] = sr_powerlaw[1:]
+
+        sr_powerlaw.index = [f"{ind} {col}" for ind in sr_powerlaw.index]
 
         # plot
-        if not (np.isnan(fits[2])):
+        if not (sr_powerlaw.empty):
             gx.plot_step_item_powerlaw(
-                fits[0],
-                fits[1],
-                fits[2],
+                sr_powerlaw,
                 col,
                 path,
             )
 
     os.makedirs(path, exist_ok=True)
     df_powerlaw.to_csv(f"{path}df_powerlaw.csv")
-
-    if transverse:
-        gx.plot_dyn_powerlaw_tranverse(df_powerlaw, f"{path}")
 
 
 def get_df_deposits(df_mmsr_unsecured, dic_dashed_trajectory):

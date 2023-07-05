@@ -1,8 +1,10 @@
 import pandas as pd
 import data_mapping as dm
 
+
 def list_exclusion(list1, list2):
     return [x for x in list1 if x not in set(list2)]
+
 
 # -----------------
 # run features
@@ -50,7 +52,9 @@ other_items = [
     "excess liquidity",
     "total liabilities",
 ]
-finrep_items = list_exclusion(list(dm.dic_finrep_columns.values()),accounting_items+other_items)
+finrep_items = list_exclusion(
+    list(dm.dic_finrep_columns.values()), accounting_items + other_items
+)
 
 # bank items
 bank_items = accounting_items + other_items + finrep_items
@@ -124,7 +128,12 @@ accounting_metrics = [
         False,
     ]
     for metric in bank_items
-    for extension in [" av. network", " tot. network", "", " over total assets"]
+    for extension in [
+        " av. network",
+        " tot. network",
+        "",
+        " over total assets",
+    ]
 ]
 collateral_reuse = [
     "collateral reuse",
@@ -250,15 +259,31 @@ powerlaw_alpha = [
     for bank_item in bank_items
     for extension in ["", " over total assets"]
 ]
+benchmark_laws = ["exponential", "lognormal", "power_law"]
 powerlaw_pvalue = [
     [
-        f"powerlaw p-value {bank_item}{extension}",
-        r"power law p-value",
+        f"powerlaw p-value {benchmark_law} {bank_item}{extension}",
+        r"power law p-value " + benchmark_law,
         f"{bank_item}{extension}",
         "log",
         ".-",
         "",
     ]
+    for benchmark_law in benchmark_laws
+    for bank_item in bank_items
+    for extension in ["", " over total assets"]
+]
+
+powerlaw_direction = [
+    [
+        f"powerlaw direction {benchmark_law} {bank_item}{extension}",
+        r"power law direction " + benchmark_law,
+        f"{bank_item}{extension}",
+        "linear",
+        ".-",
+        "",
+    ]
+    for benchmark_law in benchmark_laws
     for bank_item in bank_items
     for extension in ["", " over total assets"]
 ]
@@ -338,6 +363,7 @@ df_plt = pd.DataFrame(
         *cpnet_pvalue,
         *powerlaw_alpha,
         *powerlaw_pvalue,
+        *powerlaw_direction,
         nb_banks,
         alpha_init,
         alpha,
