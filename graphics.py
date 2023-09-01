@@ -600,7 +600,10 @@ def plot_step_item_powerlaw(
 
     # legend
     powerlaw_alpha_fm = "{:.1f}".format(sr_powerlaw[1])
-    labels = ["data", r"power law fit, $\alpha =$" + f"{powerlaw_alpha_fm}"]
+    labels = [
+        "data",
+        r"trunc power law fit, $\alpha =$" + f"{powerlaw_alpha_fm}",
+    ]
     for benchmark_law in par.benchmark_laws:
         R_fm = "{:.1f}".format(
             sr_powerlaw.loc[f"powerlaw direction {benchmark_law} {bank_item}"]

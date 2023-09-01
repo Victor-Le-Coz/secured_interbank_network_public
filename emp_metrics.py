@@ -515,7 +515,7 @@ def get_powerlaw(
     return df_powerlaw
 
 
-def run_n_plot_powerlaw(df, path, transverse=False):
+def run_n_plot_powerlaw(df, path):
 
     df_powerlaw = pd.DataFrame(
         index=df.columns,

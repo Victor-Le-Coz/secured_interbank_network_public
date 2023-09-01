@@ -784,7 +784,7 @@ def get_dic_dashed_trajectory(df_finrep, path=False):
     for day in plot_days:
 
         df_banks = (
-            df_finrep[df_finrep["qdate"] == plot_days[0]]
+            df_finrep[df_finrep["qdate"] == day]
             .set_index("report_agent_lei")
             .drop("qdate", axis=1)
         )
