@@ -1,0 +1,198 @@
+item,label,legend,scale,style,convertion
+cash av. network,notional (monetary units),cash av. network,linear,,False
+cash tot. network,notional (monetary units),cash tot. network,linear,,False
+cash,notional (monetary units),cash,linear,,False
+cash over total assets,notional (monetary units),cash over total assets,linear,,False
+securities usable av. network,notional (monetary units),securities usable av. network,linear,,False
+securities usable tot. network,notional (monetary units),securities usable tot. network,linear,,False
+securities usable,notional (monetary units),securities usable,linear,,False
+securities usable over total assets,notional (monetary units),securities usable over total assets,linear,,False
+securities encumbered av. network,notional (monetary units),securities encumbered av. network,linear,,False
+securities encumbered tot. network,notional (monetary units),securities encumbered tot. network,linear,,False
+securities encumbered,notional (monetary units),securities encumbered,linear,,False
+securities encumbered over total assets,notional (monetary units),securities encumbered over total assets,linear,,False
+loans av. network,notional (monetary units),loans av. network,linear,,False
+loans tot. network,notional (monetary units),loans tot. network,linear,,False
+loans,notional (monetary units),loans,linear,,False
+loans over total assets,notional (monetary units),loans over total assets,linear,,False
+reverse repo balance av. network,notional (monetary units),reverse repo balance av. network,linear,,False
+reverse repo balance tot. network,notional (monetary units),reverse repo balance tot. network,linear,,False
+reverse repo balance,notional (monetary units),reverse repo balance,linear,,False
+reverse repo balance over total assets,notional (monetary units),reverse repo balance over total assets,linear,,False
+own funds av. network,notional (monetary units),own funds av. network,linear,,False
+own funds tot. network,notional (monetary units),own funds tot. network,linear,,False
+own funds,notional (monetary units),own funds,linear,,False
+own funds over total assets,notional (monetary units),own funds over total assets,linear,,False
+deposits av. network,notional (monetary units),deposits av. network,linear,,False
+deposits tot. network,notional (monetary units),deposits tot. network,linear,,False
+deposits,notional (monetary units),deposits,linear,,False
+deposits over total assets,notional (monetary units),deposits over total assets,linear,,False
+repo balance av. network,notional (monetary units),repo balance av. network,linear,,False
+repo balance tot. network,notional (monetary units),repo balance tot. network,linear,,False
+repo balance,notional (monetary units),repo balance,linear,,False
+repo balance over total assets,notional (monetary units),repo balance over total assets,linear,,False
+central bank funding av. network,notional (monetary units),central bank funding av. network,linear,,False
+central bank funding tot. network,notional (monetary units),central bank funding tot. network,linear,,False
+central bank funding,notional (monetary units),central bank funding,linear,,False
+central bank funding over total assets,notional (monetary units),central bank funding over total assets,linear,,False
+securities collateral av. network,notional (monetary units),securities collateral av. network,linear,,False
+securities collateral tot. network,notional (monetary units),securities collateral tot. network,linear,,False
+securities collateral,notional (monetary units),securities collateral,linear,,False
+securities collateral over total assets,notional (monetary units),securities collateral over total assets,linear,,False
+securities reused av. network,notional (monetary units),securities reused av. network,linear,,False
+securities reused tot. network,notional (monetary units),securities reused tot. network,linear,,False
+securities reused,notional (monetary units),securities reused,linear,,False
+securities reused over total assets,notional (monetary units),securities reused over total assets,linear,,False
+initial deposits av. network,notional (monetary units),initial deposits av. network,linear,,False
+initial deposits tot. network,notional (monetary units),initial deposits tot. network,linear,,False
+initial deposits,notional (monetary units),initial deposits,linear,,False
+initial deposits over total assets,notional (monetary units),initial deposits over total assets,linear,,False
+total assets av. network,notional (monetary units),total assets av. network,linear,,False
+total assets tot. network,notional (monetary units),total assets tot. network,linear,,False
+total assets,notional (monetary units),total assets,linear,,False
+total assets over total assets,notional (monetary units),total assets over total assets,linear,,False
+excess liquidity av. network,notional (monetary units),excess liquidity av. network,linear,,False
+excess liquidity tot. network,notional (monetary units),excess liquidity tot. network,linear,,False
+excess liquidity,notional (monetary units),excess liquidity,linear,,False
+excess liquidity over total assets,notional (monetary units),excess liquidity over total assets,linear,,False
+total liabilities av. network,notional (monetary units),total liabilities av. network,linear,,False
+total liabilities tot. network,notional (monetary units),total liabilities tot. network,linear,,False
+total liabilities,notional (monetary units),total liabilities,linear,,False
+total liabilities over total assets,notional (monetary units),total liabilities over total assets,linear,,False
+total assets av. network,notional (monetary units),total assets av. network,linear,,False
+total assets tot. network,notional (monetary units),total assets tot. network,linear,,False
+total assets,notional (monetary units),total assets,linear,,False
+total assets over total assets,notional (monetary units),total assets over total assets,linear,,False
+securities collateral SHSG av. network,notional (monetary units),securities collateral SHSG av. network,linear,,False
+securities collateral SHSG tot. network,notional (monetary units),securities collateral SHSG tot. network,linear,,False
+securities collateral SHSG,notional (monetary units),securities collateral SHSG,linear,,False
+securities collateral SHSG over total assets,notional (monetary units),securities collateral SHSG over total assets,linear,,False
+securities collateral FINREP av. network,notional (monetary units),securities collateral FINREP av. network,linear,,False
+securities collateral FINREP tot. network,notional (monetary units),securities collateral FINREP tot. network,linear,,False
+securities collateral FINREP,notional (monetary units),securities collateral FINREP,linear,,False
+securities collateral FINREP over total assets,notional (monetary units),securities collateral FINREP over total assets,linear,,False
+collateral reuse,number of reuse (#),number of reuse (#),linear,,False
+gini,gini (%),gini (%),linear,,%
+repo transactions maturity av. network,maturity (days),maturity (days),linear,,False
+repo transactions maturity av. bank,maturity (days),maturity (days),linear,,False
+repo transactions notional av. network,notional (monetary units),notional (monetary units),linear,,False
+repo transactions notional av. bank,notional (monetary units),notional (monetary units),linear,,False
+number repo transactions av. network,Nb transactions (#),Nb transactions (#),linear,,False
+number repo transactions av. bank,Nb transactions (#),Nb transactions (#),linear,,False
+repo exposures min network,notional (monetary units),repo exposures min network,linear,,False
+repo exposures max network,notional (monetary units),repo exposures max network,linear,,False
+repo exposures av. network,notional (monetary units),repo exposures av. network,linear,,False
+jaccard index-1,Jaccard (%),1 day(s),linear,,%
+jaccard index-50,Jaccard (%),50 day(s),linear,,%
+jaccard index-100,Jaccard (%),100 day(s),linear,,%
+jaccard index-250,Jaccard (%),250 day(s),linear,,%
+network density-1,density (%),1 day(s),linear,,%
+network density-50,density (%),50 day(s),linear,,%
+network density-100,density (%),100 day(s),linear,,%
+network density-250,density (%),250 day(s),linear,,%
+degree min network-1,degree (#), min network-1 day(s),linear,,False
+degree max network-1,degree (#), max network-1 day(s),linear,,False
+degree av. network-1,degree (#), av. network-1 day(s),linear,,False
+degree min network-50,degree (#), min network-50 day(s),linear,,False
+degree max network-50,degree (#), max network-50 day(s),linear,,False
+degree av. network-50,degree (#), av. network-50 day(s),linear,,False
+degree min network-100,degree (#), min network-100 day(s),linear,,False
+degree max network-100,degree (#), max network-100 day(s),linear,,False
+degree av. network-100,degree (#), av. network-100 day(s),linear,,False
+degree min network-250,degree (#), min network-250 day(s),linear,,False
+degree max network-250,degree (#), max network-250 day(s),linear,,False
+degree av. network-250,degree (#), av. network-250 day(s),linear,,False
+cpnet p-value KM_ER-1,core-periphery p-value (%),KM_ER-1 day(s),linear,.-,%
+cpnet p-value KM_ER-50,core-periphery p-value (%),KM_ER-50 day(s),linear,.-,%
+cpnet p-value KM_ER-100,core-periphery p-value (%),KM_ER-100 day(s),linear,.-,%
+cpnet p-value KM_ER-250,core-periphery p-value (%),KM_ER-250 day(s),linear,.-,%
+cpnet p-value KM_ER-weighted,core-periphery p-value (%),KM_ER-weighted day(s),linear,.-,%
+cpnet p-value KM_config-1,core-periphery p-value (%),KM_config-1 day(s),linear,.-,%
+cpnet p-value KM_config-50,core-periphery p-value (%),KM_config-50 day(s),linear,.-,%
+cpnet p-value KM_config-100,core-periphery p-value (%),KM_config-100 day(s),linear,.-,%
+cpnet p-value KM_config-250,core-periphery p-value (%),KM_config-250 day(s),linear,.-,%
+cpnet p-value KM_config-weighted,core-periphery p-value (%),KM_config-weighted day(s),linear,.-,%
+cpnet p-value Rombach-1,core-periphery p-value (%),Rombach-1 day(s),linear,.-,%
+cpnet p-value Rombach-50,core-periphery p-value (%),Rombach-50 day(s),linear,.-,%
+cpnet p-value Rombach-100,core-periphery p-value (%),Rombach-100 day(s),linear,.-,%
+cpnet p-value Rombach-250,core-periphery p-value (%),Rombach-250 day(s),linear,.-,%
+cpnet p-value Rombach-weighted,core-periphery p-value (%),Rombach-weighted day(s),linear,.-,%
+cpnet p-value Rossa-1,core-periphery p-value (%),Rossa-1 day(s),linear,.-,%
+cpnet p-value Rossa-50,core-periphery p-value (%),Rossa-50 day(s),linear,.-,%
+cpnet p-value Rossa-100,core-periphery p-value (%),Rossa-100 day(s),linear,.-,%
+cpnet p-value Rossa-250,core-periphery p-value (%),Rossa-250 day(s),linear,.-,%
+cpnet p-value Rossa-weighted,core-periphery p-value (%),Rossa-weighted day(s),linear,.-,%
+cpnet p-value LapCore-1,core-periphery p-value (%),LapCore-1 day(s),linear,.-,%
+cpnet p-value LapCore-50,core-periphery p-value (%),LapCore-50 day(s),linear,.-,%
+cpnet p-value LapCore-100,core-periphery p-value (%),LapCore-100 day(s),linear,.-,%
+cpnet p-value LapCore-250,core-periphery p-value (%),LapCore-250 day(s),linear,.-,%
+cpnet p-value LapCore-weighted,core-periphery p-value (%),LapCore-weighted day(s),linear,.-,%
+cpnet p-value LapSgnCore-1,core-periphery p-value (%),LapSgnCore-1 day(s),linear,.-,%
+cpnet p-value LapSgnCore-50,core-periphery p-value (%),LapSgnCore-50 day(s),linear,.-,%
+cpnet p-value LapSgnCore-100,core-periphery p-value (%),LapSgnCore-100 day(s),linear,.-,%
+cpnet p-value LapSgnCore-250,core-periphery p-value (%),LapSgnCore-250 day(s),linear,.-,%
+cpnet p-value LapSgnCore-weighted,core-periphery p-value (%),LapSgnCore-weighted day(s),linear,.-,%
+cpnet p-value LowRankCore-1,core-periphery p-value (%),LowRankCore-1 day(s),linear,.-,%
+cpnet p-value LowRankCore-50,core-periphery p-value (%),LowRankCore-50 day(s),linear,.-,%
+cpnet p-value LowRankCore-100,core-periphery p-value (%),LowRankCore-100 day(s),linear,.-,%
+cpnet p-value LowRankCore-250,core-periphery p-value (%),LowRankCore-250 day(s),linear,.-,%
+cpnet p-value LowRankCore-weighted,core-periphery p-value (%),LowRankCore-weighted day(s),linear,.-,%
+cpnet p-value MINRES-1,core-periphery p-value (%),MINRES-1 day(s),linear,.-,%
+cpnet p-value MINRES-50,core-periphery p-value (%),MINRES-50 day(s),linear,.-,%
+cpnet p-value MINRES-100,core-periphery p-value (%),MINRES-100 day(s),linear,.-,%
+cpnet p-value MINRES-250,core-periphery p-value (%),MINRES-250 day(s),linear,.-,%
+cpnet p-value MINRES-weighted,core-periphery p-value (%),MINRES-weighted day(s),linear,.-,%
+cpnet p-value Lip-1,core-periphery p-value (%),Lip-1 day(s),linear,.-,%
+cpnet p-value Lip-50,core-periphery p-value (%),Lip-50 day(s),linear,.-,%
+cpnet p-value Lip-100,core-periphery p-value (%),Lip-100 day(s),linear,.-,%
+cpnet p-value Lip-250,core-periphery p-value (%),Lip-250 day(s),linear,.-,%
+cpnet p-value Lip-weighted,core-periphery p-value (%),Lip-weighted day(s),linear,.-,%
+cpnet p-value BE-1,core-periphery p-value (%),BE-1 day(s),linear,.-,%
+cpnet p-value BE-50,core-periphery p-value (%),BE-50 day(s),linear,.-,%
+cpnet p-value BE-100,core-periphery p-value (%),BE-100 day(s),linear,.-,%
+cpnet p-value BE-250,core-periphery p-value (%),BE-250 day(s),linear,.-,%
+cpnet p-value BE-weighted,core-periphery p-value (%),BE-weighted day(s),linear,.-,%
+powerlaw alpha cash,power law alpha,cash,linear,.-,
+powerlaw alpha securities usable,power law alpha,securities usable,linear,.-,
+powerlaw alpha securities encumbered,power law alpha,securities encumbered,linear,.-,
+powerlaw alpha loans,power law alpha,loans,linear,.-,
+powerlaw alpha reverse repo balance,power law alpha,reverse repo balance,linear,.-,
+powerlaw alpha own funds,power law alpha,own funds,linear,.-,
+powerlaw alpha deposits,power law alpha,deposits,linear,.-,
+powerlaw alpha repo balance,power law alpha,repo balance,linear,.-,
+powerlaw alpha central bank funding,power law alpha,central bank funding,linear,.-,
+powerlaw alpha securities collateral,power law alpha,securities collateral,linear,.-,
+powerlaw alpha securities reused,power law alpha,securities reused,linear,.-,
+powerlaw alpha initial deposits,power law alpha,initial deposits,linear,.-,
+powerlaw alpha total assets,power law alpha,total assets,linear,.-,
+powerlaw alpha excess liquidity,power law alpha,excess liquidity,linear,.-,
+powerlaw alpha total liabilities,power law alpha,total liabilities,linear,.-,
+powerlaw alpha total assets,power law alpha,total assets,linear,.-,
+powerlaw alpha securities collateral SHSG,power law alpha,securities collateral SHSG,linear,.-,
+powerlaw alpha securities collateral FINREP,power law alpha,securities collateral FINREP,linear,.-,
+powerlaw p-value cash,power law p-value,cash,log,.-,
+powerlaw p-value securities usable,power law p-value,securities usable,log,.-,
+powerlaw p-value securities encumbered,power law p-value,securities encumbered,log,.-,
+powerlaw p-value loans,power law p-value,loans,log,.-,
+powerlaw p-value reverse repo balance,power law p-value,reverse repo balance,log,.-,
+powerlaw p-value own funds,power law p-value,own funds,log,.-,
+powerlaw p-value deposits,power law p-value,deposits,log,.-,
+powerlaw p-value repo balance,power law p-value,repo balance,log,.-,
+powerlaw p-value central bank funding,power law p-value,central bank funding,log,.-,
+powerlaw p-value securities collateral,power law p-value,securities collateral,log,.-,
+powerlaw p-value securities reused,power law p-value,securities reused,log,.-,
+powerlaw p-value initial deposits,power law p-value,initial deposits,log,.-,
+powerlaw p-value total assets,power law p-value,total assets,log,.-,
+powerlaw p-value excess liquidity,power law p-value,excess liquidity,log,.-,
+powerlaw p-value total liabilities,power law p-value,total liabilities,log,.-,
+powerlaw p-value total assets,power law p-value,total assets,log,.-,
+powerlaw p-value securities collateral SHSG,power law p-value,securities collateral SHSG,log,.-,
+powerlaw p-value securities collateral FINREP,power law p-value,securities collateral FINREP,log,.-,
+nb_banks,"$N$ (#, log scale)","$N$ (#, log scale)",log,,False
+alpha_init,$\alpha_0$ (%),$\alpha_0$ (%),linear,,%
+alpha,$\alpha$ (%),$\alpha$ (%),linear,,%
+beta_init,$\beta_0$ (%),$\beta_0$ (%),linear,,%
+beta_reg,$\beta$ (%),$\beta$ (%),linear,,%
+alpha_pareto,alpha patero (log scale),alpha patero (log scale),log,,
+shocks_vol,"$\sigma$ (%, log scale)","$\sigma$ (%, log scale)",log,,%
+min_repo_trans_size,min repo trans. size (log scale),min repo trans. size (log scale),log,,False

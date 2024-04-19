@@ -2,13 +2,20 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
 .idea/
 results/
 saved_results/
 forceatlas2/
 support/
 /.history/
+/.vscode/
+/__pycache__/
+.ipynb_checkpoints/
+/dask-worker-space/
+/matplotlib-lebxwh_c/
+.history/
+/dask_logs/
+
 
 # C extensions
 *.so
