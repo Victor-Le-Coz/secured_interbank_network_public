@@ -451,9 +451,9 @@ def step_item_powerlaw(sr_data):
             sr_powerlaw.loc[f"powerlaw direction {benchmark_law}"] = R
             sr_powerlaw.loc[f"powerlaw p-value {benchmark_law}"] = p
 
-    # fill with nan otherwise
-    else:
-        sr_powerlaw = pd.Series()
+    # # fill with nan otherwise
+    # else:
+    #     sr_powerlaw = pd.Series(index=["powerlaw fit", "powerlaw alpha"])
 
     return sr_powerlaw
 

@@ -17,6 +17,7 @@ def plot(Dynamics):
     # create paths
     path_results = Dynamics.path_results
     os.makedirs(f"{path_results}accounting_view/static/", exist_ok=True)
+    os.makedirs(f"{path_results}accounting_view/power_law/", exist_ok=True)
     os.makedirs(f"{path_results}transaction_view/", exist_ok=True)
     os.makedirs(f"{path_results}exposure_view/core-periphery/", exist_ok=True)
 

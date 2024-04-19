@@ -57,7 +57,9 @@ finrep_items = list_exclusion(
 )
 
 # bank items
-bank_items = accounting_items + other_items + finrep_items
+# bank_items = accounting_items + other_items + finrep_items # for empirical data
+bank_items = accounting_items + other_items # for empirical data
+
 
 # shocks modeling approaches
 shocks_methods = [
@@ -81,18 +83,18 @@ transaction_cols = ["amount", "start_step", "tenor", "status"]
 
 # core-periphery algorithms: https://github.com/skojaku/core-periphery-detection
 cp_algos = [
-    "KM_ER",  # divide by zero error
-    "KM_config",  # divide by zero error
+    # "KM_ER",  # divide by zero error
+    # "KM_config",  # divide by zero error
     # "Divisive",  # divide by zero error - generates a strange bug, kills the whole computation even with the try except option
-    "Rombach",
-    "Rossa",
-    "LapCore",  # generates bug (scipy.sparse.linalg._eigen.arpack.arpack.ArpackError: ARPACK error 3: No shifts could be applied during a cycle of the Implicitly restarted Arnoldi iteration. One possibility is to increase the size of NCV relative to NEV.)
-    "LapSgnCore",
-    "LowRankCore",  # generates bug (scipy.sparse.linalg._eigen.arpack.arpack.ArpackError: ARPACK error 3: No shifts could be applied during a cycle of the Implicitly restarted Arnoldi iteration. One possibility is to increase the size of NCV relative to NEV.)
-    "MINRES",  # do not take weights into acount
+    # "Rombach",
+    # "Rossa",
+    # "LapCore",  # generates bug (scipy.sparse.linalg._eigen.arpack.arpack.ArpackError: ARPACK error 3: No shifts could be applied during a cycle of the Implicitly restarted Arnoldi iteration. One possibility is to increase the size of NCV relative to NEV.)
+    # "LapSgnCore",
+    # "LowRankCore",  # generates bug (scipy.sparse.linalg._eigen.arpack.arpack.ArpackError: ARPACK error 3: No shifts could be applied during a cycle of the Implicitly restarted Arnoldi iteration. One possibility is to increase the size of NCV relative to NEV.)
+    # "MINRES",  # do not take weights into acount
     # "Surprise",  # do not take weights into acount & too slow
-    "Lip",  # do not take weights into acount
-    "BE",  # do not take weights into acount
+    "Lip",  # do not take weights into acount - The one chosen by LUX !
+    # "BE",  # do not take weights into acount
 ]
 
 # for plots per bank using empirical data
@@ -484,9 +486,14 @@ fig_powerlaw_alpha = [
 fig_powerlaw_pvalue = [
     f"accounting_view/power_law/powerlaw_pvalue",
     [
-        f"powerlaw p-value {bank_item}"  # extensions have normaly a space, here we add it in front of algo (which have no space)
-        for bank_item in bank_items
-    ],
+            f"{metric} {bank_item}"
+            for metric in [
+                f"{ind} {benchmark_law}"
+                for ind in ["powerlaw direction", "powerlaw p-value"]
+                for benchmark_law in benchmark_laws
+            ]
+            for bank_item in bank_items
+        ],
     "",
 ]
 
