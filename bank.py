@@ -552,7 +552,7 @@ class ClassBank:
             )
 
         # Case disjunction: nothing to do if the repo_ask is negative
-        if repo_ask <= 0.0:
+        if repo_ask <= self.Network.min_repo_trans_size:
             return
 
         # While loop over the list of banks that could accept to enter into

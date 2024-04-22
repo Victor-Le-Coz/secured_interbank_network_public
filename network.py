@@ -30,6 +30,7 @@ class ClassNetwork:
         shocks_vol,
         LCR_mgt_opt,
         min_repo_trans_size,
+        notice_period,
     ):
 
         # init path
@@ -57,6 +58,7 @@ class ClassNetwork:
         self.shocks_vol = shocks_vol
         self.LCR_mgt_opt = LCR_mgt_opt
         self.min_repo_trans_size = min_repo_trans_size
+        self.notice_period = notice_period
 
         # (Re)set the network
         self.reset_network()
@@ -250,7 +252,7 @@ class ClassNetwork:
         self.df_banks.to_csv(f"{path}df_banks.csv")
         self.df_rev_repo_trans.to_csv(f"{path}df_reverse_repos.csv")
 
-    def get_df_rev_repo_trans(self):
+    def update_df_rev_repo_trans(self):
 
         # print
         print("get df_rev_repo_trans")
