@@ -489,14 +489,9 @@ class ClassBank:
                     (bank_id, trans_id), "status"
                 ] = False
 
-                # record the maturity of the closed transaction
-                self.df_rev_repo_trans.loc[(bank_id, trans_id), "tenor"] = (
-                    self.Network.step
-                    - self.df_rev_repo_trans.loc[
-                        (bank_id, trans_id), "start_step"
-                    ]
-                )
-
+                # record the step of the closing of the transaction
+                self.df_rev_repo_trans.loc[(bank_id, trans_id), "end_step"] = self.Network.step
+                    
                 # decrease the remaining amount
                 remaining_amount -= self.df_rev_repo_trans.loc[
                     (bank_id, trans_id), "amount"
@@ -511,7 +506,7 @@ class ClassBank:
             if (
                 remaining_amount
                 < self.df_rev_repo_trans.loc[(bank_id, trans_id), "amount"]
-            ):
+            ) and (remaining_amount>self.Network.min_repo_trans_size):
 
                 # create a new transaction with the status closed
                 start_step = self.df_rev_repo_trans.loc[
@@ -520,7 +515,7 @@ class ClassBank:
                 self.df_rev_repo_trans.loc[(bank_id, last_trans_id + 1), :] = [
                     remaining_amount,
                     start_step,
-                    self.Network.step - start_step,
+                    self.Network.step,
                     False,
                 ]
 
@@ -632,7 +627,7 @@ class ClassBank:
             )
 
             repo_ask = rest
-            if rest <= 0.0 or len(bank_list) == 0:
+            if rest <= self.Network.min_repo_trans_size or len(bank_list) == 0:
                 break
 
         # check for errors, in case of conservative shocks and LCR mgt, all repo request should be satisfied
@@ -708,9 +703,8 @@ class ClassBank:
             self.id
         )
 
-        # End the method if the amount that can be lent by the instance of
-        # ClassBank is negative.
-        if reverse_accept <= 0.0:
+        # End the method if the amount that can be lent by the instance of ClassBank is lower than the min_rev_repo_size.
+        if reverse_accept <= self.Network.min_repo_trans_size:
             return amount
 
         # Update all balance sheet items related to the entering into a

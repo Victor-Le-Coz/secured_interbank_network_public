@@ -29,6 +29,7 @@ class ClassNetwork:
         shocks_law,
         shocks_vol,
         LCR_mgt_opt,
+        min_repo_trans_size,
     ):
 
         # init path
@@ -55,6 +56,7 @@ class ClassNetwork:
         self.shocks_law = shocks_law
         self.shocks_vol = shocks_vol
         self.LCR_mgt_opt = LCR_mgt_opt
+        self.min_repo_trans_size = min_repo_trans_size
 
         # (Re)set the network
         self.reset_network()

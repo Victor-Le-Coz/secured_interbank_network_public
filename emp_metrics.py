@@ -341,14 +341,11 @@ def get_transaction_stats(df_rev_repo_trans, extension, days, path=False):
     for step, day in enumerate(tqdm(days[1:]), 1):
 
         # repo transactions maturity av. network
-        df_ending = df_rev_repo_trans[
-            df_rev_repo_trans["tenor"] + df_rev_repo_trans["start_step"]
-            == step - 1
-        ]
+        df_ending = df_rev_repo_trans[df_rev_repo_trans["end_step"] == step - 1]
         if df_ending["amount"].sum() > 0:
             df_transaction_stats.loc[
                 day, f"repo transactions maturity{extension}"
-            ] = (df_ending["amount"] @ df_ending["tenor"]) / df_ending[
+            ] = (df_ending["amount"] @ (df_ending["end_step"]-df_ending["start_step"])) / df_ending[
                 "amount"
             ].sum()
         else:

@@ -76,7 +76,7 @@ initialization_methods = ["constant", "pareto"]
 matrices = ["adjency", "trust", "binary_adjency", "non-zero_adjency"]
 
 # reverse repos
-transaction_cols = ["amount", "start_step", "tenor", "status"]
+transaction_cols = ["amount", "start_step", "end_step", "status"]
 
 # -----------------------
 # miscellaneous parameters

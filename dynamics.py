@@ -20,7 +20,6 @@ class ClassDynamics:
         dump_period,
         plot_period,
         cp_option,
-        min_repo_trans_size,
         heavy_plot,
     ):
         # initialization of the class parameters.
@@ -29,7 +28,7 @@ class ClassDynamics:
         self.path_results = path_results
         self.dump_period = dump_period
         self.cp_option = cp_option
-        self.min_repo_trans_size = min_repo_trans_size
+        
         self.plot_period = plot_period
         self.heavy_plot = heavy_plot
 
@@ -328,10 +327,10 @@ class ClassDynamics:
         for index, row in tqdm(self.Network.df_rev_repo_trans.iterrows()):
 
             # get the tenor (fill by current step if tenor is empty)
-            if np.isnan(row["tenor"]):
+            if np.isnan(row["end_step"]):
                 tenor = self.Network.step - row["start_step"]
             else:
-                tenor = row["tenor"]
+                tenor = row["end_step"] - row["start_step"]
 
             # add the amont of the transaction over its tenor
             for step in range(
@@ -344,7 +343,7 @@ class ClassDynamics:
         # loop over the steps to clean values close to zero (or negative)
         for step in range(self.Network.step + 1):
             self.arr_rev_repo_exp_adj[step][
-                self.arr_rev_repo_exp_adj[step] < self.min_repo_trans_size
+                self.arr_rev_repo_exp_adj[step] < self.Network.min_repo_trans_size
             ] = 0
 
         # save to csv for the plot_steps
@@ -377,7 +376,7 @@ class ClassDynamics:
             self.arr_rev_repo_exp_adj,
             arr_agg_period,
             self.Network.step,
-            self.min_repo_trans_size,
+            self.Network.min_repo_trans_size,
         )
 
         plot_steps = fct.get_plot_steps_from_period(
@@ -458,7 +457,7 @@ class ClassDynamics:
                 f"shock_method={self.Network.shocks_method} \n"
                 f"shocks_law={self.Network.shocks_law} \n"
                 f"shocks_vol={self.Network.shocks_vol} \n"
-                f"min_repo_trans_size={self.min_repo_trans_size} \n"
+                f"min_repo_trans_size={self.Network.min_repo_trans_size} \n"
                 f"nb_steps={self.nb_steps} \n"
                 f"LCR_mgt_opt={self.Network.LCR_mgt_opt} \n"
             )
@@ -508,6 +507,7 @@ def single_run(
         shocks_law=shocks_law,
         shocks_vol=shocks_vol,
         LCR_mgt_opt=LCR_mgt_opt,
+        min_repo_trans_size=min_repo_trans_size,
     )
 
     # initialize ClassDynamics
@@ -518,7 +518,6 @@ def single_run(
         dump_period=dump_period,
         plot_period=plot_period,
         cp_option=cp_option,
-        min_repo_trans_size=min_repo_trans_size,
         heavy_plot=heavy_plot,
     )
 
