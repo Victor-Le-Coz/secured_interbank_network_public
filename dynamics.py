@@ -132,7 +132,7 @@ class ClassDynamics:
         # exposure view & transaction view
 
         # build df_rev_repo_trans bank level data
-        self.Network.get_df_rev_repo_trans()
+        self.Network.update_df_rev_repo_trans()
 
         # build adj matrices from df_rev_repo_trans
         self.build_adj_matrices()

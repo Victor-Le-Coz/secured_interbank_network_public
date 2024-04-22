@@ -47,9 +47,5 @@ dyn.single_run(
     cp_option=True,
     LCR_mgt_opt=False,
     heavy_plot=True,
+    notice_period=0,
 )
-
-# test
-
-# tets
-
