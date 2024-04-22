@@ -551,7 +551,7 @@ class ClassBank:
                 * self.collateral_value,
             )
 
-        # Case disjunction: nothing to do if the repo_ask is negative
+        # Case disjunction: nothing to do if the repo_ask is lowe than the min_repo_trans_size
         if repo_ask <= self.Network.min_repo_trans_size:
             return
 
@@ -577,6 +577,7 @@ class ClassBank:
                 > -par.float_limit
             ), f"{self.__str__()}\nNot Enough Collateral for bank {self.id}"
 
+            # first use the securities usable then the securities collateral
             securities_usable_decrease = min(
                 repo_ask - rest,
                 self.dic_balance_sheet["securities usable"]
