@@ -357,11 +357,10 @@ class ClassBank:
             return
 
         # Definition of the amount of collateral missing to allow the
-        # closing of the reverse repo. We allow the bank self to use its securities usable as the substitute for the securities he received in the first place.
+        # closing of the reverse repo. We do not allow the bank self to use its securities usable as the substitute for the securities he received in the first place.
         missing_collateral = max(
             amount
             - self.dic_balance_sheet["securities collateral"]
-            - self.dic_balance_sheet["securities usable"]
             ,
             0.0,
         )

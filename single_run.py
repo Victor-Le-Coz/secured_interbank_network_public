@@ -29,7 +29,7 @@ dyn.single_run(
     nb_banks=50,
     alpha_init=0.01,  # initial cash (< 1/(1-gamma) - beta)
     alpha=0.01,
-    beta_init=0.5,  # initial collateral  (< 1/(1-gamma) - alpha)
+    beta_init=0.1,  # initial collateral  (< 1/(1-gamma) - alpha)
     beta_reg=0.5,
     beta_star=0.5,
     gamma=0.03,  # if too big, the lux version generates huge shocks
