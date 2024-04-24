@@ -489,7 +489,7 @@ def single_run(
     cp_option,
     LCR_mgt_opt,
     heavy_plot,
-    notice_period,
+    cb_fund_tenor,
 ):
 
     # initialize ClassNetwork
@@ -509,7 +509,7 @@ def single_run(
         shocks_vol=shocks_vol,
         LCR_mgt_opt=LCR_mgt_opt,
         min_repo_trans_size=min_repo_trans_size,
-        notice_period=notice_period,
+        cb_fund_tenor=cb_fund_tenor,
     )
 
     # initialize ClassDynamics

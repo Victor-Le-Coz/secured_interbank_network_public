@@ -30,7 +30,7 @@ class ClassNetwork:
         shocks_vol,
         LCR_mgt_opt,
         min_repo_trans_size,
-        notice_period,
+        cb_fund_tenor,
     ):
 
         # init path
@@ -58,7 +58,7 @@ class ClassNetwork:
         self.shocks_vol = shocks_vol
         self.LCR_mgt_opt = LCR_mgt_opt
         self.min_repo_trans_size = min_repo_trans_size
-        self.notice_period = notice_period
+        self.cb_fund_tenor = cb_fund_tenor
 
         # (Re)set the network
         self.reset_network()
@@ -137,6 +137,10 @@ class ClassNetwork:
 
         # Defines an index of the banks
         index = np.arange(self.nb_banks)
+
+        # loop 0: close the ending ecb funding
+        for bank_id in index:
+            self.banks[bank_id].step_close_matured_trans()
 
         # generate shocks
         arr_shocks = self.generate_shocks()

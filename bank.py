@@ -42,6 +42,7 @@ class ClassBank:
 
         # definition of a dictionary (faster) with the accounting data
         self.dic_balance_sheet = dict.fromkeys(par.accounting_items, 0)
+        self.ar_cbfund_trans = np.zeros(1000) #temp
 
         # definition of the df for storing all reverse repo transactions
         self.df_rev_repo_trans = pd.DataFrame(
@@ -162,17 +163,10 @@ class ClassBank:
             * self.collateral_value
         )
 
-        # Fill-in the Cash, Loans, and Main Refinancing Operations (MROs).
-        # In case of a negative delta cash,
-        # the bank first reimburses its existing central bank funding (MRO)
-        # before granting new loans.
+        # update the cash to meet the LCR constraint: this cash update is related to either a new loans (if delta cash negative) or a cb funding (if cash positive)
         self.dic_balance_sheet["cash"] += delta_cash
-        self.dic_balance_sheet["loans"] += -min(
-            self.dic_balance_sheet["central bank funding"] + delta_cash, 0.0
-        )
-        self.dic_balance_sheet["central bank funding"] = max(
-            self.dic_balance_sheet["central bank funding"] + delta_cash, 0.0
-        )
+        self.dic_balance_sheet["loans"] += -min(delta_cash, 0.0)
+        self.step_central_bank_funding()
 
     def step_end_repos(self):
         """
@@ -647,19 +641,29 @@ class ClassBank:
 
         # Define the amount of repo to be requested (it is a positive amount
         # if there is a liquidity need)
-        MRO_ask = -(
+        cb_funding_ask = -(
             self.dic_balance_sheet["cash"]
             - self.alpha * self.dic_balance_sheet["deposits"]
         )
 
         # Case disjunction: nothing to do if the repo_ask is negative
-        if MRO_ask <= 0.0:
+        if cb_funding_ask <= 0.0:
             return
 
         else:
             # perform a central bank funding
-            self.dic_balance_sheet["central bank funding"] += MRO_ask
-            self.dic_balance_sheet["cash"] += MRO_ask
+            self.dic_balance_sheet["central bank funding"] += cb_funding_ask
+            self.dic_balance_sheet["cash"] += cb_funding_ask
+            self.ar_cbfund_trans[self.Network.step+self.Network.cb_fund_tenor] += cb_funding_ask
+
+    def step_close_matured_trans(self):
+        
+        # compute the maturing amount of cb funding
+        maturing_amount = self.ar_cbfund_trans[self.Network.step]
+
+        # update the balance sheet
+        self.dic_balance_sheet["cash"] -= maturing_amount
+        self.dic_balance_sheet["central bank funding"] -= maturing_amount
 
     def choose_bank(self, bank_list):
         trusts = {}
