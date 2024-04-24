@@ -45,7 +45,7 @@ dyn.single_run(
     dump_period=int(5e2),
     plot_period=int(5e2),
     cp_option=True,
-    LCR_mgt_opt=False,
+    LCR_mgt_opt=True,
     heavy_plot=True,
     notice_period=0,
 )
