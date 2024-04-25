@@ -152,8 +152,7 @@ class ClassBank:
         ClassBank.
         """
         # Definition of the variation of cash required to match the targeted
-        # LCR, this value can be positive or
-        # negative.
+        # LCR, this value can be positive or negative.
         delta_cash = (
             self.beta_star * self.dic_balance_sheet["deposits"]
             - self.dic_balance_sheet["cash"]
@@ -165,8 +164,14 @@ class ClassBank:
 
         # update the cash to meet the LCR constraint: this cash update is related to either a new loans (if delta cash negative) or a cb funding (if cash positive)
         self.dic_balance_sheet["cash"] += delta_cash
+        
+        # if delta cash is negative, provide a loan
         self.dic_balance_sheet["loans"] += -min(delta_cash, 0.0)
-        self.step_central_bank_funding()
+
+        # if delta cash is positive cb funding
+        cb_funding_ask  = max(delta_cash,0.0)
+        self.dic_balance_sheet["central bank funding"] += cb_funding_ask
+        self.ar_cbfund_trans[self.Network.step+self.Network.cb_fund_tenor] += cb_funding_ask
 
     def step_end_repos(self):
         """
