@@ -460,6 +460,7 @@ class ClassDynamics:
                 f"min_repo_trans_size={self.Network.min_repo_trans_size} \n"
                 f"nb_steps={self.nb_steps} \n"
                 f"LCR_mgt_opt={self.Network.LCR_mgt_opt} \n"
+                f"cb_fund_tenor={self.Network.cb_fund_tenor} \n"
             )
 
         # print the parameter to terminal

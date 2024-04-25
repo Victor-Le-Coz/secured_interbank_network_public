@@ -47,5 +47,5 @@ dyn.single_run(
     cp_option=True,
     LCR_mgt_opt=True,
     heavy_plot=True,
-    cb_fund_tenor=10,
+    cb_fund_tenor=0,
 )
