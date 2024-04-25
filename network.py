@@ -469,7 +469,7 @@ class ClassNetwork:
                     self.df_banks["initial deposits"]
                     - self.df_banks["deposits"]
                 )
-                + epsilon * self.df_banks["total assets"]
+                + epsilon * self.df_banks["deposits"]
             )
 
             # center the shocks

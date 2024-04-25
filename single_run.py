@@ -29,7 +29,7 @@ dyn.single_run(
     nb_banks=50,
     alpha_init=0.01,  # initial cash (< 1/(1-gamma) - beta)
     alpha=0.01,
-    beta_init=0.5,  # initial collateral  (< 1/(1-gamma) - alpha)
+    beta_init=0.05,  # initial collateral  (< 1/(1-gamma) - alpha)
     beta_reg=0.5,
     beta_star=0.5,
     gamma=0.03,  # if too big, the lux version generates huge shocks
@@ -45,7 +45,7 @@ dyn.single_run(
     dump_period=int(5e2),
     plot_period=int(5e2),
     cp_option=True,
-    LCR_mgt_opt=True,
+    LCR_mgt_opt=False,
     heavy_plot=True,
-    cb_fund_tenor=0,
+    cb_fund_tenor=10,
 )
