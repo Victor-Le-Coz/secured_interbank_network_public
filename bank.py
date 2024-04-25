@@ -574,7 +574,7 @@ class ClassBank:
                 > -par.float_limit
             ), f"{self.__str__()}\nNot Enough Collateral for bank {self.id}"
 
-            # first use the securities collateral then the securities re-used
+            # first use the securities collateral then the securities usable
             securities_collateral_decrease = min(
                 repo_ask - rest,
                 self.dic_balance_sheet["securities collateral"]
