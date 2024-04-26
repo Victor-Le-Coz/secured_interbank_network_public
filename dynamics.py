@@ -216,20 +216,22 @@ class ClassDynamics:
                 self.df_network_trajectory.loc[step, cols] = df_cpnet.loc[step]
 
         # expost powerlaw
-        df_powerlaw = em.get_powerlaw(
-            dic_dashed_trajectory=self.dic_dashed_trajectory,
-            days=days,
-            plot_period=self.plot_period,
-        )
         if self.heavy_plot:
+            df_powerlaw = em.get_powerlaw(
+                dic_dashed_trajectory=self.dic_dashed_trajectory,
+                days=days,
+                plot_period=self.plot_period,
+            )
             cols = df_powerlaw.columns
         else:  # not save all columns if there is no need (spare memory)
             cols = [plot_char[0] for plot_char in par.powerlaw_pvalue] + [
                 plot_char[0] for plot_char in par.powerlaw_alpha
-            ]
+            ] + [plot_char[0] for plot_char in par.powerlaw_direction]
+        
         self.df_network_trajectory[cols] = None
-        for step in df_powerlaw.index:
-            self.df_network_trajectory.loc[step, cols] = df_powerlaw.loc[step]
+        if self.heavy_plot:
+            for step in df_powerlaw.index:
+                self.df_network_trajectory.loc[step, cols] = df_powerlaw.loc[step]
 
         # --------------
         # III - transaction view
