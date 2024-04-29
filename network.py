@@ -82,6 +82,9 @@ class ClassNetwork:
             index=range(self.nb_banks), columns=par.bank_items
         )
 
+        # initialise the dictionary of all the rev repo chains
+        self.chains_rev_repo = []
+
         # Definition of the value of the collateral
         self.collateral_value = 1.0
 
@@ -150,9 +153,10 @@ class ClassNetwork:
                 self.banks[bank_id].step_lcr_mgt()
 
         # loop 2: end repo
-        index = np.random.permutation(index)  # permutation
-        for bank_id in index:
-            self.banks[bank_id].step_end_repos()
+        if self.step % 50 == 0:
+            index = np.random.permutation(index)  # permutation
+            for bank_id in index:
+                self.banks[bank_id].step_end_repos()
 
         # loop 3: enter repo
         index = np.random.permutation(index)  # permutation
@@ -169,6 +173,111 @@ class ClassNetwork:
 
         # new step of the network
         self.step += 1
+
+    def are_already_in_a_chain(self,lender,borrower):
+        output  = False
+        for chain in self.chains_rev_repo:
+            if lender in chain and borrower in chain:
+                output = True
+        return output
+
+    def add_rev_repo_to_chains(self,lender,borrower):
+        "Adds a repo transaction to the list of all the existing chains in the network"
+        
+        # init
+        new_chains = []
+        lender_and_borrower_in_no_chain = True
+
+        # loop on the chains 
+        for chain in self.chains_rev_repo:
+
+            # do nothing if the borrower and the lender are in a chain
+            if lender in chain and borrower in chain:
+                return None
+
+            # complete the chain if the lender is at the end or the borrower at the begining of a given chain 
+            elif lender==chain[-1]:
+                lender_and_borrower_in_no_chain = False
+                chain.append(borrower)
+            elif borrower==chain[0]:
+                lender_and_borrower_in_no_chain = False
+                chain.insert(0,lender)
+
+            # otherwise record the case where the lender or the borrwer (but not the two) are in a chain while avoiding duplicates 
+            else: 
+                if lender in chain:
+                    lender_and_borrower_in_no_chain = False
+                    pos = chain.index(lender)
+                    new_chain = chain[:pos+1]
+                    new_chain.append(borrower)
+                    if new_chain not in new_chains:
+                        new_chains.append(new_chain)
+
+                if borrower in chain:
+                    lender_and_borrower_in_no_chain = False
+                    pos = chain.index(borrower)
+                    new_chain = chain[pos:]
+                    new_chain.insert(0,lender)
+                    if new_chain not in new_chains:
+                        new_chains.append(new_chain)
+
+
+        # need to create the new chains previously recorded without duplicate 
+        for new_chain in new_chains:
+            self.chains_rev_repo.append(new_chain)
+
+        # need to create a new chain if neither the borrower nor the lender are in any chain 
+        if lender_and_borrower_in_no_chain:
+            self.chains_rev_repo.append([lender,borrower])
+
+    #### warning: need to check if the balance between the banks is empty first #####
+    def remove_rev_repo_from_chains(self, lender,borrower):
+        
+        # init
+        new_chains_rev_repo = self.chains_rev_repo.copy()
+        chains_with_lender = []
+        chains_with_borrower = []
+        downstream_chains = []
+        upstream_chains = []
+
+        # loop over all chains 
+        for chain in self.chains_rev_repo:
+
+            # look for chains with the pair sequence
+            if lender in chain and borrower in chain:
+
+                # if the two are in a chain they must be subsequent (otherwise a loop exists!)
+                i = chain.index(lender)
+
+                # build the two sub-chains
+                downstream_chain = chain[:i+1]
+                upstream_chain = chain[i+1:]
+
+                # add them to the list of sub-chains 
+                if len(downstream_chain)>1 and downstream_chain not in downstream_chains:
+                    downstream_chains.append(downstream_chain)
+                if len(upstream_chain)>1 and upstream_chain not in upstream_chains:
+                    upstream_chains.append(upstream_chain)
+                
+                # remove this chain from the chains list 
+                new_chains_rev_repo.remove(chain)
+            
+            # record all the chain in which the lender apears
+            elif lender in chain and borrower not in chain:
+                chains_with_lender.append(chain)
+            
+            # record all the chain in which the borrower apears
+            if borrower in chain and lender not in chain:
+                chains_with_borrower.append(chain)
+
+        # add new chains if the lender (res. borrower) is not already part of a chain
+        if not(chains_with_lender):
+            new_chains_rev_repo += downstream_chains
+        if not(chains_with_borrower):
+            new_chains_rev_repo += upstream_chains
+
+        # define the new list of chains 
+        self.chains_rev_repo = new_chains_rev_repo 
 
     def check_constraints(self):
         self.check_balance_sheet()

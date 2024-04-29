@@ -343,14 +343,10 @@ class ClassBank:
     def end_reverse_repo(self, bank_id, amount):
         """
         Instance method allowing a instance of the ClassBank self, to close
-        its reverse repo with the bank bank_id,
-        upon request of of this latter. This instance method calls
-        recursively the end_repos method with the missing
-        amount of collateral to be provided back.
+        its reverse repo with the bank bank_id upon request of of this latter. This instance method calls recursively the end_repos method with the missing amount of collateral to be provided back.
         :param bank_id: identifier of the bank requesting to close its
         repo for a given amount.
         :param amount: amount requested to be closed.
-        :return:
         """
 
         if amount <= 0.0:
@@ -445,6 +441,10 @@ class ClassBank:
             amount / self.collateral_value
         )
 
+        # update the chains if the remaining amount is negligeable 
+        if self.rev_repo_exp[bank_id] < par.float_limit:
+            self.Network.remove_rev_repo_from_chains(self.id,bank_id)
+
         # update df_reverse_repos
         # initialize the list of trans_ids with status == True
         trans_ids = self.df_rev_repo_trans.loc[bank_id][
@@ -453,24 +453,24 @@ class ClassBank:
 
         # case with an issue (no solution yet, just print the issue and a warning)
         if len(trans_ids) == 0:
-            self.df_rev_repo_trans.to_csv(
-                f"./support/errors/{self.id}_df_reverse_repo_err.csv"
-            )
-            pickle.dump(
-                self.banks[bank_id].on_repo_exp,
-                open(
-                    f"./support/errors/{bank_id}_on_balance_repos.pickle", "wb"
-                ),
-                protocol=pickle.HIGHEST_PROTOCOL,
-            )
-            pickle.dump(
-                self.banks[bank_id].off_repo_exp,
-                open(
-                    f"./support/errors/{bank_id}_off_balance_repos.pickle",
-                    "wb",
-                ),
-                protocol=pickle.HIGHEST_PROTOCOL,
-            )
+            # self.df_rev_repo_trans.to_csv(
+            #     f"./support/errors/{self.id}_df_reverse_repo_err.csv"
+            # )
+            # pickle.dump(
+            #     self.banks[bank_id].on_repo_exp,
+            #     open(
+            #         f"./support/errors/{bank_id}_on_balance_repos.pickle", "wb"
+            #     ),
+            #     protocol=pickle.HIGHEST_PROTOCOL,
+            # )
+            # pickle.dump(
+            #     self.banks[bank_id].off_repo_exp,
+            #     open(
+            #         f"./support/errors/{bank_id}_off_balance_repos.pickle",
+            #         "wb",
+            #     ),
+            #     protocol=pickle.HIGHEST_PROTOCOL,
+            # )
             print(
                 "WARNING: df_reverse_repo and on_balance_repo/off_balance_repos do not match !"
             )
@@ -676,8 +676,7 @@ class ClassBank:
     def enter_reverse_repo(self, bank_id, amount):
         """
         Instance method allowing the instance of the ClassBank to enter into
-        a reverse repo with bank bank_id,
-        upon request of this latter.
+        a reverse repo with bank bank_id upon request of this latter.
         :param self: the bank bank_id requesting a repo.
         :param bank_id: the bank that requests the repo
         :param amount: the amount of cash requested.
@@ -685,13 +684,17 @@ class ClassBank:
         bank_id
         """
 
-        #  A bank does not accept to enter into a reverse repo if
-        # it has still repos, it means it is not in excess of cash.
-        if (
-            sum(self.on_repo_exp.values()) + sum(self.off_repo_exp.values())
-            > 0.0
-        ):
+        # opt: A bank does not accept to enter into a reverse repo if he is already somewhere is the collateral chain
+        if self.Network.are_already_in_a_chain(self.id,bank_id):
             return amount
+        
+        # # opt: A bank does not accept to enter in to a reverse if he has borrowings (existing repos)
+        # if (
+        #     sum(self.on_repo_exp.values()) + sum(self.off_repo_exp.values())
+        #     > 0.0
+        # ):
+        #     return amount
+
 
         reverse_accept = max(
             self.dic_balance_sheet["cash"]
@@ -729,6 +732,9 @@ class ClassBank:
             np.NaN,
             True,
         ]
+
+        # fill chains_rev_repo
+        self.Network.add_rev_repo_to_chains(self.id,bank_id)
 
         # Return the remaining amount of repo to the requested by the bank
         # bank_id

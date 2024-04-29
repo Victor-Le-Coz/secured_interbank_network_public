@@ -10,6 +10,9 @@ import parameters as par
 import emp_preprocessing as ep
 import emp_metrics as em
 
+from warnings import simplefilter 
+
+simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
 class ClassDynamics:
     def __init__(
@@ -228,7 +231,8 @@ class ClassDynamics:
                 plot_char[0] for plot_char in par.powerlaw_alpha
             ] + [plot_char[0] for plot_char in par.powerlaw_direction]
         
-        self.df_network_trajectory[cols] = None
+        self.df_network_trajectory[cols] = pd.DataFrame(index=range(self.nb_steps),columns=cols)
+        
         if self.heavy_plot:
             for step in df_powerlaw.index:
                 self.df_network_trajectory.loc[step, cols] = df_powerlaw.loc[step]
@@ -464,9 +468,9 @@ class ClassDynamics:
                 f"LCR_mgt_opt={self.Network.LCR_mgt_opt} \n"
             )
 
-        # print the parameter to terminal
-        with open(f"{self.path_results}input_parameters.txt", "r") as f:
-            print(f.read())
+        # # print the parameter to terminal
+        # with open(f"{self.path_results}input_parameters.txt", "r") as f:
+        #     print(f.read())
 
 
 def single_run(
@@ -527,3 +531,5 @@ def single_run(
 
     # simulate
     dynamics.simulate()
+
+    return Network
