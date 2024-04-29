@@ -311,11 +311,7 @@ class ClassBank:
 
             if end > 0.0:
 
-                # The bank id b must close its reverse repo with the bank
-                # agent self, the instance method
-                # end_reverse_repo calls recursively the end_repos method
-                # for the bank b in case this latter would
-                # not own sufficient colletral to end its reverse repo.
+                # The bank id b must close its reverse repo with the bank agent self, the instance method end_reverse_repo calls recursively the end_repos method for the bank b in case this latter would not own sufficient colletral to end its reverse repo.
                 self.banks[b].end_reverse_repo(self.id, end)
 
                 self.dic_balance_sheet["cash"] -= end
@@ -453,26 +449,26 @@ class ClassBank:
 
         # case with an issue (no solution yet, just print the issue and a warning)
         if len(trans_ids) == 0:
-            # self.df_rev_repo_trans.to_csv(
-            #     f"./support/errors/{self.id}_df_reverse_repo_err.csv"
-            # )
-            # pickle.dump(
-            #     self.banks[bank_id].on_repo_exp,
-            #     open(
-            #         f"./support/errors/{bank_id}_on_balance_repos.pickle", "wb"
-            #     ),
-            #     protocol=pickle.HIGHEST_PROTOCOL,
-            # )
-            # pickle.dump(
-            #     self.banks[bank_id].off_repo_exp,
-            #     open(
-            #         f"./support/errors/{bank_id}_off_balance_repos.pickle",
-            #         "wb",
-            #     ),
-            #     protocol=pickle.HIGHEST_PROTOCOL,
-            # )
+            self.df_rev_repo_trans.to_csv(
+                f"./support/errors/{self.id}_df_reverse_repo_err.csv"
+            )
+            pickle.dump(
+                self.banks[bank_id].on_repo_exp,
+                open(
+                    f"./support/errors/{bank_id}_on_balance_repos.pickle", "wb"
+                ),
+                protocol=pickle.HIGHEST_PROTOCOL,
+            )
+            pickle.dump(
+                self.banks[bank_id].off_repo_exp,
+                open(
+                    f"./support/errors/{bank_id}_off_balance_repos.pickle",
+                    "wb",
+                ),
+                protocol=pickle.HIGHEST_PROTOCOL,
+            )
             print(
-                "WARNING: df_reverse_repo and on_balance_repo/off_balance_repos do not match !"
+                f"WARNING: df_reverse_repo and on_balance_repo/off_balance_repos do not match ! for lender {self.id} and borrower {bank_id} for the amount {amount}"
             )
 
         if len(trans_ids) > 0:
@@ -524,9 +520,9 @@ class ClassBank:
                     (bank_id, trans_id), "amount"
                 ] -= remaining_amount
 
-        # Once a reverse repo is ended, there is an excess liquidity which
-        # requires closing the own repos of the bank self
-        self.step_end_repos()
+        # # Once a reverse repo is ended, there is an excess liquidity which
+        # # requires closing the own repos of the bank self
+        # self.step_end_repos()
 
     def step_enter_repos(self):
         """

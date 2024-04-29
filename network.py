@@ -153,7 +153,7 @@ class ClassNetwork:
                 self.banks[bank_id].step_lcr_mgt()
 
         # loop 2: end repo
-        if self.step % 50 == 0:
+        if self.step % 20 == 0:
             index = np.random.permutation(index)  # permutation
             for bank_id in index:
                 self.banks[bank_id].step_end_repos()
