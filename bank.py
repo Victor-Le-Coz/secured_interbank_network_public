@@ -352,32 +352,25 @@ class ClassBank:
         if amount <= 0.0:
             return
 
-        # Definition of the amount of collateral missing to allow the
-        # closing of the reverse repo. We do not allow the bank
-        # self to use its securities usable as the substitute for the
-        # securities he received in the first place.
+        # Definition of the amount of collateral missing to allow the closing of the reverse repo. We allow the bank self to use its securities usable as the substitute for the securities she received in the first place
         missing_collateral = max(
             amount
-            - self.dic_balance_sheet["securities collateral"]
-            * self.collateral_value,
+            - self.dic_balance_sheet["securities collateral"] - self.dic_balance_sheet["securities usable"],
             0.0,
         )
 
-        # Recursive calling of the missing amount of collateral through the
-        # ending of the own repos of the bank agent.
+        # Recursive calling of the missing amount of collateral through the ending of the own repos of the bank agent.
         self.end_repos(missing_collateral)
 
         # Recompute the missing amount of collateral after the end of the
         # recursive algorithm.
         missing_collateral = max(
             amount
-            - self.dic_balance_sheet["securities collateral"]
-            * self.collateral_value,
+            - self.dic_balance_sheet["securities collateral"] - self.dic_balance_sheet["securities usable"],
             0.0,
         )
 
-        # Assert if the recursive algorithm worked adequately, otherwise
-        # print an error
+        # Assert if the recursive algorithm worked adequately, otherwise print an error
         assert missing_collateral <= par.float_limit, (
             self.__str__() + "\nBank {} has not enough collateral to end "
             "its reverse repo with bank {}, missing "
@@ -388,9 +381,7 @@ class ClassBank:
             )
         )
 
-        # Update all the required balance sheet items by the closing of the
-        # reverse repo. The bank self use only its securities collateral to
-        # end its reverse repo.
+        # Update all the required balance sheet items by the closing of the reverse repo.
 
         assert not (
             self.dic_balance_sheet["securities reused"] > par.float_limit
@@ -437,12 +428,20 @@ class ClassBank:
         self.dic_balance_sheet["cash"] += amount
         self.dic_balance_sheet["reverse repo balance"] -= amount
         self.rev_repo_exp[bank_id] -= amount
-        self.dic_balance_sheet["securities collateral"] -= (
-            amount / self.collateral_value
-        )
-        self.off_repo_exp
 
-        # update of the chains moved in the end repos function
+        amount_col_part = min(self.dic_balance_sheet["securities collateral"],amount)
+        amount_usable_part = max(amount - amount_col_part,0.0)
+
+        self.dic_balance_sheet["securities collateral"] -= amount_col_part
+
+        # substitution 
+        self.dic_balance_sheet["securities usable"] -= amount_usable_part
+        self.dic_balance_sheet["securities encumbered"] += amount_usable_part
+        self.dic_balance_sheet["securities reused"] -= amount_usable_part
+
+        # first use the securities collateral 
+        amount_col_part = min(self.dic_balance_sheet["securities collateral"],amount)
+        amount_usable_part = amount - amount_col_part
 
         # update df_reverse_repos
         # initialize the list of trans_ids with status == True
@@ -687,9 +686,9 @@ class ClassBank:
         bank_id
         """
 
-        # opt: A bank does not accept to enter into a reverse repo if he is already somewhere is the collateral chain (need to check that the usable of the bank borrowing cash are not sufficient so that reuse will be done)
-        if self.Network.are_already_in_a_chain(self.id,bank_id) and (self.banks[bank_id].dic_balance_sheet["securities usable"] < amount):
-            return amount
+        # # opt: A bank does not accept to enter into a reverse repo if he is already somewhere is the collateral chain (need to check that the usable of the bank borrowing cash are not sufficient so that reuse will be done)
+        # if self.Network.are_already_in_a_chain(self.id,bank_id) and (self.banks[bank_id].dic_balance_sheet["securities usable"] < amount):
+        #     return amount
         
         # # opt: A bank does not accept to enter in to a reverse if he has borrowings (existing repos)
         # if (
@@ -697,6 +696,8 @@ class ClassBank:
         #     > 0.0
         # ):
         #     return amount
+
+        # we allow for loops 
 
 
         reverse_accept = max(

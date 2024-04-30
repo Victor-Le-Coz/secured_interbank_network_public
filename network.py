@@ -82,8 +82,11 @@ class ClassNetwork:
             index=range(self.nb_banks), columns=par.bank_items
         )
 
-        # initialise the dictionary of all the rev repo chains
+        # initialise the list of all the rev repo chains
         self.chains_rev_repo = []
+
+        # initialise the list of all the rev repo loops
+        self.loops_rev_repo = []
 
         # Definition of the value of the collateral
         self.collateral_value = 1.0
@@ -191,9 +194,10 @@ class ClassNetwork:
         # loop on the chains 
         for chain in self.chains_rev_repo:
 
-            # do nothing if the borrower and the lender are in a chain
+            # record a loop if the borrower and the lender are in a chain
             if lender in chain and borrower in chain:
-                return None
+                new_loop = chain[chain.index(lender):chain.index(borrower)]
+                self.loops_rev_repo.append()
 
             # complete the chain if the lender is at the end or the borrower at the begining of a given chain 
             elif lender==chain[-1]:
