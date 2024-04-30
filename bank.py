@@ -264,6 +264,10 @@ class ClassBank:
 
                 self.off_repo_exp[b] -= end
 
+                # update the chains if the remaining amount is negligeable (only for repo with reuse)
+                if self.off_repo_exp[b] < par.float_limit:
+                    self.Network.remove_rev_repo_from_chains(b,self.id)
+
                 # # when the off balance repo is below some limit, we set the value of the exposure to 0
                 # if self.off_repo_exp[b] < par.float_limit:
                 #     self.off_repo_exp[b] = 0
@@ -436,10 +440,9 @@ class ClassBank:
         self.dic_balance_sheet["securities collateral"] -= (
             amount / self.collateral_value
         )
+        self.off_repo_exp
 
-        # update the chains if the remaining amount is negligeable 
-        if self.rev_repo_exp[bank_id] < par.float_limit:
-            self.Network.remove_rev_repo_from_chains(self.id,bank_id)
+        # update of the chains moved in the end repos function
 
         # update df_reverse_repos
         # initialize the list of trans_ids with status == True
@@ -547,7 +550,7 @@ class ClassBank:
                 * self.collateral_value,
             )
 
-        # Case disjunction: nothing to do if the repo_ask is lowe than the min_repo_trans_size
+        # Case disjunction: nothing to do if the repo_ask is lower than the min_repo_trans_size
         if repo_ask <= self.Network.min_repo_trans_size:
             return
 
@@ -561,6 +564,10 @@ class ClassBank:
             bank_list.remove(b)
             rest = self.banks[b].enter_reverse_repo(self.id, repo_ask)
             self.update_learning(b, (repo_ask - rest) / repo_ask)
+            
+            # fill chains_rev_repo with reuse (need to check that the usable of the bank borrowing cash are not sufficient so that reuse will be done)
+            if self.dic_balance_sheet["securities usable"] < repo_ask - rest:
+                self.Network.add_rev_repo_to_chains(b,self.id)
 
             # Test if the bank agent owns enough collateral to enter
             # into this repo
@@ -680,8 +687,8 @@ class ClassBank:
         bank_id
         """
 
-        # opt: A bank does not accept to enter into a reverse repo if he is already somewhere is the collateral chain
-        if self.Network.are_already_in_a_chain(self.id,bank_id):
+        # opt: A bank does not accept to enter into a reverse repo if he is already somewhere is the collateral chain (need to check that the usable of the bank borrowing cash are not sufficient so that reuse will be done)
+        if self.Network.are_already_in_a_chain(self.id,bank_id) and (self.banks[bank_id].dic_balance_sheet["securities usable"] < amount):
             return amount
         
         # # opt: A bank does not accept to enter in to a reverse if he has borrowings (existing repos)
@@ -729,8 +736,7 @@ class ClassBank:
             True,
         ]
 
-        # fill chains_rev_repo
-        self.Network.add_rev_repo_to_chains(self.id,bank_id)
+        # update of the chains moved in the entre repos function
 
         # Return the remaining amount of repo to the requested by the bank
         # bank_id
