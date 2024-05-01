@@ -31,6 +31,7 @@ class ClassNetwork:
         LCR_mgt_opt,
         min_repo_trans_size,
         notice_period,
+        end_repo_period,
     ):
 
         # init path
@@ -59,6 +60,7 @@ class ClassNetwork:
         self.LCR_mgt_opt = LCR_mgt_opt
         self.min_repo_trans_size = min_repo_trans_size
         self.notice_period = notice_period
+        self.end_repo_period = end_repo_period
 
         # (Re)set the network
         self.reset_network()
@@ -156,7 +158,7 @@ class ClassNetwork:
                 self.banks[bank_id].step_lcr_mgt()
 
         # loop 2: end repo
-        if self.step % 3 == 0:
+        if self.step % 10 == 0:
             index = np.random.permutation(index)  # permutation
             for bank_id in index:
                 self.banks[bank_id].step_end_repos()

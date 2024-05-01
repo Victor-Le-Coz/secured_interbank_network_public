@@ -466,6 +466,7 @@ class ClassDynamics:
                 f"min_repo_trans_size={self.Network.min_repo_trans_size} \n"
                 f"nb_steps={self.nb_steps} \n"
                 f"LCR_mgt_opt={self.Network.LCR_mgt_opt} \n"
+                f"end_repo_period={self.Network.end_repo_period}"
             )
 
         # # print the parameter to terminal
@@ -496,6 +497,7 @@ def single_run(
     LCR_mgt_opt,
     heavy_plot,
     notice_period,
+    end_repo_period,
 ):
 
     # initialize ClassNetwork
@@ -516,6 +518,7 @@ def single_run(
         LCR_mgt_opt=LCR_mgt_opt,
         min_repo_trans_size=min_repo_trans_size,
         notice_period=notice_period,
+        end_repo_period=end_repo_period,
     )
 
     # initialize ClassDynamics
