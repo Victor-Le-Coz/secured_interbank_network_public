@@ -82,8 +82,11 @@ class ClassNetwork:
             index=range(self.nb_banks), columns=par.bank_items
         )
 
-        # initialise the dictionary of all the rev repo chains
+        # initialise the chain of all the rev repo chains
         self.chains_rev_repo = []
+
+        # initialise the chain of all the rev repo loops
+        self.loops_rev_repo = []
 
         # Definition of the value of the collateral
         self.collateral_value = 1.0
@@ -153,7 +156,7 @@ class ClassNetwork:
                 self.banks[bank_id].step_lcr_mgt()
 
         # loop 2: end repo
-        if self.step % 60 == 0:
+        if self.step % 3 == 0:
             index = np.random.permutation(index)  # permutation
             for bank_id in index:
                 self.banks[bank_id].step_end_repos()
@@ -174,11 +177,12 @@ class ClassNetwork:
         # new step of the network
         self.step += 1
 
-    def are_already_in_a_chain(self,lender,borrower):
+    def will_create_a_loop(self,lender,borrower):
         output  = False
         for chain in self.chains_rev_repo:
             if lender in chain and borrower in chain:
-                output = True
+                if chain.index(lender) > chain.index(borrower):
+                    output = True
         return output
 
     def add_rev_repo_to_chains(self,lender,borrower):
@@ -191,9 +195,22 @@ class ClassNetwork:
         # loop on the chains 
         for chain in self.chains_rev_repo:
 
-            # do nothing if the borrower and the lender are in a chain
+            # check if both lender and borroer are in the chain (risk of loop)
             if lender in chain and borrower in chain:
-                return None
+                lender_pos = chain.index(lender)
+                borrower_pos = chain.index(borrower)
+
+                # no loop if the new transaction is in the same direction
+                if lender_pos < borrower_pos:
+                    new_chain = chain[:lender_pos+1] + chain[borrower_pos:]
+                    if new_chain not in new_chains:
+                        new_chains.append(new_chain)
+                
+                # we have a loop otherwise
+                elif lender_pos > borrower_pos:
+                    new_loop = chain[borrower_pos:lender_pos+1]
+                    if new_loop not in self.loops_rev_repo:
+                        self.loops_rev_repo.append(new_loop)
 
             # complete the chain if the lender is at the end or the borrower at the begining of a given chain 
             elif lender==chain[-1]:
@@ -574,7 +591,7 @@ class ClassNetwork:
                     self.df_banks["initial deposits"]
                     - self.df_banks["deposits"]
                 )
-                + epsilon * self.df_banks["total assets"]
+                + epsilon * self.df_banks["deposits"]
             )
 
             # center the shocks

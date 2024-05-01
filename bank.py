@@ -688,7 +688,7 @@ class ClassBank:
         """
 
         # opt: A bank does not accept to enter into a reverse repo if he is already somewhere is the collateral chain (need to check that the usable of the bank borrowing cash are not sufficient so that reuse will be done)
-        if self.Network.are_already_in_a_chain(self.id,bank_id) and (self.banks[bank_id].dic_balance_sheet["securities usable"] < amount):
+        if self.Network.will_create_a_loop(self.id,bank_id) and (self.banks[bank_id].dic_balance_sheet["securities usable"] < amount):
             return amount
         
         # # opt: A bank does not accept to enter in to a reverse if he has borrowings (existing repos)
