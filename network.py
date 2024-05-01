@@ -166,7 +166,7 @@ class ClassNetwork:
         # loop 3: enter repo
         index = np.random.permutation(index)  # permutation
         for bank_id in index:
-            self.banks[bank_id].step_enter_repos()
+            self.banks[bank_id].enter_repos()
             if not (self.conservative_shock) or not (self.LCR_mgt_opt):
                 self.banks[bank_id].step_central_bank_funding()
 

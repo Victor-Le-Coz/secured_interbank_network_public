@@ -516,7 +516,7 @@ class ClassBank:
         # # requires closing the own repos of the bank self
         # self.step_end_repos()
 
-    def step_enter_repos(self):
+    def enter_repos(self):
         """
         Instance method allowing an instance of ClassBank to enter into a
         series of repo to meet its liquidity needs.
