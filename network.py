@@ -84,7 +84,7 @@ class ClassNetwork:
             index=range(self.nb_banks), columns=par.bank_items
         )
 
-        # initialise the chain of all the rev repo chains
+        # initialise the list of all the rev repo chains
         self.chains_rev_repo = []
 
         # initialise the chain of all the rev repo loops
