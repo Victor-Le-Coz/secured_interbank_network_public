@@ -158,7 +158,7 @@ class ClassNetwork:
                 self.banks[bank_id].lcr_mgt()
 
         # loop 2: end repo
-        if self.step % 10 == 0:
+        if self.step % self.end_repo_period == 0:
             index = np.random.permutation(index)  # permutation
             for bank_id in index:
                 self.banks[bank_id].step_end_repos()
