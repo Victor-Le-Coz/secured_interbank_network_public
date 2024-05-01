@@ -131,21 +131,11 @@ class ClassBank:
                 self.off_repo_exp[bank.id] = 0.0
                 self.banks[bank.id] = bank
 
-    def step_set_shock(self, shock):
+    def set_shock(self, shock):
         self.dic_balance_sheet["deposits"] += shock
         self.dic_balance_sheet["cash"] += shock
 
-    def set_collateral(self, collateral_value):
-        """
-        Instance method updating the value of the collateral of an instance
-        of ClassBank.
-        :param collateral_value:
-        :param shock: shock applied
-        :return:
-        """
-        self.collateral_value = collateral_value
-
-    def step_lcr_mgt(self):
+    def lcr_mgt(self):
         """
         Instance method updating the cash, loans, and MROs of an instance of
         ClassBank.
@@ -643,38 +633,6 @@ class ClassBank:
                 " for the amount {}".format(self.id, repo_ask)
             )
 
-    def step_central_bank_funding(self):
-        """
-        In case shocks are non conversative banks may request cash to the central bank as a last resort when there is not enough cash available on the repo market.
-        In case of absence of CB funding for LCR management, banks may request cash to the central bank as a last resort when there is not enough collateral available for performing repos.
-        """
-
-        # Define the amount of repo to be requested (it is a positive amount
-        # if there is a liquidity need)
-        MRO_ask = -(
-            self.dic_balance_sheet["cash"]
-            - self.alpha * self.dic_balance_sheet["deposits"]
-        )
-
-        # Case disjunction: nothing to do if the repo_ask is negative
-        if MRO_ask <= 0.0:
-            return
-
-        else:
-            # perform a central bank funding
-            self.dic_balance_sheet["central bank funding"] += MRO_ask
-            self.dic_balance_sheet["cash"] += MRO_ask
-
-    def choose_bank(self, bank_list):
-        trusts = {}
-        for b in bank_list:
-            trusts[b] = self.trust[b]
-        return max(trusts, key=trusts.get)
-
-    def update_learning(self, bank, value):
-        # Lux's approach: creates a trust between 0 and 1, when value is between 0 and 1, deacing in power 2 toward 0 in case value is 0, converging in power 2 toward 1 in case value is 1
-        self.trust[bank] = self.trust[bank] + 0.5 * (value - self.trust[bank])
-
     def enter_reverse_repo(self, bank_id, amount):
         """
         Instance method allowing the instance of the ClassBank to enter into
@@ -743,6 +701,38 @@ class ClassBank:
         # bank_id
         return max(amount - reverse_accept, 0.0)
 
+    def step_central_bank_funding(self):
+        """
+        In case shocks are non conversative banks may request cash to the central bank as a last resort when there is not enough cash available on the repo market.
+        In case of absence of CB funding for LCR management, banks may request cash to the central bank as a last resort when there is not enough collateral available for performing repos.
+        """
+
+        # Define the amount of repo to be requested (it is a positive amount
+        # if there is a liquidity need)
+        MRO_ask = -(
+            self.dic_balance_sheet["cash"]
+            - self.alpha * self.dic_balance_sheet["deposits"]
+        )
+
+        # Case disjunction: nothing to do if the repo_ask is negative
+        if MRO_ask <= 0.0:
+            return
+
+        else:
+            # perform a central bank funding
+            self.dic_balance_sheet["central bank funding"] += MRO_ask
+            self.dic_balance_sheet["cash"] += MRO_ask
+
+    def choose_bank(self, bank_list):
+        trusts = {}
+        for b in bank_list:
+            trusts[b] = self.trust[b]
+        return max(trusts, key=trusts.get)
+
+    def update_learning(self, bank, value):
+        # Lux's approach: creates a trust between 0 and 1, when value is between 0 and 1, deacing in power 2 toward 0 in case value is 0, converging in power 2 toward 1 in case value is 1
+        self.trust[bank] = self.trust[bank] + 0.5 * (value - self.trust[bank])
+
     def total_assets(self):
         """
         Instance method computing the total assets of an instance of ClassBank.
@@ -757,74 +747,6 @@ class ClassBank:
         :return:
         """
         return sum(self.dic_balance_sheet.values())
-
-    def __str__(self):
-        """
-        Instance method allowing to print the full balance sheet of an
-        instance of ClassBank.
-        :return:
-        """
-
-        p_str = """Bank {}\r
-        ----------------------------------------\r
-        Total Assets: {}\r
-        ----Cash: {}\r
-        ----Securities Usable: {}\r
-        ----Securities Encumbered: {}\r
-        ----Reverse Repos: {}\r
-        ----Loans: {}\r
-        ----------------------------------------\r
-        Total Liabilities: {}\r
-        ----Own Funds: {}\r
-        ----Deposits: {}\r
-        ----Repos: {}\r
-        ----MROs: {}\r
-        ----------------------------------------\r
-        Off-balance sheet Items:\r
-        ----Collateral received: {}\r
-        ----Collateral Reuse: {}\r
-        ----------------------------------------\r
-        Regulatory:\r
-        ----Liquidity Coverage Ratio: {}%\r
-        ----Cash / Deposits (for minimal reserves): {}%\r
-        ----Leverage / Solvency ratio: {}%\r
-        """
-        p_str = p_str.format(
-            self.id,
-            round(self.total_assets(), 2),
-            round(self.dic_balance_sheet["cash"], 2),
-            round(
-                self.dic_balance_sheet["securities usable"]
-                * self.collateral_value,
-                2,
-            ),
-            round(
-                self.dic_balance_sheet["securities encumbered"]
-                * self.collateral_value,
-                2,
-            ),
-            round(self.dic_balance_sheet["reverse repo balance"], 2),
-            round(self.dic_balance_sheet["loans"], 2),
-            round(self.total_liabilities(), 2),
-            round(self.dic_balance_sheet["own funds"], 2),
-            round(self.dic_balance_sheet["deposits"], 2),
-            round(self.dic_balance_sheet["repo balance"], 2),
-            round(self.dic_balance_sheet["central bank funding"], 2),
-            round(
-                self.dic_balance_sheet["securities collateral"]
-                * self.collateral_value,
-                2,
-            ),
-            round(
-                self.dic_balance_sheet["securities reused"]
-                * self.collateral_value,
-                2,
-            ),
-            round(self.liquidity_coverage_ratio() * 100, 2),
-            round(self.cash_to_deposits() * 100, 2),
-            round(self.leverage_ratio() * 100, 2),
-        )
-        return p_str
 
     def liquidity_coverage_ratio(self):
         """
@@ -977,3 +899,73 @@ class ClassBank:
 
     def store_df_reverse_repos(self, path):
         self.df_rev_repo_trans.to_csv(f"{path}df_reverse_repos.csv")
+
+    
+    def __str__(self):
+        """
+        Instance method allowing to print the full balance sheet of an
+        instance of ClassBank.
+        :return:
+        """
+
+        p_str = """Bank {}\r
+        ----------------------------------------\r
+        Total Assets: {}\r
+        ----Cash: {}\r
+        ----Securities Usable: {}\r
+        ----Securities Encumbered: {}\r
+        ----Reverse Repos: {}\r
+        ----Loans: {}\r
+        ----------------------------------------\r
+        Total Liabilities: {}\r
+        ----Own Funds: {}\r
+        ----Deposits: {}\r
+        ----Repos: {}\r
+        ----MROs: {}\r
+        ----------------------------------------\r
+        Off-balance sheet Items:\r
+        ----Collateral received: {}\r
+        ----Collateral Reuse: {}\r
+        ----------------------------------------\r
+        Regulatory:\r
+        ----Liquidity Coverage Ratio: {}%\r
+        ----Cash / Deposits (for minimal reserves): {}%\r
+        ----Leverage / Solvency ratio: {}%\r
+        """
+        p_str = p_str.format(
+            self.id,
+            round(self.total_assets(), 2),
+            round(self.dic_balance_sheet["cash"], 2),
+            round(
+                self.dic_balance_sheet["securities usable"]
+                * self.collateral_value,
+                2,
+            ),
+            round(
+                self.dic_balance_sheet["securities encumbered"]
+                * self.collateral_value,
+                2,
+            ),
+            round(self.dic_balance_sheet["reverse repo balance"], 2),
+            round(self.dic_balance_sheet["loans"], 2),
+            round(self.total_liabilities(), 2),
+            round(self.dic_balance_sheet["own funds"], 2),
+            round(self.dic_balance_sheet["deposits"], 2),
+            round(self.dic_balance_sheet["repo balance"], 2),
+            round(self.dic_balance_sheet["central bank funding"], 2),
+            round(
+                self.dic_balance_sheet["securities collateral"]
+                * self.collateral_value,
+                2,
+            ),
+            round(
+                self.dic_balance_sheet["securities reused"]
+                * self.collateral_value,
+                2,
+            ),
+            round(self.liquidity_coverage_ratio() * 100, 2),
+            round(self.cash_to_deposits() * 100, 2),
+            round(self.leverage_ratio() * 100, 2),
+        )
+        return p_str
+

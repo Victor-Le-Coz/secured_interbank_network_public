@@ -152,10 +152,10 @@ class ClassNetwork:
         # loop 1: apply shock & lcr mgt
         for bank_id in index:
             # set the shocks (linear)
-            self.banks[bank_id].step_set_shock(arr_shocks[bank_id])
+            self.banks[bank_id].set_shock(arr_shocks[bank_id])
             # LCR mgt (linear)
             if self.LCR_mgt_opt:
-                self.banks[bank_id].step_lcr_mgt()
+                self.banks[bank_id].lcr_mgt()
 
         # loop 2: end repo
         if self.step % 10 == 0:
