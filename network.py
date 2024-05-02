@@ -173,8 +173,8 @@ class ClassNetwork:
         index = np.random.permutation(index)  # permutation
         for bank_id in index:
             self.banks[bank_id].enter_repos()
-            if not (self.conservative_shock) or not (self.LCR_mgt_opt):
-                self.banks[bank_id].step_central_bank_funding()
+            # if not (self.conservative_shock) or not (self.LCR_mgt_opt):
+            #     self.banks[bank_id].step_central_bank_funding()
 
         # # loop 4: fill df_banks and dic matrices
         self.fill_step_df_banks()
