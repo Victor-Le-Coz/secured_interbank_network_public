@@ -101,7 +101,7 @@ class ClassBank:
         )
 
         # The Own-funds are set to match the leverage ratio.
-        gamma_init = 0.065
+        gamma_init = 2*self.gamma
         self.dic_balance_sheet["own funds"] = (
             gamma_init / (1.0 - gamma_init)
         ) * self.dic_balance_sheet["deposits"]
