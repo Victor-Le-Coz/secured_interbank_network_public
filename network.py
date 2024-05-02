@@ -10,7 +10,7 @@ import pandas as pd
 import parameters as par
 from scipy import stats
 import functions as fct
-
+from sys import exit
 
 class ClassNetwork:
     def __init__(
@@ -157,11 +157,17 @@ class ClassNetwork:
             if self.LCR_mgt_opt:
                 self.banks[bank_id].lcr_mgt()
 
-        # loop 2: end repo
-        if self.step % self.end_repo_period == 0:
-            index = np.random.permutation(index)  # permutation
-            for bank_id in index:
-                self.banks[bank_id].step_end_repos()
+        # loop 2
+        # # opt 1: periodic end repo
+        # if self.step % self.end_repo_period == 0:
+        #     index = np.random.permutation(index)  # permutation
+        #     for bank_id in index:
+        #         self.banks[bank_id].step_end_repos()
+
+        # opt 2 : leverage mngt
+        index = np.random.permutation(index)  # permutation
+        for bank_id in index:
+            self.banks[bank_id].leverage_mgt()
 
         # loop 3: enter repo
         index = np.random.permutation(index)  # permutation

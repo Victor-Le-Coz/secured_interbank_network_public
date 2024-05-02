@@ -101,8 +101,9 @@ class ClassBank:
         )
 
         # The Own-funds are set to match the leverage ratio.
+        gamma_init = 0.065
         self.dic_balance_sheet["own funds"] = (
-            self.gamma / (1.0 - self.gamma)
+            gamma_init / (1.0 - gamma_init)
         ) * self.dic_balance_sheet["deposits"]
 
         # The loans are set to match the assets and liabilities.
@@ -163,6 +164,16 @@ class ClassBank:
         self.dic_balance_sheet["central bank funding"] = max(
             self.dic_balance_sheet["central bank funding"] + delta_cash, 0.0
         )
+
+    def leverage_mgt(self):
+
+        # true version (issue with the increasing loans)
+        if self.dic_balance_sheet["own funds"] - self.gamma * self.leverage_exposure() < 0.0:
+            self.step_end_repos()
+
+        # # temporary version
+        # if self.dic_balance_sheet["repo balance"] - 0.5 * self.leverage_exposure() > 0.0:
+        #     self.step_end_repos()
 
     def step_end_repos(self):
         """
@@ -254,9 +265,9 @@ class ClassBank:
 
                 self.off_repo_exp[b] -= end
 
-                # update the chains if the remaining amount is negligeable (only for repo with reuse)
-                if self.off_repo_exp[b] < par.float_limit:
-                    self.Network.remove_rev_repo_from_chains(b,self.id)
+                # # update the chains if the remaining amount is negligeable (only for repo with reuse)
+                # if self.off_repo_exp[b] < par.float_limit:
+                #     self.Network.remove_rev_repo_from_chains(b,self.id)
 
                 # # when the off balance repo is below some limit, we set the value of the exposure to 0
                 # if self.off_repo_exp[b] < par.float_limit:
@@ -554,9 +565,9 @@ class ClassBank:
             rest = self.banks[b].enter_reverse_repo(self.id, repo_ask)
             self.update_learning(b, (repo_ask - rest) / repo_ask)
             
-            # fill chains_rev_repo with reuse (need to check that the usable of the bank borrowing cash are not sufficient so that reuse will be done)
-            if self.dic_balance_sheet["securities usable"] < repo_ask - rest:
-                self.Network.add_rev_repo_to_chains(b,self.id)
+            # # fill chains_rev_repo with reuse (need to check that the usable of the bank borrowing cash are not sufficient so that reuse will be done)
+            # if self.dic_balance_sheet["securities usable"] < repo_ask - rest:
+            #     self.Network.add_rev_repo_to_chains(b,self.id)
 
             # Test if the bank agent owns enough collateral to enter
             # into this repo
@@ -644,9 +655,9 @@ class ClassBank:
         bank_id
         """
 
-        # opt: A bank does not accept to enter into a reverse repo if he is already somewhere is the collateral chain (need to check that the usable of the bank borrowing cash are not sufficient so that reuse will be done)
-        if self.Network.will_create_a_loop(self.id,bank_id) and (self.banks[bank_id].dic_balance_sheet["securities usable"] < amount):
-            return amount
+        # # opt: A bank does not accept to enter into a reverse repo if he is already somewhere is the collateral chain (need to check that the usable of the bank borrowing cash are not sufficient so that reuse will be done)
+        # if self.Network.will_create_a_loop(self.id,bank_id) and (self.banks[bank_id].dic_balance_sheet["securities usable"] < amount):
+        #     return amount
 
         # opt: we allow for loops 
 
@@ -772,33 +783,15 @@ class ClassBank:
     def leverage_exposure(self):
         """
         Instance method computing the denominator of the leverage ratio of
-        an instance of ClassBank. In case of
-        absence of counterparty credit risk the leverage exposure is exactly
-        the total assets. Here we do not model
-        the bilateral agreements allowing to net short and long exposure
-        between counterparties exchanging repos in
-        both directions.
-        :return:
+        an instance of ClassBank. In case of absence of counterparty credit risk the leverage exposure is exactly the total assets.
+        Here we do not model the bilateral agreements allowing to net short and long exposure between counterparties exchanging repos in both directions.
         """
-        ltsr = (
-            self.dic_balance_sheet["cash"]
+        leverage_exposure = (self.dic_balance_sheet["cash"]
             + self.dic_balance_sheet["securities usable"]
-            * self.collateral_value
             + self.dic_balance_sheet["securities encumbered"]
-            * self.collateral_value
             + self.dic_balance_sheet["loans"]
-            + self.dic_balance_sheet["reverse repo balance"]
-            # counterparty credit risk exposure, non zero only if the
-            # collateral value is dynamic
-            + (
-                self.dic_balance_sheet["reverse repo balance"]
-                - self.dic_balance_sheet["securities collateral"]
-                * self.collateral_value
-                - self.dic_balance_sheet["securities reused"]
-                * self.collateral_value
-            )
-        )
-        return ltsr
+            + self.dic_balance_sheet["reverse repo balance"])
+        return leverage_exposure
 
     def leverage_ratio(self):
         """
