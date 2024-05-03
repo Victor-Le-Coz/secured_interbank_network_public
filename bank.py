@@ -143,9 +143,7 @@ class ClassBank:
         Instance method updating the cash, loans, and MROs of an instance of
         ClassBank.
         """
-        # Definition of the variation of cash required to match the targeted
-        # LCR, this value can be positive or
-        # negative.
+        # Definition of the variation of cash required to minimize the LCR, this value can be positive or negative.
         delta_cash = (
             self.beta_star * self.dic_balance_sheet["deposits"]
             - self.dic_balance_sheet["cash"]
@@ -154,6 +152,14 @@ class ClassBank:
             - self.dic_balance_sheet["securities collateral"]
             * self.collateral_value
         )
+
+        # this value must not be more negative than the one used to meet minimum reserves (it can be if securities are in excess)
+        delta_cash_reserve = (
+            self.alpha * self.dic_balance_sheet["deposits"]
+            - self.dic_balance_sheet["cash"]
+        )
+        if delta_cash < 0.0:
+            delta_cash = max(delta_cash,delta_cash_reserve)
 
         # Fill-in the Cash, Loans, and Main Refinancing Operations (MROs).
         # In case of a negative delta cash,
