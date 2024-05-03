@@ -80,6 +80,8 @@ class ClassBank:
         )  # Dictionary of the instances of the ClassBank class existing in
         # the ClassNetwork class.
 
+        self.dic_loans_steps_closing = {} # dictionary associating the the step at which loans will be closed to the closing amount
+
         # Run each of the
         self.initialize_balance_sheet()
 
@@ -158,12 +160,14 @@ class ClassBank:
         # the bank first reimburses its existing central bank funding (MRO)
         # before granting new loans.
         self.dic_balance_sheet["cash"] += delta_cash
-        self.dic_balance_sheet["loans"] += -min(
-            self.dic_balance_sheet["central bank funding"] + delta_cash, 0.0
-        )
+        loan_amount  = -min(self.dic_balance_sheet["central bank funding"] + delta_cash, 0.0)
+        self.dic_balance_sheet["loans"] += loan_amount
         self.dic_balance_sheet["central bank funding"] = max(
             self.dic_balance_sheet["central bank funding"] + delta_cash, 0.0
         )
+
+        # record the step and amount for the close of the loan
+        self.dic_loans_steps_closing.update({self.Network.step+self.Network.loan_tenor:loan_amount})
 
     def leverage_mgt(self):
 
@@ -736,6 +740,11 @@ class ClassBank:
     def update_learning(self, bank, value):
         # Lux's approach: creates a trust between 0 and 1, when value is between 0 and 1, deacing in power 2 toward 0 in case value is 0, converging in power 2 toward 1 in case value is 1
         self.trust[bank] = self.trust[bank] + 0.5 * (value - self.trust[bank])
+
+    def close_maturing_loans(self):
+        if self.Network.step in self.dic_loans_steps_closing:
+            self.dic_balance_sheet["cash"] += self.dic_loans_steps_closing[self.Network.step]
+            self.dic_balance_sheet["loans"] -= self.dic_loans_steps_closing[self.Network.step]
 
     def total_assets(self):
         """
