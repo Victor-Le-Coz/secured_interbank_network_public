@@ -30,7 +30,7 @@ class ClassNetwork:
         shocks_vol,
         LCR_mgt_opt,
         min_repo_trans_size,
-        notice_period,
+        loan_tenor,
         end_repo_period,
     ):
 
@@ -59,7 +59,7 @@ class ClassNetwork:
         self.shocks_vol = shocks_vol
         self.LCR_mgt_opt = LCR_mgt_opt
         self.min_repo_trans_size = min_repo_trans_size
-        self.notice_period = notice_period
+        self.loan_tenor = loan_tenor
         self.end_repo_period = end_repo_period
 
         # (Re)set the network
@@ -149,8 +149,11 @@ class ClassNetwork:
         # generate shocks
         arr_shocks = self.generate_shocks()
 
-        # loop 1: apply shock & lcr mgt
+        # loop 1: close maturing loans, apply shock and lcr mgt
         for bank_id in index:
+
+            # close loans
+            self.banks[bank_id].close_maturing_loans()
             # set the shocks (linear)
             self.banks[bank_id].set_shock(arr_shocks[bank_id])
             # LCR mgt (linear)
@@ -173,8 +176,8 @@ class ClassNetwork:
         index = np.random.permutation(index)  # permutation
         for bank_id in index:
             self.banks[bank_id].enter_repos()
-            if not (self.conservative_shock) or not (self.LCR_mgt_opt):
-                self.banks[bank_id].step_central_bank_funding()
+            # if not (self.conservative_shock) or not (self.LCR_mgt_opt):
+            #     self.banks[bank_id].step_central_bank_funding()
 
         # # loop 4: fill df_banks and dic matrices
         self.fill_step_df_banks()
