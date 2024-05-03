@@ -138,6 +138,11 @@ class ClassBank:
         self.dic_balance_sheet["deposits"] += shock
         self.dic_balance_sheet["cash"] += shock
 
+    def set_money_creation(self,amount):
+        self.dic_balance_sheet["loans"] += amount
+        self.dic_balance_sheet["deposits"] += amount 
+        self.dic_loans_steps_closing.update({self.step:amount})
+
     def lcr_mgt(self):
         """
         Instance method updating the cash, loans, and MROs of an instance of
@@ -153,27 +158,12 @@ class ClassBank:
             * self.collateral_value
         )
 
-        # this value must not be more negative than the one used to meet minimum reserves (it can be if securities are in excess)
-        delta_cash_reserve = (
-            self.alpha * self.dic_balance_sheet["deposits"]
-            - self.dic_balance_sheet["cash"]
-        )
-        if delta_cash < 0.0:
-            delta_cash = max(delta_cash,delta_cash_reserve)
-
-        # Fill-in the Cash, Loans, and Main Refinancing Operations (MROs).
-        # In case of a negative delta cash,
-        # the bank first reimburses its existing central bank funding (MRO)
-        # before granting new loans.
-        self.dic_balance_sheet["cash"] += delta_cash
-        loan_amount  = -min(self.dic_balance_sheet["central bank funding"] + delta_cash, 0.0)
-        self.dic_balance_sheet["loans"] += loan_amount
-        self.dic_balance_sheet["central bank funding"] = max(
+        # Fill-in the Cash and central bank funding
+        delta_amount  = max(
             self.dic_balance_sheet["central bank funding"] + delta_cash, 0.0
-        )
-
-        # record the step and amount for the close of the loan
-        self.dic_loans_steps_closing.update({self.Network.step+self.Network.loan_tenor:loan_amount})
+        ) - self.dic_balance_sheet["central bank funding"]
+        self.dic_balance_sheet["cash"] += delta_amount
+        self.dic_balance_sheet["central bank funding"] += delta_amount
 
     def leverage_mgt(self):
 
