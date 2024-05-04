@@ -98,6 +98,9 @@ class ClassNetwork:
         # initialize deposits in df_banks
         self.initialize_deposits()
 
+        # initialize beta init to create inequal securities allocations
+        self.initialize_beta_init()
+
         # build Banks
         for bank_id in range(self.nb_banks):
             self.banks.append(
@@ -107,7 +110,7 @@ class ClassNetwork:
                     initial_deposits=self.df_banks.loc[bank_id, "deposits"],
                     alpha_init=self.alpha_init,
                     alpha=self.alpha,
-                    beta_init=self.beta_init,
+                    beta_init=self.ar_beta_init[bank_id],
                     beta_reg=self.beta_reg,
                     beta_star=self.beta_star,
                     gamma_init=self.gamma_init,
@@ -141,10 +144,29 @@ class ClassNetwork:
         # store initial deposits
         self.df_banks["initial deposits"] = self.df_banks["deposits"]
 
+
+    def initialize_beta_init(self):
+        if self.initialization_method == "pareto":
+            self.ar_beta_init = pareto.rvs(
+                    self.alpha_pareto,
+                    loc=0,
+                    scale=0.1,
+                    size=self.nb_banks,
+                    random_state=None,
+                ).clip(min=0,max=1)
+        elif self.initialization_method == "constant":
+            self.ar_beta_init = np.ones(self.nb_banks) * self.beta_init
+
+        print(self.ar_beta_init)
+
     def step_network(self):
 
         # Defines an index of the banks
         index = np.arange(self.nb_banks)
+
+        # loop 0: close the ending ecb funding
+        for bank_id in index:
+            self.banks[bank_id].step_close_matured_trans()
 
         # generate shocks
         arr_shocks = self.generate_shocks()
