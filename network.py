@@ -146,7 +146,7 @@ class ClassNetwork:
 
 
     def initialize_beta_init(self):
-        if self.initialization_method == "pareto":
+        if self.beta_init == "pareto":
             self.ar_beta_init = pareto.rvs(
                     self.alpha_pareto,
                     loc=0,
@@ -154,26 +154,20 @@ class ClassNetwork:
                     size=self.nb_banks,
                     random_state=None,
                 ).clip(min=0,max=1)
-        elif self.initialization_method == "constant":
+        else:
             self.ar_beta_init = np.ones(self.nb_banks) * self.beta_init
-
-        print(self.ar_beta_init)
 
     def step_network(self):
 
         # Defines an index of the banks
         index = np.arange(self.nb_banks)
 
-        # loop 0: close the ending ecb funding
-        for bank_id in index:
-            self.banks[bank_id].step_close_matured_trans()
-
         # generate shocks
         arr_shocks = self.generate_shocks()
 
         # loop 1: close maturing loans, apply shock and lcr mgt
+        index = np.random.permutation(index)  # permutation
         for bank_id in index:
-
             # close loans
             self.banks[bank_id].close_maturing_loans()
             # set the shocks (linear)

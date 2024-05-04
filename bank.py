@@ -375,19 +375,19 @@ class ClassBank:
         # Update all the required balance sheet items by the closing of the
         # reverse repo.
 
-        assert not (
-            self.dic_balance_sheet["securities reused"] > par.float_limit
-            and self.dic_balance_sheet["securities usable"] > par.float_limit
-        ), (
-            "both reused {} and "
-            "usable {} "
-            "are positive, "
-            "while normally supposed to use all usable before using "
-            "collateral".format(
-                self.dic_balance_sheet["securities reused"],
-                self.dic_balance_sheet["securities usable"],
-            )
-        )
+        # assert not (
+        #     self.dic_balance_sheet["securities reused"] > par.float_limit
+        #     and self.dic_balance_sheet["securities usable"] > par.float_limit
+        # ), (
+        #     "both reused {} and "
+        #     "usable {} "
+        #     "are positive, "
+        #     "while normally supposed to use all usable before using "
+        #     "collateral".format(
+        #         self.dic_balance_sheet["securities reused"],
+        #         self.dic_balance_sheet["securities usable"],
+        #     )
+        # )
 
         assert (
             abs(
@@ -571,17 +571,17 @@ class ClassBank:
                 > -par.float_limit
             ), f"{self.__str__()}\nNot Enough Collateral for bank {self.id}"
 
-            # first use the securities collateral then the securities usable
-            securities_collateral_decrease = min(
+            # first use the securities usable then the securities collateral
+            securities_usable_decrease = min(
                 repo_ask - rest,
-                self.dic_balance_sheet["securities collateral"]
+                self.dic_balance_sheet["securities usable"]
                 * self.collateral_value,
             )
 
-            securities_usable_decrease = max(
+            securities_collateral_decrease = max(
                 repo_ask
                 - rest
-                - self.dic_balance_sheet["securities collateral"]
+                - self.dic_balance_sheet["securities usable"]
                 * self.collateral_value,
                 0.0,
             )
@@ -604,22 +604,22 @@ class ClassBank:
             )
             self.dic_balance_sheet["repo balance"] += repo_ask - rest
 
-            # assert not (
-            #     self.dic_balance_sheet["securities reused"] > par.float_limit
-            #     and self.dic_balance_sheet["securities usable"]
-            #     > par.float_limit
-            # ), (
-            #     "both reused {} and "
-            #     "usable {} "
-            #     "are positive, "
-            #     "while normally "
-            #     "supposed to use all "
-            #     "usable before using "
-            #     "collat".format(
-            #         self.dic_balance_sheet["securities reused"],
-            #         self.dic_balance_sheet["securities usable"],
-            #     )
-            # )
+            assert not (
+                self.dic_balance_sheet["securities reused"] > par.float_limit
+                and self.dic_balance_sheet["securities usable"]
+                > par.float_limit
+            ), (
+                "both reused {} and "
+                "usable {} "
+                "are positive, "
+                "while normally "
+                "supposed to use all "
+                "usable before using "
+                "collat".format(
+                    self.dic_balance_sheet["securities reused"],
+                    self.dic_balance_sheet["securities usable"],
+                )
+            )
 
             repo_ask = rest
             if rest <= self.Network.min_repo_trans_size or len(bank_list) == 0:
