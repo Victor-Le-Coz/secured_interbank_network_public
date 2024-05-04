@@ -134,6 +134,9 @@ class ClassDynamics:
         # --------------------------------
         # exposure view & transaction view
 
+        # fill step dic dashed trajectory
+        self.fill_step_dic_dashed_trajectory()
+
         # build df_rev_repo_trans bank level data
         self.Network.update_df_rev_repo_trans()
 
@@ -466,6 +469,7 @@ class ClassDynamics:
                 f"min_repo_trans_size={self.Network.min_repo_trans_size} \n"
                 f"nb_steps={self.nb_steps} \n"
                 f"LCR_mgt_opt={self.Network.LCR_mgt_opt} \n"
+                f"loan_tenor={self.Network.loan_tenor} \n"
                 f"end_repo_period={self.Network.end_repo_period}"
             )
 

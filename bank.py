@@ -20,10 +20,7 @@ class ClassBank:
         beta_reg,
         beta_star,
         gamma,
-        nb_banks,
         collateral_value,
-        conservative_shock,
-        LCR_mgt_opt,
     ):
         # Initialisation of the class parameters.
         self.Network = Network
@@ -35,9 +32,6 @@ class ClassBank:
         self.beta_star = beta_star
         self.gamma = gamma
         self.collateral_value = collateral_value
-        self.conservative_shock = conservative_shock
-        self.LCR_mgt_opt = LCR_mgt_opt
-        self.nb_banks = nb_banks
         self.initial_deposits = initial_deposits
 
         # definition of a dictionary (faster) with the accounting data
@@ -166,14 +160,8 @@ class ClassBank:
         self.dic_balance_sheet["central bank funding"] += delta_amount
 
     def leverage_mgt(self):
-
-        # true version (issue with the increasing loans)
         if self.dic_balance_sheet["own funds"] - self.gamma * self.leverage_exposure() < 0.0:
             self.step_end_repos()
-
-        # # temporary version
-        # if self.dic_balance_sheet["repo balance"] - 0.5 * self.leverage_exposure() > 0.0:
-        #     self.step_end_repos()
 
     def step_end_repos(self):
         """
@@ -541,7 +529,7 @@ class ClassBank:
         )
 
         # if there is no LCR mgt (no ECB funding to mgt LCR), we might have a bigger shock to absorb than the available collateral, so only a part of the shock is absorded on the repo market
-        if not (self.LCR_mgt_opt):
+        if not (self.Network.LCR_mgt_opt):
             repo_ask = min(
                 repo_ask,
                 self.dic_balance_sheet["securities usable"]
@@ -634,8 +622,8 @@ class ClassBank:
             if rest <= self.Network.min_repo_trans_size or len(bank_list) == 0:
                 break
 
-        # check for errors, in case of conservative shocks and LCR mgt, all repo request should be satisfied
-        if self.LCR_mgt_opt and self.conservative_shock:
+        # check for errors, in case of conservative shocks all repo request should be satisfied
+        if self.Network.conservative_shock:
             if repo_ask > par.float_limit:
                 for b in self.banks.keys():
                     print(self.banks[str(b)])
@@ -655,12 +643,9 @@ class ClassBank:
         bank_id
         """
 
-        # # opt: A bank does not accept to enter into a reverse repo if he is already somewhere is the collateral chain (need to check that the usable of the bank borrowing cash are not sufficient so that reuse will be done)
+        # OPTION: A bank does not accept to enter into a reverse repo if he is already somewhere is the collateral chain (need to check that the usable of the bank borrowing cash are not sufficient so that reuse will be done)
         # if self.Network.will_create_a_loop(self.id,bank_id) and (self.banks[bank_id].dic_balance_sheet["securities usable"] < amount):
         #     return amount
-
-        # opt: we allow for loops 
-
 
         reverse_accept = max(
             self.dic_balance_sheet["cash"]
@@ -699,8 +684,6 @@ class ClassBank:
             True,
         ]
 
-        # update of the chains moved in the entre repos function
-
         # Return the remaining amount of repo to the requested by the bank
         # bank_id
         return max(amount - reverse_accept, 0.0)
@@ -713,19 +696,19 @@ class ClassBank:
 
         # Define the amount of repo to be requested (it is a positive amount
         # if there is a liquidity need)
-        MRO_ask = -(
+        cb_funding_ask = -(
             self.dic_balance_sheet["cash"]
             - self.alpha * self.dic_balance_sheet["deposits"]
         )
 
         # Case disjunction: nothing to do if the repo_ask is negative
-        if MRO_ask <= 0.0:
+        if cb_funding_ask <= 0.0:
             return
 
         else:
             # perform a central bank funding
-            self.dic_balance_sheet["central bank funding"] += MRO_ask
-            self.dic_balance_sheet["cash"] += MRO_ask
+            self.dic_balance_sheet["central bank funding"] += cb_funding_ask
+            self.dic_balance_sheet["cash"] += cb_funding_ask
 
     def choose_bank(self, bank_list):
         trusts = {}
@@ -741,21 +724,6 @@ class ClassBank:
         if self.Network.step in self.dic_loans_steps_closing:
             self.dic_balance_sheet["cash"] += self.dic_loans_steps_closing[self.Network.step]
             self.dic_balance_sheet["loans"] -= self.dic_loans_steps_closing[self.Network.step]
-
-    def total_assets(self):
-        """
-        Instance method computing the total assets of an instance of ClassBank.
-        :return:
-        """
-        return sum(self.dic_balance_sheet.values())
-
-    def total_liabilities(self):
-        """
-        Instance method computing the total liabilities of an instance of
-        ClassBank.
-        :return:
-        """
-        return sum(self.dic_balance_sheet.values())
 
     def liquidity_coverage_ratio(self):
         """
@@ -792,8 +760,8 @@ class ClassBank:
         Here we do not model the bilateral agreements allowing to net short and long exposure between counterparties exchanging repos in both directions.
         """
         leverage_exposure = (self.dic_balance_sheet["cash"]
-            + self.dic_balance_sheet["securities usable"]
-            + self.dic_balance_sheet["securities encumbered"]
+            + self.dic_balance_sheet["securities usable"] * self.collateral_value
+            + self.dic_balance_sheet["securities encumbered"] * self.collateral_value
             + self.dic_balance_sheet["loans"]
             + self.dic_balance_sheet["reverse repo balance"])
         return leverage_exposure
@@ -912,7 +880,7 @@ class ClassBank:
         ----Own Funds: {}\r
         ----Deposits: {}\r
         ----Repos: {}\r
-        ----MROs: {}\r
+        ----Central bank funding: {}\r
         ----------------------------------------\r
         Off-balance sheet Items:\r
         ----Collateral received: {}\r
@@ -921,7 +889,7 @@ class ClassBank:
         Regulatory:\r
         ----Liquidity Coverage Ratio: {}%\r
         ----Cash / Deposits (for minimal reserves): {}%\r
-        ----Leverage / Solvency ratio: {}%\r
+        ----Leverage ratio: {}%\r
         """
         p_str = p_str.format(
             self.id,

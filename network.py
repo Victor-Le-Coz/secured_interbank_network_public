@@ -109,10 +109,7 @@ class ClassNetwork:
                     beta_reg=self.beta_reg,
                     beta_star=self.beta_star,
                     gamma=self.gamma,
-                    nb_banks=self.nb_banks,
                     collateral_value=self.collateral_value,
-                    conservative_shock=self.conservative_shock,
-                    LCR_mgt_opt=self.LCR_mgt_opt,
                 )
             )
 
@@ -161,16 +158,16 @@ class ClassNetwork:
                 self.banks[bank_id].lcr_mgt()
 
         # loop 2
-        # # opt 1: periodic end repo
-        # if self.step % self.end_repo_period == 0:
-        #     index = np.random.permutation(index)  # permutation
-        #     for bank_id in index:
-        #         self.banks[bank_id].step_end_repos()
-
-        # opt 2 : leverage mngt
+        # opt 1: periodic end repo or leverage mgt
         index = np.random.permutation(index)  # permutation
-        for bank_id in index:
-            self.banks[bank_id].leverage_mgt()
+        if self.end_repo_period:
+            if self.step % self.end_repo_period == 0:
+                for bank_id in index:
+                    self.banks[bank_id].step_end_repos()
+
+        else:
+            for bank_id in index:
+                self.banks[bank_id].leverage_mgt()
 
         # loop 3: enter repo
         index = np.random.permutation(index)  # permutation
@@ -188,6 +185,7 @@ class ClassNetwork:
         # new step of the network
         self.step += 1
 
+    # not used 
     def will_create_a_loop(self,lender,borrower):
         output  = False
         for chain in self.chains_rev_repo:
@@ -196,6 +194,7 @@ class ClassNetwork:
                     output = True
         return output
 
+    # not used
     def add_rev_repo_to_chains(self,lender,borrower):
         "Adds a repo transaction to the list of all the existing chains in the network"
         
@@ -258,7 +257,7 @@ class ClassNetwork:
         if lender_and_borrower_in_no_chain:
             self.chains_rev_repo.append([lender,borrower])
 
-    #### warning: need to check if the balance between the banks is empty first #####
+    # not used
     def remove_rev_repo_from_chains(self, lender,borrower):
         
         # init
