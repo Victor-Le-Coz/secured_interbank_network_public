@@ -21,6 +21,7 @@ class ClassNetwork:
         beta_init,
         beta_reg,
         beta_star,
+        gamma_init,
         gamma,
         collateral_value,
         initialization_method,
@@ -50,6 +51,7 @@ class ClassNetwork:
         self.beta_init = beta_init
         self.beta_reg = beta_reg
         self.beta_star = beta_star
+        self.gamma_init = gamma_init
         self.gamma = gamma
         self.collateral_value = collateral_value
         self.initialization_method = initialization_method
@@ -108,6 +110,7 @@ class ClassNetwork:
                     beta_init=self.beta_init,
                     beta_reg=self.beta_reg,
                     beta_star=self.beta_star,
+                    gamma_init=self.gamma_init,
                     gamma=self.gamma,
                     collateral_value=self.collateral_value,
                 )

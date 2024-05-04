@@ -19,6 +19,7 @@ class ClassBank:
         beta_init,
         beta_reg,
         beta_star,
+        gamma_init,
         gamma,
         collateral_value,
     ):
@@ -30,6 +31,7 @@ class ClassBank:
         self.beta_init = beta_init
         self.beta_reg = beta_reg
         self.beta_star = beta_star
+        self.gamma_init = gamma_init
         self.gamma = gamma
         self.collateral_value = collateral_value
         self.initial_deposits = initial_deposits
@@ -97,9 +99,8 @@ class ClassBank:
         )
 
         # The Own-funds are set to match the leverage ratio.
-        gamma_init = 2*self.gamma
         self.dic_balance_sheet["own funds"] = (
-            gamma_init / (1.0 - gamma_init)
+            self.gamma_init / (1.0 - self.gamma_init)
         ) * self.dic_balance_sheet["deposits"]
 
         # The loans are set to match the assets and liabilities.
