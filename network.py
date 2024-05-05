@@ -162,16 +162,25 @@ class ClassNetwork:
         # Defines an index of the banks
         index = np.arange(self.nb_banks)
 
+        # generate new loans
+        if self.loan_tenor:
+            ar_new_loans = self.generate_new_loans()
+
         # generate shocks
         arr_shocks = self.generate_shocks()
 
         # loop 1: close maturing loans, apply shock and lcr mgt
         index = np.random.permutation(index)  # permutation
         for bank_id in index:
-            # close loans
-            self.banks[bank_id].close_maturing_loans()
+
+            # create money
+            if self.loan_tenor:
+                self.banks[bank_id].set_money_creation(ar_new_loans[bank_id])
+                self.banks[bank_id].close_maturing_loans()
+
             # set the shocks (linear)
             self.banks[bank_id].set_shock(arr_shocks[bank_id])
+            
             # LCR mgt (linear)
             if self.LCR_mgt_opt:
                 self.banks[bank_id].lcr_mgt()
@@ -592,7 +601,7 @@ class ClassNetwork:
                 np.random.lognormal(
                     mean=-0.5 * std_control**2,
                     sigma=std_control,
-                    size=len(self.df_banks["deposits"]),
+                    size=self.nb_banks,
                 )
                 * self.df_banks["deposits"]
             )
@@ -600,7 +609,7 @@ class ClassNetwork:
         elif self.shocks_law == "normal":
             new_deposits = np.maximum(
                 self.df_banks["deposits"]
-                + np.random.randn(len(self.df_banks["deposits"]))
+                + np.random.randn(self.nb_banks)
                 * self.shocks_vol,
                 0.0,
             )
@@ -631,3 +640,16 @@ class ClassNetwork:
 
         shocks = new_deposits - self.df_banks["deposits"]
         return shocks
+    
+
+    def generate_new_loans(self):
+        std_control = np.sqrt(np.log(1.0 + self.shocks_vol**2.0))
+        ar_new_loans = (
+            np.random.lognormal(
+                mean=-0.5 * std_control**2,
+                sigma=std_control,
+                size=self.nb_banks,
+            )
+            * self.df_banks["deposits"]
+        )
+        return ar_new_loans

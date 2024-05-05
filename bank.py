@@ -137,7 +137,7 @@ class ClassBank:
     def set_money_creation(self,amount):
         self.dic_balance_sheet["loans"] += amount
         self.dic_balance_sheet["deposits"] += amount 
-        self.dic_loans_steps_closing.update({self.step:amount})
+        self.dic_loans_steps_closing.update({self.step+self.Network.loan_tenor:amount})
 
     def lcr_mgt(self):
         """
