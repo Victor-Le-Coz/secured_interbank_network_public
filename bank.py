@@ -141,7 +141,7 @@ class ClassBank:
 
     def lcr_mgt(self):
         """
-        Instance method updating the cash, loans, and MROs of an instance of
+        Instance method updating the cash and cb funding of an instance of
         ClassBank.
         """
         # Definition of the variation of cash required to minimize the LCR, this value can be positive or negative.
