@@ -137,7 +137,7 @@ class ClassBank:
     def set_money_creation(self,amount):
         self.dic_balance_sheet["loans"] += amount
         self.dic_balance_sheet["deposits"] += amount 
-        self.dic_loans_steps_closing.update({self.step+self.Network.loan_tenor:amount})
+        self.dic_loans_steps_closing.update({self.Network.step+self.Network.loan_tenor:amount})
 
     def lcr_mgt(self):
         """
@@ -862,6 +862,17 @@ class ClassBank:
     def store_df_reverse_repos(self, path):
         self.df_rev_repo_trans.to_csv(f"{path}df_reverse_repos.csv")
 
+    def total_assets(self):
+        total_assets = 0
+        for item in par.assets:
+            total_assets += self.dic_balance_sheet[item]
+        return total_assets
+    
+    def total_liabilities(self):
+        total_liabilities = 0
+        for item in par.liabilities:
+            total_liabilities += self.dic_balance_sheet[item]
+        return total_liabilities
     
     def __str__(self):
         """

@@ -32,6 +32,7 @@ class ClassNetwork:
         LCR_mgt_opt,
         min_repo_trans_size,
         loan_tenor,
+        new_loans_vol,
         end_repo_period,
     ):
 
@@ -62,6 +63,7 @@ class ClassNetwork:
         self.LCR_mgt_opt = LCR_mgt_opt
         self.min_repo_trans_size = min_repo_trans_size
         self.loan_tenor = loan_tenor
+        self.new_loans_vol = new_loans_vol
         self.end_repo_period = end_repo_period
 
         # (Re)set the network
@@ -180,7 +182,7 @@ class ClassNetwork:
 
             # set the shocks (linear)
             self.banks[bank_id].set_shock(arr_shocks[bank_id])
-            
+
             # LCR mgt (linear)
             if self.LCR_mgt_opt:
                 self.banks[bank_id].lcr_mgt()
@@ -643,13 +645,13 @@ class ClassNetwork:
     
 
     def generate_new_loans(self):
-        std_control = np.sqrt(np.log(1.0 + self.shocks_vol**2.0))
+        std_control = np.sqrt(np.log(1.0 + self.new_loans_vol**2.0))
         ar_new_loans = (
             np.random.lognormal(
                 mean=-0.5 * std_control**2,
                 sigma=std_control,
                 size=self.nb_banks,
             )
-            * self.df_banks["deposits"]
+            # * self.df_banks["loans"]
         )
         return ar_new_loans
