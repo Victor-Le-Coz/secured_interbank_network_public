@@ -136,7 +136,7 @@ class ClassBank:
 
     def set_money_creation(self,amount):
         self.dic_balance_sheet["loans"] += amount
-        self.dic_balance_sheet["deposits"] += amount 
+        self.dic_balance_sheet["deposits"] += amount
         self.dic_loans_steps_closing.update({self.Network.step+self.Network.loan_tenor:amount})
 
     def lcr_mgt(self):
@@ -725,8 +725,9 @@ class ClassBank:
 
     def close_maturing_loans(self):
         if self.Network.step in self.dic_loans_steps_closing:
-            self.dic_balance_sheet["cash"] += self.dic_loans_steps_closing[self.Network.step]
             self.dic_balance_sheet["loans"] -= self.dic_loans_steps_closing[self.Network.step]
+            self.dic_balance_sheet["deposits"] -= self.dic_loans_steps_closing[self.Network.step]
+            # no effect on cash due to the combined effect of the decrease from deposits and increase from loan payback
 
     def liquidity_coverage_ratio(self):
         """
