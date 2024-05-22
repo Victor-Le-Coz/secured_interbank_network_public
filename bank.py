@@ -135,9 +135,18 @@ class ClassBank:
         self.dic_balance_sheet["cash"] += shock
 
     def set_money_creation(self,amount):
-        self.dic_balance_sheet["loans"] += amount
+
         self.dic_balance_sheet["deposits"] += amount
-        self.dic_loans_steps_closing.update({self.Network.step+self.Network.loan_tenor:amount})
+
+        if self.Network.beta_new:
+            amount_loans = amount*(1-self.Network.beta_new)
+            self.dic_balance_sheet["securities usable"] += amount*self.Network.beta_new
+            
+        else:
+            amount_loans = amount
+
+        self.dic_balance_sheet["loans"] += amount_loans
+        self.dic_loans_steps_closing.update({self.Network.step+self.Network.loan_tenor:amount_loans})
 
     def lcr_mgt(self):
         """
@@ -389,32 +398,33 @@ class ClassBank:
         #     )
         # )
 
-        assert (
-            abs(
-                self.dic_balance_sheet["securities collateral"]
-                + self.dic_balance_sheet["securities reused"]
-                - self.dic_balance_sheet["reverse repo balance"]
+        if not(self.Network.beta_new): # test not valid in the case of maturing collat due to the approximate management of the closing of colat inside a transaction 
+            assert (
+                abs(
+                    self.dic_balance_sheet["securities collateral"]
+                    + self.dic_balance_sheet["securities reused"]
+                    - self.dic_balance_sheet["reverse repo balance"]
+                )
+                < par.float_limit
+            ), (
+                "incorrect balance sheet \n securities collateral {},"
+                "\n "
+                "securities reused {}"
+                "\n "
+                "reverse "
+                "repos {} "
+                ""
+                "\n "
+                "difference {}"
+                "".format(
+                    self.dic_balance_sheet["securities collateral"],
+                    self.dic_balance_sheet["securities reused"],
+                    self.dic_balance_sheet["reverse repo balance"],
+                    self.dic_balance_sheet["reverse repo balance"]
+                    - self.dic_balance_sheet["securities collateral"]
+                    - self.dic_balance_sheet["securities reused"],
+                )
             )
-            < par.float_limit
-        ), (
-            "incorrect balance sheet \n securities collateral {},"
-            "\n "
-            "securities reused {}"
-            "\n "
-            "reverse "
-            "repos {} "
-            ""
-            "\n "
-            "difference {}"
-            "".format(
-                self.dic_balance_sheet["securities collateral"],
-                self.dic_balance_sheet["securities reused"],
-                self.dic_balance_sheet["reverse repo balance"],
-                self.dic_balance_sheet["reverse repo balance"]
-                - self.dic_balance_sheet["securities collateral"]
-                - self.dic_balance_sheet["securities reused"],
-            )
-        )
 
         # Update of the balance sheet items
         self.dic_balance_sheet["cash"] += amount
@@ -604,22 +614,23 @@ class ClassBank:
             )
             self.dic_balance_sheet["repo balance"] += repo_ask - rest
 
-            assert not (
-                self.dic_balance_sheet["securities reused"] > par.float_limit
-                and self.dic_balance_sheet["securities usable"]
-                > par.float_limit
-            ), (
-                "both reused {} and "
-                "usable {} "
-                "are positive, "
-                "while normally "
-                "supposed to use all "
-                "usable before using "
-                "collat".format(
-                    self.dic_balance_sheet["securities reused"],
-                    self.dic_balance_sheet["securities usable"],
+            if not(self.Network.beta_new): # this test is only valid in case of absnce of collateral creation which is added as usable
+                assert not (
+                    self.dic_balance_sheet["securities reused"] > par.float_limit
+                    and self.dic_balance_sheet["securities usable"]
+                    > par.float_limit
+                ), (
+                    "both reused {} and "
+                    "usable {} "
+                    "are positive, "
+                    "while normally "
+                    "supposed to use all "
+                    "usable before using "
+                    "collat".format(
+                        self.dic_balance_sheet["securities reused"],
+                        self.dic_balance_sheet["securities usable"],
+                    )
                 )
-            )
 
             repo_ask = rest
             if rest <= self.Network.min_repo_trans_size or len(bank_list) == 0:
@@ -724,10 +735,42 @@ class ClassBank:
         self.trust[bank] = self.trust[bank] + 0.5 * (value - self.trust[bank])
 
     def close_maturing_loans(self):
+        # no effect on cash due to the combined effect of the decrease from deposits and increase from loan payback
+
         if self.Network.step in self.dic_loans_steps_closing:
+            
             self.dic_balance_sheet["loans"] -= self.dic_loans_steps_closing[self.Network.step]
-            self.dic_balance_sheet["deposits"] -= self.dic_loans_steps_closing[self.Network.step]
-            # no effect on cash due to the combined effect of the decrease from deposits and increase from loan payback
+            
+            if self.Network.beta_new:
+
+                # close also maturing colat: we hope than the bank has sufficient collateral usable, otherwise we breach the equality reverse repo = collat recieved + collat reused
+                amount_decrease = self.dic_loans_steps_closing[self.Network.step]/(1-self.Network.beta_new)
+
+                securities_usable_decrease = min(
+                amount_decrease*self.Network.beta_new,
+                self.dic_balance_sheet["securities usable"]
+                * self.collateral_value,)
+
+                securities_collateral_decrease = max(
+                    amount_decrease*self.Network.beta_new
+                    - self.dic_balance_sheet["securities usable"]
+                    * self.collateral_value,
+                    0.0,
+                )
+                self.dic_balance_sheet["securities usable"] -= securities_usable_decrease / self.collateral_value
+
+                self.dic_balance_sheet["securities collateral"] -= securities_collateral_decrease / self.collateral_value
+
+                # delete deposits 
+                self.dic_balance_sheet["deposits"] -= amount_decrease
+                
+            else:
+                
+                # delete deposits 
+                self.dic_balance_sheet["deposits"] -= self.dic_loans_steps_closing[self.Network.step]
+                
+
+                
 
     def liquidity_coverage_ratio(self):
         """

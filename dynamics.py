@@ -461,6 +461,7 @@ class ClassDynamics:
                 f"beta_init={self.Network.beta_init} \n"
                 f"beta_reg={self.Network.beta_reg} \n"
                 f"beta_star={self.Network.beta_star} \n"
+                f"beta_new={self.Network.beta_new} \n"
                 f"gamma_init={self.Network.gamma_init} \n"
                 f"gamma={self.Network.gamma} \n"
                 f"initialization_method={self.Network.initialization_method} \n"
