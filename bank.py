@@ -741,33 +741,36 @@ class ClassBank:
             
             self.dic_balance_sheet["loans"] -= self.dic_loans_steps_closing[self.Network.step]
             
-            if self.Network.beta_new:
+            # # for now we keep the excess of deposits (never ending colat and associated deposits !!)
+            # if self.Network.beta_new:
 
-                # close also maturing colat: we hope than the bank has sufficient collateral usable, otherwise we breach the equality reverse repo = collat recieved + collat reused
-                amount_decrease = self.dic_loans_steps_closing[self.Network.step]/(1-self.Network.beta_new)
+            #     # close also maturing colat: we hope than the bank has sufficient collateral usable, otherwise we breach the equality reverse repo = collat recieved + collat reused
+            #     # we also breach the asset = liability !!! 
+            #     amount_decrease = self.dic_loans_steps_closing[self.Network.step]/(1-self.Network.beta_new)
 
-                securities_usable_decrease = min(
-                amount_decrease*self.Network.beta_new,
-                self.dic_balance_sheet["securities usable"]
-                * self.collateral_value,)
+            #     # issue that they are some securities maturing are actually somewhere else in the system !
+            #     securities_usable_decrease = min(
+            #     amount_decrease*self.Network.beta_new,
+            #     self.dic_balance_sheet["securities usable"]
+            #     * self.collateral_value,)
 
-                securities_collateral_decrease = max(
-                    amount_decrease*self.Network.beta_new
-                    - self.dic_balance_sheet["securities usable"]
-                    * self.collateral_value,
-                    0.0,
-                )
-                self.dic_balance_sheet["securities usable"] -= securities_usable_decrease / self.collateral_value
+            #     # securities_collateral_decrease = max(
+            #     #     amount_decrease*self.Network.beta_new
+            #     #     - self.dic_balance_sheet["securities usable"]
+            #     #     * self.collateral_value,
+            #     #     0.0,
+            #     # )
+            #     self.dic_balance_sheet["securities usable"] -= securities_usable_decrease / self.collateral_value
 
-                self.dic_balance_sheet["securities collateral"] -= securities_collateral_decrease / self.collateral_value
+            #     # self.dic_balance_sheet["securities collateral"] -= securities_collateral_decrease / self.collateral_value
 
-                # delete deposits 
-                self.dic_balance_sheet["deposits"] -= amount_decrease
+            #     # delete deposits 
+            #     self.dic_balance_sheet["deposits"] -= amount_decrease
                 
-            else:
+            # else:
                 
-                # delete deposits 
-                self.dic_balance_sheet["deposits"] -= self.dic_loans_steps_closing[self.Network.step]
+            # delete deposits 
+            self.dic_balance_sheet["deposits"] -= self.dic_loans_steps_closing[self.Network.step]
                 
 
                 
