@@ -181,6 +181,8 @@ class ClassNetwork:
             if self.loan_tenor:
                 self.banks[bank_id].set_money_creation(ar_new_loans[bank_id])
                 self.banks[bank_id].close_maturing_loans()
+                if self.beta_new:
+                    self.banks[bank_id].close_maturing_securities()
 
             # set the shocks (linear)
             self.banks[bank_id].set_shock(arr_shocks[bank_id])
