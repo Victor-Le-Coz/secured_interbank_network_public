@@ -328,7 +328,7 @@ def fig_gini(x):
     return total / (len(x) ** 2 * np.mean(x))
 
 
-def get_transaction_stats(df_rev_repo_trans, extension, days, path=False):
+def get_transaction_stats(df_rev_repo_trans, extension, days, path=False, opt_mat_ending_trans=True):
 
     print(f"get transaction stats{extension}")
 
@@ -338,14 +338,27 @@ def get_transaction_stats(df_rev_repo_trans, extension, days, path=False):
     )
 
     # loop over the steps
-    for step, day in enumerate(tqdm(days[1:]), 1):
+    for step, day in enumerate(tqdm(days[1:]), start=1):
 
         # repo transactions maturity av. network
-        df_ending = df_rev_repo_trans[df_rev_repo_trans["end_step"] == step - 1]
-        if df_ending["amount"].sum() > 0:
+        if opt_mat_ending_trans:
+
+            # opt: focus only on the ending transactions
+            df_ending = df_rev_repo_trans[df_rev_repo_trans["end_step"] == step-1]
+            df=df_ending
+
+        else:
+
+            # compute the maturity of all transactions ending and still open
+            df_temp = df_rev_repo_trans.copy()
+            df_temp.fillna(step-1,inplace=True)
+            df_ending_n_open = df_temp[(df_temp["end_step"] == step-1)&(df_temp["start_step"] < step-1)]
+            df=df_ending_n_open
+
+        if df["amount"].sum() > 0:
             df_transaction_stats.loc[
                 day, f"repo transactions maturity{extension}"
-            ] = (df_ending["amount"] @ (df_ending["end_step"]-df_ending["start_step"])) / df_ending[
+            ] = (df["amount"] @ (df["end_step"]-df["start_step"])) / df[
                 "amount"
             ].sum()
         else:

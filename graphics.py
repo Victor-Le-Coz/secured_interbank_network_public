@@ -27,7 +27,7 @@ def plot(Dynamics):
     # Plot the single bank trajectory time series.
     plot_bank_trajectory(
         Dynamics.df_bank_trajectory,
-        f"{path_results}exposure_view/",
+        f"{path_results}accounting_view/",
     )
 
 
@@ -732,7 +732,7 @@ def plot_step_balance_sheet(
 
 def plot_bank_trajectory(df_bank_trajectory, path, figsize=par.slide_figsize):
 
-    fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=figsize)
+    fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5, figsize=figsize)
 
     # Plot the accounting items (big)
     keys = [
@@ -758,7 +758,7 @@ def plot_bank_trajectory(df_bank_trajectory, path, figsize=par.slide_figsize):
     ax1.set_ylabel("Monetary units")
     ax1.legend(loc="upper left")
     ax1.grid()
-    ax1.set_title("Single bank trajectory of (large) accounting items")
+    ax1.set_title("Large accounting items")
 
     # Plot the accounting items (small)
     keys = [
@@ -789,9 +789,9 @@ def plot_bank_trajectory(df_bank_trajectory, path, figsize=par.slide_figsize):
     ax2.set_ylabel("Monetary units")
     ax2.legend(loc="upper left")
     ax2.grid()
-    ax2.set_title("Single bank trajectory of (small) accounting items")
+    ax2.set_title("Small accounting items")
 
-    # Plot the other indicators
+    # Plot the exposure/network indicators
     in_colors = sns.color_palette("flare", n_colors=len(par.agg_periods))
     out_colors = sns.color_palette("crest", n_colors=len(par.agg_periods))
     for i, agg_period in enumerate(par.agg_periods):
@@ -809,22 +809,49 @@ def plot_bank_trajectory(df_bank_trajectory, path, figsize=par.slide_figsize):
             color=out_colors[i],
         )
 
-    keys = [
-        "number repo transactions av. bank",
-        "repo transactions maturity av. bank",
-    ]
-    for key in keys:
-        ax3.plot(
-            df_bank_trajectory.index,
-            df_bank_trajectory[key],
-            label=str(key),
-        )
-
     ax3.set_xlabel("Steps")
     ax3.set_ylabel("Indicators")
     ax3.legend(loc="upper left")
     ax3.grid()
-    ax3.set_title("Single bank trajectory of indicators")
+    ax3.set_title("Exposure view")
+
+    # plot the transactions statistics 
+    keys = [
+        "number repo transactions av. bank",
+        "repo transactions maturity av. bank",
+    ]
+    colors = sns.color_palette("flare", n_colors=len(keys))
+    for i, key in enumerate(keys):
+        ax4.plot(
+            df_bank_trajectory.index,
+            df_bank_trajectory[key],
+            label=str(key),
+            color=colors[i],
+        )
+
+    ax4.set_xlabel("Steps")
+    ax4.set_ylabel("Indicators")
+    ax4.legend(loc="upper left")
+    ax4.grid()
+    ax4.set_title("Transaction view")
+    ax4.set_yscale("log")
+
+    # plot the regulatory ratios
+    colors = sns.color_palette("flare", n_colors=len(par.regulatory_ratios))
+    for i, key in enumerate(par.regulatory_ratios):
+        ax5.plot(
+            df_bank_trajectory.index,
+            df_bank_trajectory[key],
+            label=str(key),
+            color=colors[i],
+        )
+
+    ax5.set_xlabel("Steps")
+    ax5.set_ylabel("Indicators")
+    ax5.legend(loc="upper left")
+    ax5.grid()
+    ax5.set_title("Regulatory ratios")
+    ax5.set_yscale("log")
 
     fig.tight_layout()
     plt.savefig(

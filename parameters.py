@@ -60,6 +60,8 @@ finrep_items = list_exclusion(
 # bank_items = accounting_items + other_items + finrep_items # for empirical data
 bank_items = accounting_items + other_items # for empirical data
 
+regulatory_ratios = ["reserve ratio", "liquidity ratio", "leverage ratio"]
+
 
 # shocks modeling approaches
 shocks_methods = [
@@ -104,7 +106,7 @@ bank_ids = [f"bank_{i}" for i in range(150)]
 # ploting conventions
 
 small_figsize = (6, 3)  # default
-slide_figsize = (12, 6)  # for the single trajectories
+slide_figsize = (12, 15)  # for the single trajectories
 halfslide_figsize = (6, 6)  # for the network plots
 
 
@@ -135,6 +137,21 @@ accounting_metrics = [
         " tot. network",
         "",
         " over total assets",
+    ]
+]
+regulatory_ratios_metrics = [
+    [
+        f"{metric}{extension}",
+        r"ratio (%)",
+        f"{metric}{extension}",
+        "log",
+        "",
+        False,
+    ]
+    for metric in regulatory_ratios
+    for extension in [
+        " av. network",
+        "",
     ]
 ]
 collateral_reuse = [
@@ -353,6 +370,7 @@ min_repo_trans_size = [
 df_plt = pd.DataFrame(
     [
         *accounting_metrics,
+        *regulatory_ratios_metrics,
         collateral_reuse,
         gini,
         *repo_transactions_maturity_av_network,
@@ -413,6 +431,11 @@ fig_gini = [
     "accounting_view/gini",
     ["gini"],
     "",
+]
+fig_regulatory_ratios = [
+    "accounting_view/regulatory_ratios",
+    regulatory_ratios,
+    " av. network",
 ]
 
 
@@ -503,6 +526,7 @@ df_figures = pd.DataFrame(
     [
         fig_macro_economic_aggregates,
         fig_collateral_aggregates,
+        fig_regulatory_ratios,
         fig_collateral_reuse,
         fig_gini,
         fig_repo_transactions_maturity_av_network,

@@ -345,6 +345,8 @@ class ClassNetwork:
         self.check_min_reserves()
         if self.LCR_mgt_opt:
             self.check_lcr()
+        if not(self.end_repo_period):
+            self.check_leverage()
 
     def check_balance_sheet(self):
 
@@ -373,7 +375,7 @@ class ClassNetwork:
 
         if not (assessment):
             print(
-                r"Minimum reserves not respected for one or several banks, check the df_banks under ./errors"
+                r"Minimum reserves above its regulatory level for one or several banks, check the df_banks under ./errors"
             )
             self.df_banks.to_csv(f"./support/errors/df_banks.csv")
             exit()
@@ -394,7 +396,18 @@ class ClassNetwork:
 
         if not (assessment):
             print(
-                r"LCR not at its target value one or several banks, check the df_banks under ./errors"
+                r"LCR not above its regulatory level for one or several banks, check the df_banks under ./errors"
+            )
+            self.df_banks.to_csv(f"./support/errors/df_banks.csv")
+            exit()
+
+    def check_leverage(self):
+
+        assessment = (self.df_banks["own funds"] - self.df_banks["total assets"] * self.gamma).gt(-par.float_limit).all()
+
+        if not (assessment):
+            print(
+                r"leverage ratio not above its regulatory level for one or several banks, check the df_banks under ./errors"
             )
             self.df_banks.to_csv(f"./support/errors/df_banks.csv")
             exit()
@@ -409,7 +422,7 @@ class ClassNetwork:
             for key in par.accounting_items:
                 self.df_banks.loc[bank_id, key] = Bank.dic_balance_sheet[key]
 
-        # matricial computation items used to check constraints
+        # matricial computation of constraints
         self.df_banks["total assets"] = self.df_banks[par.assets].sum(axis=1)
         self.df_banks["total liabilities"] = self.df_banks[
             par.liabilities
@@ -417,6 +430,12 @@ class ClassNetwork:
         self.df_banks["excess liquidity"] = (
             self.df_banks["cash"] - self.alpha * self.df_banks["deposits"]
         )
+        self.df_banks["reserve ratio"] = (self.df_banks["cash"] / self.df_banks["deposits"])
+        self.df_banks["liquidity ratio"] = (self.df_banks["cash"]
+                + self.df_banks["securities collateral"]
+                * self.collateral_value
+                + self.df_banks["securities usable"] * self.collateral_value) / (self.df_banks["deposits"])
+        self.df_banks["leverage ratio"] = self.df_banks["own funds"] / self.df_banks["total assets"]
 
     def dump_step(self, path):
         self.df_banks.to_csv(f"{path}df_banks.csv")

@@ -93,6 +93,12 @@ class ClassDynamics:
             self.df_network_trajectory.loc[
                 self.Network.step, f"{item} tot. network"
             ] = self.Network.df_banks[item].sum()
+        
+        # regulatory ratios
+        for item in par.regulatory_ratios:
+            self.df_network_trajectory.loc[
+                self.Network.step, f"{item} av. network"
+            ] = self.Network.df_banks[item].mean()
 
         # gini
         self.df_network_trajectory.loc[
@@ -114,12 +120,13 @@ class ClassDynamics:
         )
 
     def fill_step_df_bank_trajectory(self):
+        # Build the time series for a single bank
 
         # -----------
         # accounting view
 
-        # Build the time series of the accounting items
-        for item in par.bank_items:
+        # accounting items & regulatory ratios
+        for item in par.bank_items + par.regulatory_ratios:
             self.df_bank_trajectory.loc[
                 self.Network.step, item
             ] = self.Network.df_banks.loc[self.single_bank_id, item]
@@ -249,6 +256,7 @@ class ClassDynamics:
             df_rev_repo_trans=self.Network.df_rev_repo_trans,
             extension=" av. network",
             days=range(self.Network.step + 1),
+            opt_mat_ending_trans=False,
         )
         cols = df_transaction_stats.columns
         self.df_network_trajectory[cols] = df_transaction_stats
@@ -294,6 +302,7 @@ class ClassDynamics:
                 df_rev_repo_trans=df_trans,
                 extension=" av. bank",
                 days=range(self.Network.step + 1),
+                opt_mat_ending_trans=False,
             )
             cols = df_transaction_stats.columns
 

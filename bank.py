@@ -171,7 +171,7 @@ class ClassBank:
         self.dic_balance_sheet["central bank funding"] += delta_amount
 
     def leverage_mgt(self):
-        if self.dic_balance_sheet["own funds"] - self.gamma * self.leverage_exposure() < 0.0:
+        if self.dic_balance_sheet["own funds"] / self.leverage_exposure() < self.gamma*1.2:
             self.step_end_repos()
 
     def step_end_repos(self):
