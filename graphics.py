@@ -834,7 +834,7 @@ def plot_bank_trajectory(df_bank_trajectory, path, figsize=par.slide_figsize):
     ax4.legend(loc="upper left")
     ax4.grid()
     ax4.set_title("Transaction view")
-    ax4.set_yscale("log")
+    # ax4.set_yscale("log")
 
     # plot the regulatory ratios
     colors = sns.color_palette("flare", n_colors=len(par.regulatory_ratios))

@@ -256,7 +256,7 @@ class ClassDynamics:
             df_rev_repo_trans=self.Network.df_rev_repo_trans,
             extension=" av. network",
             days=range(self.Network.step + 1),
-            opt_mat_ending_trans=False,
+            opt_mat_ending_trans=True,
         )
         cols = df_transaction_stats.columns
         self.df_network_trajectory[cols] = df_transaction_stats
@@ -302,7 +302,7 @@ class ClassDynamics:
                 df_rev_repo_trans=df_trans,
                 extension=" av. bank",
                 days=range(self.Network.step + 1),
-                opt_mat_ending_trans=False,
+                opt_mat_ending_trans=True,
             )
             cols = df_transaction_stats.columns
 
@@ -473,6 +473,8 @@ class ClassDynamics:
                 f"beta_new={self.Network.beta_new} \n"
                 f"gamma_init={self.Network.gamma_init} \n"
                 f"gamma={self.Network.gamma} \n"
+                f"gamma_star={self.Network.gamma_star} \n"
+                f"gamma_new={self.Network.gamma_new} \n"
                 f"initialization_method={self.Network.initialization_method} \n"
                 f"alpha_pareto={self.Network.alpha_pareto} \n"
                 f"shock_method={self.Network.shocks_method} \n"
@@ -482,6 +484,8 @@ class ClassDynamics:
                 f"nb_steps={self.nb_steps} \n"
                 f"LCR_mgt_opt={self.Network.LCR_mgt_opt} \n"
                 f"loan_tenor={self.Network.loan_tenor} \n"
+                f"new_loans_vol={self.Network.new_loans_vol} \n"
+                f"new_loans_mean={self.Network.new_loans_mean} \n"
                 f"end_repo_period={self.Network.end_repo_period}"
             )
 

@@ -24,6 +24,8 @@ class ClassNetwork:
         beta_new,
         gamma_init,
         gamma,
+        gamma_star,
+        gamma_new,
         collateral_value,
         initialization_method,
         alpha_pareto,
@@ -34,6 +36,7 @@ class ClassNetwork:
         min_repo_trans_size,
         loan_tenor,
         new_loans_vol,
+        new_loans_mean,
         end_repo_period,
     ):
 
@@ -56,6 +59,8 @@ class ClassNetwork:
         self.beta_new = beta_new
         self.gamma_init = gamma_init
         self.gamma = gamma
+        self.gamma_new = gamma_new
+        self.gamma_star = gamma_star
         self.collateral_value = collateral_value
         self.initialization_method = initialization_method
         self.alpha_pareto = alpha_pareto
@@ -66,6 +71,7 @@ class ClassNetwork:
         self.min_repo_trans_size = min_repo_trans_size
         self.loan_tenor = loan_tenor
         self.new_loans_vol = new_loans_vol
+        self.new_loans_mean = new_loans_mean
         self.end_repo_period = end_repo_period
 
         # (Re)set the network
@@ -130,6 +136,9 @@ class ClassNetwork:
         # fill the recording data objects at step 0
         self.fill_step_df_banks()
 
+        # store initial loans
+        self.df_banks["initial loans"] = self.df_banks["loans"]
+
     def initialize_deposits(self):
         if self.initialization_method == "pareto":
             self.df_banks["deposits"] = (
@@ -192,13 +201,15 @@ class ClassNetwork:
                 self.banks[bank_id].lcr_mgt()
 
         # loop 2
-        # opt 1: periodic end repo or leverage mgt
         index = np.random.permutation(index)  # permutation
+        
+        # opt 1: periodic end repo
         if self.end_repo_period:
             if self.step % self.end_repo_period == 0:
                 for bank_id in index:
                     self.banks[bank_id].step_end_repos()
-
+        
+        # opt 2: leverage mgt
         else:
             for bank_id in index:
                 self.banks[bank_id].leverage_mgt()
@@ -210,7 +221,7 @@ class ClassNetwork:
 
             # in case of money creation only, last resorting refinancing is necessary (the only orthe way to borrow from CB is through LCR mgt that might not even work if there is an exces of collateral)
             if self.loan_tenor:
-                self.banks[bank_id].step_central_bank_funding()
+                self.banks[bank_id].step_enter_central_bank_funding()
 
         # # loop 4: fill df_banks and dic matrices
         self.fill_step_df_banks()
@@ -670,13 +681,19 @@ class ClassNetwork:
     
 
     def generate_new_loans(self):
-        std_control = np.sqrt(np.log(1.0 + self.new_loans_vol**2.0))
-        ar_new_loans = (
-            np.random.lognormal(
-                mean=-0.5 * std_control**2,
-                sigma=std_control,
-                size=self.nb_banks,
-            )
-            # * self.df_banks["loans"]
-        )
+        # log normal case 
+        # mu = 
+        # sigma = 
+        # ar_new_loans = (
+        #     np.random.lognormal(
+        #         mean=,
+        #         sigma=,
+        #         size=self.nb_banks,
+        #     )
+        #     * self.new_loans_mean * self.df_banks["loans"]
+        # )
+
+        # normal case
+        ar_new_loans = (np.random.randn(self.nb_banks) * self.new_loans_vol + 1)*self.new_loans_mean*self.df_banks["initial loans"]
+
         return ar_new_loans

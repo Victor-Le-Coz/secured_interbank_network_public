@@ -136,17 +136,26 @@ class ClassBank:
 
     def set_money_creation(self,amount):
 
-        self.dic_balance_sheet["deposits"] += amount
+        if self.Network.gamma_new:
+
+            # we assume an economic agent recieves an infinit lenght loan and invest it in the capital of the bank 
+            new_own_funds = self.Network.gamma_new*amount
+            self.dic_balance_sheet["loans"] += new_own_funds
+            self.dic_balance_sheet["own funds"] += new_own_funds
+            amount -= new_own_funds
 
         if self.Network.beta_new:
-            amount_loans = amount*(1-self.Network.beta_new)
-            self.dic_balance_sheet["securities usable"] += amount*self.Network.beta_new
-            
-        else:
-            amount_loans = amount
 
-        self.dic_balance_sheet["loans"] += amount_loans
-        self.dic_loans_steps_closing.update({self.Network.step+self.Network.loan_tenor:amount_loans})
+            # we assume the bank buys a bond issued by the governement 
+            new_securities = amount*self.Network.beta_new
+            self.dic_balance_sheet["securities usable"] += new_securities
+            self.dic_balance_sheet["deposits"] += new_securities
+            amount -= new_securities
+            
+        # The remaining amount is a loan with a fixed maturity
+        self.dic_balance_sheet["loans"] += amount
+        self.dic_balance_sheet["deposits"] += amount
+        self.dic_loans_steps_closing.update({self.Network.step+self.Network.loan_tenor:amount})
 
     def lcr_mgt(self):
         """
@@ -171,7 +180,9 @@ class ClassBank:
         self.dic_balance_sheet["central bank funding"] += delta_amount
 
     def leverage_mgt(self):
-        if self.dic_balance_sheet["own funds"] / self.leverage_exposure() < self.gamma*1.2:
+        
+        # we can deleverage either by end repos or central bank funding but the later would kill our LCR
+        if self.dic_balance_sheet["own funds"] / self.leverage_exposure() < self.Network.gamma_star:
             self.step_end_repos()
 
     def step_end_repos(self):
@@ -212,13 +223,9 @@ class ClassBank:
         for b, t in sorted(
             trust.items(), key=lambda item: item[1], reverse=False
         ):
-            # Definition of the target amount of off-balance repos to close
-            # with a given bank b
+            # Definition of the target amount of off-balance repos to close with a given bank b
             end = min(self.off_repo_exp[b], target_repo_amount_to_close)
-
-            if self.off_repo_exp[b] - end < -par.float_limit:
-                print(self.off_repo_exp[b])
-
+            
             if (
                 self.off_repo_exp[b]
                 - self.dic_balance_sheet["securities reused"]
@@ -541,8 +548,8 @@ class ClassBank:
             - self.alpha * self.dic_balance_sheet["deposits"]
         )
 
-        # if there is no LCR mgt (no ECB funding to mgt LCR), we might have a bigger shock to absorb than the available collateral, so only a part of the shock is absorded on the repo market
-        if not (self.Network.LCR_mgt_opt):
+        # if there is no LCR mgt (no ECB funding to mgt LCR) or if we allow money creation, we might have a bigger shock to absorb than the available collateral, so only a part of the shock is absorded on the repo market
+        if not (self.Network.LCR_mgt_opt) or self.Network.loan_tenor:
             repo_ask = min(
                 repo_ask,
                 self.dic_balance_sheet["securities usable"]
@@ -702,14 +709,14 @@ class ClassBank:
         # bank_id
         return max(amount - reverse_accept, 0.0)
 
-    def step_central_bank_funding(self):
+    def step_enter_central_bank_funding(self):
         """
         In case shocks are non conversative banks may request cash to the central bank as a last resort when there is not enough cash available on the repo market.
-        In case of absence of CB funding for LCR management, banks may request cash to the central bank as a last resort when there is not enough collateral available for performing repos.
+        In case of LCR management, banks may request cash to the central bank as a last resort when there is not enough collateral available for performing repos.
+        In case of money creation, banks may request cash to the central bank as a last resort when there is not enough collateral available for performing repos.
         """
 
-        # Define the amount of repo to be requested (it is a positive amount
-        # if there is a liquidity need)
+        # Define the amount of CB funds to be requested
         cb_funding_ask = -(
             self.dic_balance_sheet["cash"]
             - self.alpha * self.dic_balance_sheet["deposits"]

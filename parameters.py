@@ -14,7 +14,7 @@ agg_periods = [1, 50, 100, 250]
 # agg_periods = [1, 50]
 
 # limit to the float precision
-float_limit = 1e-10  # required to model a 1000 bilion euros balance sheet
+float_limit = 1e-9  # required to model a 1000 bilion euros balance sheet
 
 # nb of days on which stationary average is computed
 len_statio = 200
