@@ -133,7 +133,7 @@ class ClassDynamics:
 
     def fill_step_dic_dashed_trajectory(self):
         self.dic_dashed_trajectory.update(
-            {self.Network.step: self.Network.df_banks}
+            {self.Network.step: self.Network.df_banks.copy()}
         )
 
     def fill(self):

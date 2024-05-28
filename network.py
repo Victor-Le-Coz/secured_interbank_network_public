@@ -182,7 +182,7 @@ class ClassNetwork:
         # generate shocks
         arr_shocks = self.generate_shocks()
 
-        # loop 1: close maturing loans, apply shock and lcr mgt
+        # loop 1: money creation + payment shocks + LCR mgt - enter or end cb funding
         index = np.random.permutation(index)  # permutation
         for bank_id in index:
 
@@ -200,21 +200,21 @@ class ClassNetwork:
             if self.LCR_mgt_opt:
                 self.banks[bank_id].lcr_mgt()
 
-        # loop 2
+        # opt: put the loop 2 here
+        # loop 2: leverage mgt - end existing repos
         index = np.random.permutation(index)  # permutation
-        
-        # opt 1: periodic end repo
-        if self.end_repo_period:
-            if self.step % self.end_repo_period == 0:
-                for bank_id in index:
-                    self.banks[bank_id].step_end_repos()
-        
-        # opt 2: leverage mgt
-        else:
-            for bank_id in index:
+        for bank_id in index:
+
+            # opt 1: periodic end repo
+            if self.end_repo_period: 
+                if self.step % self.end_repo_period == 0:
+                        self.banks[bank_id].step_end_repos()
+            
+            # opt 2: leverage mgt
+            else: 
                 self.banks[bank_id].leverage_mgt()
 
-        # loop 3: enter repo
+        # loop 3: reserve mgt - enter new repos
         index = np.random.permutation(index)  # permutation
         for bank_id in index:
             self.banks[bank_id].enter_repos()
@@ -222,6 +222,9 @@ class ClassNetwork:
             # in case of money creation only, last resorting refinancing is necessary (the only orthe way to borrow from CB is through LCR mgt that might not even work if there is an exces of collateral)
             if self.loan_tenor:
                 self.banks[bank_id].step_enter_central_bank_funding()
+
+        # test with the loop 2 here 
+        
 
         # # loop 4: fill df_banks and dic matrices
         self.fill_step_df_banks()
@@ -450,6 +453,7 @@ class ClassNetwork:
                 + self.df_banks["securities usable"] * self.collateral_value) / (self.df_banks["deposits"])
         self.df_banks["leverage ratio"] = self.df_banks["own funds"] / self.df_banks["total assets"]
 
+    # not used ??
     def dump_step(self, path):
         self.df_banks.to_csv(f"{path}df_banks.csv")
         self.df_rev_repo_trans.to_csv(f"{path}df_reverse_repos.csv")
