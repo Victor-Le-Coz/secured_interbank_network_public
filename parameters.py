@@ -51,6 +51,7 @@ other_items = [
     "total assets",
     "excess liquidity",
     "total liabilities",
+    "borrowings"
 ]
 finrep_items = list_exclusion(
     list(dm.dic_finrep_columns.values()), accounting_items + other_items
@@ -136,7 +137,6 @@ accounting_metrics = [
         " av. network",
         " tot. network",
         "",
-        " over total assets",
     ]
 ]
 regulatory_ratios_metrics = [
@@ -162,6 +162,16 @@ collateral_reuse = [
     "",
     False,
 ]
+
+borrowings_ov_deposits = [
+    "borrowings ov. deposits tot. network",
+    r"ratio (%)",
+    r"borrowings ov. deposits tot. network (%)",
+    "linear",
+    "",
+    False,
+]
+
 gini = [
     "gini",
     r"gini (%)",
@@ -372,6 +382,7 @@ df_plt = pd.DataFrame(
         *accounting_metrics,
         *regulatory_ratios_metrics,
         collateral_reuse,
+        borrowings_ov_deposits,
         gini,
         *repo_transactions_maturity_av_network,
         *repo_transactions_notional_av_network,
@@ -412,6 +423,7 @@ fig_macro_economic_aggregates = [
         "total assets",
         "deposits",
         "excess liquidity",
+        "borrowings",
     ],
     " tot. network",
 ]
@@ -425,6 +437,11 @@ fig_collateral_aggregates = [
 fig_collateral_reuse = [
     "accounting_view/collateral_reuse",
     ["collateral reuse"],
+    "",
+]
+fig_borrowings_ov_deposits = [
+    "accounting_view/borrowings_ov_deposits",
+    ["borrowings ov. deposits tot. network"],
     "",
 ]
 fig_gini = [
@@ -528,6 +545,7 @@ df_figures = pd.DataFrame(
         fig_collateral_aggregates,
         fig_regulatory_ratios,
         fig_collateral_reuse,
+        fig_borrowings_ov_deposits,
         fig_gini,
         fig_repo_transactions_maturity_av_network,
         fig_repo_transactions_notional_av_network,

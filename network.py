@@ -16,6 +16,7 @@ class ClassNetwork:
     def __init__(
         self,
         nb_banks,
+        initial_deposits_size,
         alpha_init,
         alpha,
         beta_init,
@@ -51,6 +52,7 @@ class ClassNetwork:
 
         # initialization of the class parameters.
         self.nb_banks = nb_banks
+        self.initial_deposits_size = initial_deposits_size
         self.alpha_init = alpha_init
         self.alpha = alpha
         self.beta_init = beta_init
@@ -149,10 +151,10 @@ class ClassNetwork:
                     size=self.nb_banks,
                     random_state=None,
                 )
-                * 40.0
+                * self.initial_deposits_size
             )
         elif self.initialization_method == "constant":
-            self.df_banks["deposits"] = np.ones(self.nb_banks) * 100.0
+            self.df_banks["deposits"] = np.ones(self.nb_banks) * self.initial_deposits_size
 
         # store initial deposits
         self.df_banks["initial deposits"] = self.df_banks["deposits"]
@@ -446,12 +448,13 @@ class ClassNetwork:
         self.df_banks["excess liquidity"] = (
             self.df_banks["cash"] - self.alpha * self.df_banks["deposits"]
         )
-        self.df_banks["reserve ratio"] = (self.df_banks["cash"] / self.df_banks["deposits"])
-        self.df_banks["liquidity ratio"] = (self.df_banks["cash"]
+        self.df_banks["reserve ratio"] = ((self.df_banks["cash"] / self.df_banks["deposits"]))*100
+        self.df_banks["liquidity ratio"] = ((self.df_banks["cash"]
                 + self.df_banks["securities collateral"]
                 * self.collateral_value
-                + self.df_banks["securities usable"] * self.collateral_value) / (self.df_banks["deposits"])
-        self.df_banks["leverage ratio"] = self.df_banks["own funds"] / self.df_banks["total assets"]
+                + self.df_banks["securities usable"] * self.collateral_value) / (self.df_banks["deposits"]))*100
+        self.df_banks["leverage ratio"] = (self.df_banks["own funds"] / self.df_banks["total assets"])*100
+        self.df_banks["borrowings"] = self.df_banks["repo balance"] + self.df_banks["central bank funding"]
 
     # not used ??
     def dump_step(self, path):

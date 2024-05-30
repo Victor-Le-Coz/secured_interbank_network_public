@@ -86,7 +86,7 @@ class ClassDynamics:
     def fill_step_df_network_trajectory(self):
 
         # -----------
-        # I - accounting view
+        # I - accounting view (first part, the second part is in fill_df_net)
 
         # accounting items
         for item in par.bank_items:
@@ -104,20 +104,6 @@ class ClassDynamics:
         self.df_network_trajectory.loc[
             self.Network.step, "gini"
         ] = em.fig_gini(self.Network.df_banks["total assets"])
-
-        # Collateral reuse
-        self.df_network_trajectory.loc[
-            self.Network.step, "collateral reuse"
-        ] = (
-            self.df_network_trajectory.loc[
-                self.Network.step, "securities reused tot. network"
-            ]
-        ) / (
-            self.df_network_trajectory.loc[
-                self.Network.step, "securities collateral tot. network"
-            ]
-            + 1e-10
-        )
 
     def fill_step_df_bank_trajectory(self):
         # Build the time series for a single bank
@@ -175,6 +161,17 @@ class ClassDynamics:
             )
 
     def fill_df_network_trajectory(self):
+
+        # --------------
+        # I - accounting view (second part, the first part is in fill_step_df_)
+
+        # Collateral reuse
+        self.df_network_trajectory["collateral reuse"] = self.df_network_trajectory["securities reused tot. network"] / (self.df_network_trajectory["securities collateral tot. network"] + 1e-10)
+
+        # borrowings ov. deposits
+        self.df_network_trajectory["borrowings ov. deposits tot. network"
+        ] = (self.df_network_trajectory["borrowings tot. network"
+        ] / self.df_network_trajectory["deposits tot. network"])*100
 
         # --------------
         # II - exposure view
@@ -465,6 +462,7 @@ class ClassDynamics:
         with open(f"{self.path_results}input_parameters.txt", "w") as f:
             f.write(
                 f"nb_banks={self.Network.nb_banks} \n"
+                f"initial_deposits_size={self.Network.initial_deposits_size} \n"
                 f"alpha_init={self.Network.alpha_init} \n"
                 f"alpha={self.Network.alpha} \n"
                 f"beta_init={self.Network.beta_init} \n"
@@ -496,39 +494,51 @@ class ClassDynamics:
 
 def single_run(
     nb_banks,
+    initial_deposits_size,
     alpha_init,
     alpha,
     beta_init,
     beta_reg,
     beta_star,
+    beta_new,
+    gamma_init,
     gamma,
+    gamma_star,
+    gamma_new,
     collateral_value,
     initialization_method,
     alpha_pareto,
     shocks_method,
     shocks_law,
     shocks_vol,
-    result_location,
+    LCR_mgt_opt,
     min_repo_trans_size,
+    loan_tenor,
+    new_loans_vol,
+    new_loans_mean,
+    end_repo_period,
     nb_steps,
+    path_results,
     dump_period,
     plot_period,
     cp_option,
-    LCR_mgt_opt,
     heavy_plot,
-    loan_tenor,
-    end_repo_period,
 ):
 
     # initialize ClassNetwork
     Network = ClassNetwork(
         nb_banks=nb_banks,
+        initial_deposits_size=initial_deposits_size,
         alpha_init=alpha_init,
+        alpha=alpha,
         beta_init=beta_init,
         beta_reg=beta_reg,
         beta_star=beta_star,
-        alpha=alpha,
+        beta_new=beta_new,
+        gamma_init=gamma_init,
         gamma=gamma,
+        gamma_star=gamma_star,
+        gamma_new=gamma_new,
         collateral_value=collateral_value,
         initialization_method=initialization_method,
         alpha_pareto=alpha_pareto,
@@ -538,14 +548,16 @@ def single_run(
         LCR_mgt_opt=LCR_mgt_opt,
         min_repo_trans_size=min_repo_trans_size,
         loan_tenor=loan_tenor,
+        new_loans_vol=new_loans_vol,
+        new_loans_mean=new_loans_mean,
         end_repo_period=end_repo_period,
     )
 
     # initialize ClassDynamics
-    dynamics = ClassDynamics(
+    Dynamics = ClassDynamics(
         Network,
         nb_steps=nb_steps,
-        path_results=result_location,
+        path_results=path_results,
         dump_period=dump_period,
         plot_period=plot_period,
         cp_option=cp_option,
@@ -553,6 +565,12 @@ def single_run(
     )
 
     # simulate
-    dynamics.simulate()
+    try :
+        Dynamics.simulate()
+        status = "sucessfull run "
 
-    return Network
+    except:
+        status = "failed run"
+
+
+    return status

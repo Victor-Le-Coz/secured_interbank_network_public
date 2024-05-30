@@ -405,33 +405,33 @@ class ClassBank:
         #     )
         # )
 
-        if not(self.Network.beta_new): # test not valid in the case of maturing collat due to the approximate management of the closing of colat inside a transaction 
-            assert (
-                abs(
-                    self.dic_balance_sheet["securities collateral"]
-                    + self.dic_balance_sheet["securities reused"]
-                    - self.dic_balance_sheet["reverse repo balance"]
-                )
-                < par.float_limit
-            ), (
-                "incorrect balance sheet \n securities collateral {},"
-                "\n "
-                "securities reused {}"
-                "\n "
-                "reverse "
-                "repos {} "
-                ""
-                "\n "
-                "difference {}"
-                "".format(
-                    self.dic_balance_sheet["securities collateral"],
-                    self.dic_balance_sheet["securities reused"],
-                    self.dic_balance_sheet["reverse repo balance"],
-                    self.dic_balance_sheet["reverse repo balance"]
-                    - self.dic_balance_sheet["securities collateral"]
-                    - self.dic_balance_sheet["securities reused"],
-                )
+
+        assert (
+            abs(
+                self.dic_balance_sheet["securities collateral"]
+                + self.dic_balance_sheet["securities reused"]
+                - self.dic_balance_sheet["reverse repo balance"]
             )
+            < par.float_limit
+        ), (
+            "incorrect balance sheet \n securities collateral {},"
+            "\n "
+            "securities reused {}"
+            "\n "
+            "reverse "
+            "repos {} "
+            ""
+            "\n "
+            "difference {}"
+            "".format(
+                self.dic_balance_sheet["securities collateral"],
+                self.dic_balance_sheet["securities reused"],
+                self.dic_balance_sheet["reverse repo balance"],
+                self.dic_balance_sheet["reverse repo balance"]
+                - self.dic_balance_sheet["securities collateral"]
+                - self.dic_balance_sheet["securities reused"],
+            )
+        )
 
         # Update of the balance sheet items
         self.dic_balance_sheet["cash"] += amount
@@ -751,17 +751,18 @@ class ClassBank:
             self.dic_balance_sheet["deposits"] -= self.dic_loans_steps_closing[self.Network.step]
     
     def close_maturing_securities(self):
-        # close also maturing colat: we hope than the bank has sufficient collateral usable, otherwise we breach the equality reverse repo = collat recieved + collat reused, we also breach the asset = liability
-        collat_decrease = self.Network.beta_new*self.dic_loans_steps_closing[self.Network.step]/(1-self.Network.beta_new)
-        self.dic_balance_sheet["securities usable"] -= collat_decrease / self.collateral_value
-        self.dic_balance_sheet["deposits"] -= collat_decrease
+        if self.Network.step in self.dic_loans_steps_closing:
+            # close also maturing colat: we hope than the bank has sufficient collateral usable, otherwise we breach the equality reverse repo = collat recieved + collat reused, we also breach the asset = liability
+            collat_decrease = self.Network.beta_new*self.dic_loans_steps_closing[self.Network.step]/(1-self.Network.beta_new)
+            self.dic_balance_sheet["securities usable"] -= collat_decrease / self.collateral_value
+            self.dic_balance_sheet["deposits"] -= collat_decrease
 
-        assert (
-            self.dic_balance_sheet["securities usable"]
-            < -par.float_limit
-        ), (
-            self.__str__() + ": not enough securities usable to allow the maturing of the securities."
-        )
+            assert (
+                self.dic_balance_sheet["securities usable"]
+                < -par.float_limit
+            ), (
+                self.__str__() + ": not enough securities usable to allow the maturing of the securities."
+            )
         
     def liquidity_coverage_ratio(self):
         """

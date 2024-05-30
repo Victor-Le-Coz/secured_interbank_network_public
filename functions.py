@@ -24,8 +24,8 @@ def build_args(dic_default_value, dic_ranges):
             # set the given arg to value and the path to arg/value/
             dic_args[arg] = value
             dic_args[
-                "result_location"
-            ] = f"{dic_args['result_location']}{arg}/{value}/"
+                "path_results"
+            ] = f"{dic_args['path_results']}{arg}/{value}/"
 
             # specific case of beta
             if arg == "beta_reg":
