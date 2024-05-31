@@ -14,6 +14,12 @@ from warnings import simplefilter
 
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
+class CustomException(Exception):   
+   def __init__(self, value=None, *args, **kwargs):
+     self.parameter = value
+   def __str__(self):
+     return repr(self.parameter)
+
 class ClassDynamics:
     def __init__(
         self,
@@ -444,11 +450,23 @@ class ClassDynamics:
             # record information
             self.fill_step()
 
-            # expoxt record, dump, and plot
+            # export record, dump, and plot
             if self.Network.step % self.dump_period == 0:
                 self.fill()
                 self.dump()
                 gx.plot(self)
+
+            # check if an error occured on this step
+            if self.Network.str_output_error:
+                
+                # export all information if not already done
+                if self.Network.step % self.dump_period != 0:
+                    self.fill()
+                    self.dump()
+                    gx.plot(self)
+
+                # end the loop
+                break
 
         # store the final step (if not already done)
         if self.Network.step % self.dump_period != 0:
@@ -565,12 +583,8 @@ def single_run(
     )
 
     # simulate
-    try :
-        Dynamics.simulate()
-        status = "sucessfull run "
+    Dynamics.simulate()
 
-    except:
-        status = "failed run"
-
-
-    return status
+    # return error if any
+    if Network.str_output_error:
+        return Network.str_output_error

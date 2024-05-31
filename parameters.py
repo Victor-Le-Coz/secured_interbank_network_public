@@ -139,6 +139,7 @@ accounting_metrics = [
         "",
     ]
 ]
+
 regulatory_ratios_metrics = [
     [
         f"{metric}{extension}",
@@ -326,6 +327,14 @@ nb_banks = [
     "",
     False,
 ]
+initial_deposits_size = [
+    "initial_deposits_size",
+    r"av. initial deposits per bank (monetary units, log scale)",
+    r"av. initial deposits per bank (monetary units, log scale)",
+    "log",
+    "",
+    False,
+]
 alpha_init = [
     "alpha_init",
     r"$\alpha_0$ (%)",
@@ -396,6 +405,7 @@ df_plt = pd.DataFrame(
         *powerlaw_pvalue,
         *powerlaw_direction,
         nb_banks,
+        initial_deposits_size,
         alpha_init,
         alpha,
         beta_init,

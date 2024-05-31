@@ -1,7 +1,4 @@
 import os
-
-# os.environ["OMP_NUM_THREADS"] = "1"
-
 import numpy as np
 from scipy.stats import pareto
 from tqdm import tqdm
@@ -9,8 +6,6 @@ from bank import ClassBank
 import pandas as pd
 import parameters as par
 from scipy import stats
-import functions as fct
-from sys import exit
 
 class ClassNetwork:
     def __init__(
@@ -140,6 +135,9 @@ class ClassNetwork:
 
         # store initial loans
         self.df_banks["initial loans"] = self.df_banks["loans"]
+
+        # initialize the output error string
+        self.str_output_error = False
 
     def initialize_deposits(self):
         if self.initialization_method == "pareto":
@@ -379,11 +377,8 @@ class ClassNetwork:
         )
 
         if not (assessment):
-            print(
-                r"Assets don't match liabilities for one or several banks, check the df_banks under ./errors"
-            )
-            self.df_banks.to_csv(f"./support/errors/df_banks.csv")
-            exit()
+            self.str_output_error = "***ERROR***: assets don't match liabilities for one or several banks. Plot and stop simulation."
+            print(self.str_output_error)
 
     def check_min_reserves(self):
 
@@ -392,11 +387,8 @@ class ClassNetwork:
         )
 
         if not (assessment):
-            print(
-                r"Minimum reserves above its regulatory level for one or several banks, check the df_banks under ./errors"
-            )
-            self.df_banks.to_csv(f"./support/errors/df_banks.csv")
-            exit()
+            self.str_output_error = "***ERROR***: minimum reserves below its regulatory level for one or several banks. Plot and stop simulation."
+            print(self.str_output_error)
 
     def check_lcr(self):
 
@@ -413,22 +405,16 @@ class ClassNetwork:
         )
 
         if not (assessment):
-            print(
-                r"LCR not above its regulatory level for one or several banks, check the df_banks under ./errors"
-            )
-            self.df_banks.to_csv(f"./support/errors/df_banks.csv")
-            exit()
+            self.str_output_error = "***ERROR***: LCR not above its regulatory level for one or several banks. Plot and stop simulation."
+            print(self.str_output_error)
 
     def check_leverage(self):
 
         assessment = (self.df_banks["own funds"] - self.df_banks["total assets"] * self.gamma).gt(-par.float_limit).all()
 
         if not (assessment):
-            print(
-                r"leverage ratio not above its regulatory level for one or several banks, check the df_banks under ./errors"
-            )
-            self.df_banks.to_csv(f"./support/errors/df_banks.csv")
-            exit()
+            self.str_output_error = "***ERROR***: leverage ratio not above its regulatory level for one or several banks. Plot and stop simulation."
+            print(self.str_output_error)
 
     def fill_step_df_banks(self):
 
@@ -537,9 +523,6 @@ class ClassNetwork:
                 scale=self.shocks_vol,
             ).rvs(N_half)
 
-        else:
-            assert False, ""
-
         # apply a positive relative shock on the second half of the banks
         rho_2 = -rho_1 * deposits_p[0:N_half] / deposits_p[N_half:N_max]
 
@@ -548,8 +531,6 @@ class ClassNetwork:
             rho = np.concatenate([rho_1, rho_2, [0]])
         elif len(self.df_banks["deposits"]) == N_max:
             rho = np.concatenate([rho_1, rho_2])
-        else:
-            assert False, ""
 
         # build an un-permuted array of absolute shocks
         shocks = np.zeros(len(self.df_banks["deposits"]))

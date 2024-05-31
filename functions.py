@@ -16,6 +16,7 @@ def build_args(dic_default_value, dic_ranges):
 
     list_dic_args = []
     for arg, range in dic_ranges.items():
+        k=1
         for value in range:
 
             # create a dic_args from the default values
@@ -23,9 +24,16 @@ def build_args(dic_default_value, dic_ranges):
 
             # set the given arg to value and the path to arg/value/
             dic_args[arg] = value
-            dic_args[
-                "path_results"
-            ] = f"{dic_args['path_results']}{arg}/{value}/"
+            
+            # if the value are repeted we need to define a different path
+            if list_dic_args:
+                if list_dic_args[-1][arg]==value:
+                    dic_args["path_results"] = f"{dic_args['path_results']}{arg}/{value}_#{k}/"
+                    k +=1
+                else:
+                    dic_args["path_results"] = f"{dic_args['path_results']}{arg}/{value}/"
+            else:
+                dic_args["path_results"] = f"{dic_args['path_results']}{arg}/{value}/"
 
             # specific case of beta
             if arg == "beta_reg":
@@ -63,17 +71,29 @@ def get_nb_runs(dic_range):
 
 
 def get_df_network_sensitivity(path):
+    float_ok = False
+
     # get the input parameters and their ranges
     dic_range = get_dic_range(path)
 
     # initiaze the index of df_network_sensitivity
-    index = pd.MultiIndex.from_tuples(
-        [
-            (input_parameter, float(value))
-            for input_parameter in dic_range.keys()
-            for value in dic_range[input_parameter]
-        ]
-    )
+    try:
+        index = pd.MultiIndex.from_tuples(
+            [
+                (input_parameter, float(value))
+                for input_parameter in dic_range.keys()
+                for value in dic_range[input_parameter]
+            ]
+        )
+        float_ok = True
+    except:
+        index = pd.MultiIndex.from_tuples(
+            [
+                (input_parameter, value)
+                for input_parameter in dic_range.keys()
+                for value in dic_range[input_parameter]
+            ]
+        )
 
     # fill-in df_network_sensitivity
     first_round = True
@@ -95,9 +115,14 @@ def get_df_network_sensitivity(path):
                     first_round = False
 
                 # fill with df_network_trajectory
-                df_network_sensitivity.loc[
-                    (input_parameter, float(value))
-                ] = df_network_trajectory.iloc[-par.len_statio :].mean()
+                if float_ok:
+                    df_network_sensitivity.loc[
+                        (input_parameter, float(value))
+                    ] = df_network_trajectory.iloc[-par.len_statio :].mean()
+                else:
+                    df_network_sensitivity.loc[
+                            (input_parameter, value)
+                        ] = df_network_trajectory.iloc[-par.len_statio :].mean()
 
     # save the results
     df_network_sensitivity.to_csv(f"{path}/df_network_sensitivity.csv")
