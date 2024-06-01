@@ -224,7 +224,6 @@ class ClassNetwork:
                 self.banks[bank_id].step_enter_central_bank_funding()
 
         # test with the loop 2 here 
-        
 
         # # loop 4: fill df_banks and dic matrices
         self.fill_step_df_banks()
