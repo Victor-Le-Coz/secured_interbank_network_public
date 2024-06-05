@@ -31,6 +31,7 @@ class ClassNetwork:
         LCR_mgt_opt,
         min_repo_trans_size,
         loan_tenor,
+        loan_period,
         new_loans_vol,
         new_loans_mean,
         end_repo_period,
@@ -67,6 +68,7 @@ class ClassNetwork:
         self.LCR_mgt_opt = LCR_mgt_opt
         self.min_repo_trans_size = min_repo_trans_size
         self.loan_tenor = loan_tenor
+        self.loan_period = loan_period
         self.new_loans_vol = new_loans_vol
         self.new_loans_mean = new_loans_mean
         self.end_repo_period = end_repo_period
@@ -179,6 +181,9 @@ class ClassNetwork:
         if self.loan_tenor:
             ar_new_loans = self.generate_new_loans()
 
+            # update the target for the mean reversion of the shocks
+            self.df_banks["initial deposits"] += ar_new_loans
+
         # generate shocks
         arr_shocks = self.generate_shocks()
 
@@ -188,10 +193,11 @@ class ClassNetwork:
 
             # create money
             if self.loan_tenor:
-                self.banks[bank_id].set_money_creation(ar_new_loans[bank_id])
-                self.banks[bank_id].close_maturing_loans()
-                if self.beta_new:
-                    self.banks[bank_id].close_maturing_securities()
+                if self.step % self.loan_period == 0:
+                    self.banks[bank_id].set_money_creation(ar_new_loans[bank_id])
+                    self.banks[bank_id].close_maturing_loans()
+                    if self.beta_new:
+                        self.banks[bank_id].close_maturing_securities()
 
             # set the shocks (linear)
             self.banks[bank_id].set_shock(arr_shocks[bank_id])
@@ -222,6 +228,9 @@ class ClassNetwork:
             # in case of money creation only, last resorting refinancing is necessary (the only orthe way to borrow from CB is through LCR mgt that might not even work if there is an exces of collateral)
             if self.loan_tenor:
                 self.banks[bank_id].step_enter_central_bank_funding()
+
+            # opt test 
+            self.banks[bank_id].step_enter_central_bank_funding()
 
         # test with the loop 2 here 
 

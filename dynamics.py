@@ -500,6 +500,7 @@ class ClassDynamics:
                 f"nb_steps={self.nb_steps} \n"
                 f"LCR_mgt_opt={self.Network.LCR_mgt_opt} \n"
                 f"loan_tenor={self.Network.loan_tenor} \n"
+                f"loan_period={self.Network.loan_period} \n"
                 f"new_loans_vol={self.Network.new_loans_vol} \n"
                 f"new_loans_mean={self.Network.new_loans_mean} \n"
                 f"end_repo_period={self.Network.end_repo_period}"
@@ -532,6 +533,7 @@ def single_run(
     LCR_mgt_opt,
     min_repo_trans_size,
     loan_tenor,
+    loan_period,
     new_loans_vol,
     new_loans_mean,
     end_repo_period,
@@ -566,6 +568,7 @@ def single_run(
         LCR_mgt_opt=LCR_mgt_opt,
         min_repo_trans_size=min_repo_trans_size,
         loan_tenor=loan_tenor,
+        loan_period=loan_period,
         new_loans_vol=new_loans_vol,
         new_loans_mean=new_loans_mean,
         end_repo_period=end_repo_period,

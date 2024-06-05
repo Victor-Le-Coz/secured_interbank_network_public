@@ -87,17 +87,26 @@ class ClassBank:
         # set the initial deposits
         self.dic_balance_sheet["deposits"] = self.initial_deposits
 
-        # The cash is set to its minimum reserve amount.
-        self.dic_balance_sheet["cash"] = (
-            self.dic_balance_sheet["deposits"] * self.alpha_init
-        )
+        # set the initial cash
+        if self.alpha_init:
+            # The cash is set to its minimum reserve amount.
+            self.dic_balance_sheet["cash"] = (
+                self.dic_balance_sheet["deposits"] * self.alpha_init
+            )
+        else:
+            #  The cash is set to 0 (because it cannot be created by banks !)
+            self.dic_balance_sheet["cash"] = 0
+
 
         # The collateral is set to the amount allowing to match the beta_init.
-        self.dic_balance_sheet["securities usable"] = (
+        if self.alpha_init:
+            self.dic_balance_sheet["securities usable"] = (
             (self.beta_init - self.alpha)
             * self.dic_balance_sheet["deposits"]
             / self.collateral_value
-        )
+            )
+        else:
+            self.dic_balance_sheet["securities usable"] = self.beta_init * self.dic_balance_sheet["deposits"] / self.collateral_value
 
         # The Own-funds are set to match the leverage ratio.
         self.dic_balance_sheet["own funds"] = (
@@ -151,6 +160,9 @@ class ClassBank:
             self.dic_balance_sheet["securities usable"] += new_securities
             self.dic_balance_sheet["deposits"] += new_securities
             amount -= new_securities
+
+            # update the target for the mean reversion of the shocks
+            self.Network.df_banks.loc[self.id,"initial deposits"] += new_securities 
             
         # The remaining amount is a loan with a fixed maturity
         self.dic_balance_sheet["loans"] += amount

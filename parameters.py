@@ -564,8 +564,8 @@ df_figures = pd.DataFrame(
         fig_jaccard_index,
         fig_network_density,
         fig_degree_stats,
-        fig_powerlaw_alpha,
-        fig_powerlaw_pvalue,
+        # fig_powerlaw_alpha,
+        # fig_powerlaw_pvalue,
     ]
     + figs_cpnet_pvalues,
     columns=figures_columns,
