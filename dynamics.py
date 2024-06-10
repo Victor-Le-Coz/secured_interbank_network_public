@@ -503,7 +503,8 @@ class ClassDynamics:
                 f"loan_period={self.Network.loan_period} \n"
                 f"new_loans_vol={self.Network.new_loans_vol} \n"
                 f"new_loans_mean={self.Network.new_loans_mean} \n"
-                f"end_repo_period={self.Network.end_repo_period}"
+                f"end_repo_period={self.Network.end_repo_period} \n"
+                f"substitution={self.Network.substitution}"
             )
 
         # # print the parameter to terminal
@@ -543,6 +544,7 @@ def single_run(
     plot_period,
     cp_option,
     heavy_plot,
+    substitution,
 ):
 
     # initialize ClassNetwork
@@ -572,6 +574,7 @@ def single_run(
         new_loans_vol=new_loans_vol,
         new_loans_mean=new_loans_mean,
         end_repo_period=end_repo_period,
+        substitution=substitution,
     )
 
     # initialize ClassDynamics

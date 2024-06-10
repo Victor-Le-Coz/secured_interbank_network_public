@@ -160,9 +160,6 @@ class ClassBank:
             self.dic_balance_sheet["securities usable"] += new_securities
             self.dic_balance_sheet["deposits"] += new_securities
             amount -= new_securities
-
-            # update the target for the mean reversion of the shocks
-            self.Network.df_banks.loc[self.id,"initial deposits"] += new_securities 
             
         # The remaining amount is a loan with a fixed maturity
         self.dic_balance_sheet["loans"] += amount
@@ -371,23 +368,44 @@ class ClassBank:
         if amount <= 0.0:
             return
 
-        # Definition of the amount of collateral missing to allow the closing of the reverse repo. We allow the bank self to use its securities usable as the substitute for the securities she received in the first place
-        missing_collateral = max(
-            amount
-            - self.dic_balance_sheet["securities collateral"] - self.dic_balance_sheet["securities usable"],
-            0.0,
-        )
+        # Definition of the amount of collateral missing to allow the closing of the reverse repo.
+        if self.Network.substitution:
+            #  We allow the bank self to use its securities usable as substitute for the securities she received in the first place
+            missing_collateral = max(
+                amount
+                - self.dic_balance_sheet["securities collateral"] - self.dic_balance_sheet["securities usable"],
+                0.0,
+            )
+        
+        else:
+            # otherwise only the securities collateral can be used
+            missing_collateral = max(
+                amount
+                - self.dic_balance_sheet["securities collateral"],
+                0.0,
+            )
+
 
         # Recursive calling of the missing amount of collateral through the ending of the own repos of the bank agent.
         self.end_repos(missing_collateral)
 
         # Recompute the missing amount of collateral after the end of the
         # recursive algorithm.
-        missing_collateral = max(
-            amount
-            - self.dic_balance_sheet["securities collateral"] - self.dic_balance_sheet["securities usable"],
-            0.0,
-        )
+        if self.Network.substitution:
+            #  We allow the bank self to use its securities usable as substitute for the securities she received in the first place
+            missing_collateral = max(
+                amount
+                - self.dic_balance_sheet["securities collateral"] - self.dic_balance_sheet["securities usable"],
+                0.0,
+            )
+        
+        else:
+            # otherwise only the securities collateral can be used
+            missing_collateral = max(
+                amount
+                - self.dic_balance_sheet["securities collateral"],
+                0.0,
+            )
 
         # Assert if the recursive algorithm worked adequately, otherwise print an error
         assert missing_collateral <= par.float_limit, (
@@ -402,20 +420,20 @@ class ClassBank:
 
         # Update all the required balance sheet items by the closing of the
         # reverse repo.
-
-        # assert not (
-        #     self.dic_balance_sheet["securities reused"] > par.float_limit
-        #     and self.dic_balance_sheet["securities usable"] > par.float_limit
-        # ), (
-        #     "both reused {} and "
-        #     "usable {} "
-        #     "are positive, "
-        #     "while normally supposed to use all usable before using "
-        #     "collateral".format(
-        #         self.dic_balance_sheet["securities reused"],
-        #         self.dic_balance_sheet["securities usable"],
-        #     )
-        # )
+        if not(self.Network.beta_new):
+            assert not (
+                self.dic_balance_sheet["securities reused"] > par.float_limit
+                and self.dic_balance_sheet["securities usable"] > par.float_limit
+            ), (
+                "both reused {} and "
+                "usable {} "
+                "are positive, "
+                "while normally supposed to use all usable before using "
+                "collateral".format(
+                    self.dic_balance_sheet["securities reused"],
+                    self.dic_balance_sheet["securities usable"],
+                )
+            )
 
 
         assert (
@@ -450,19 +468,23 @@ class ClassBank:
         self.dic_balance_sheet["reverse repo balance"] -= amount
         self.rev_repo_exp[bank_id] -= amount
 
-        amount_col_part = min(self.dic_balance_sheet["securities collateral"],amount)
-        amount_usable_part = max(amount - amount_col_part,0.0)
+        if self.Network.substitution:
 
-        self.dic_balance_sheet["securities collateral"] -= amount_col_part
+            # split between colat and usable
+            amount_col_part = min(self.dic_balance_sheet["securities collateral"],amount)
+            amount_usable_part = max(amount - amount_col_part,0.0)
 
-        # substitution 
-        self.dic_balance_sheet["securities usable"] -= amount_usable_part
-        self.dic_balance_sheet["securities encumbered"] += amount_usable_part
-        self.dic_balance_sheet["securities reused"] -= amount_usable_part
+            self.dic_balance_sheet["securities collateral"] -= amount_col_part
 
-        # first use the securities collateral 
-        amount_col_part = min(self.dic_balance_sheet["securities collateral"],amount)
-        amount_usable_part = amount - amount_col_part
+            # substitution
+            self.dic_balance_sheet["securities usable"] -= amount_usable_part
+            self.dic_balance_sheet["securities encumbered"] += amount_usable_part
+            self.dic_balance_sheet["securities reused"] -= amount_usable_part
+
+            ## ! WARNING ! it doesn't update the off_balance_repo exposure of self with an other bank...
+        
+        else:
+            self.dic_balance_sheet["securities collateral"] -= amount
 
         # update df_reverse_repos
         # initialize the list of trans_ids with status == True
@@ -471,6 +493,7 @@ class ClassBank:
         ].index
 
         # case with an issue (no solution yet, just print the issue and a warning)
+        # the issue came from the recursivity of the algo, solved due to the limited recusrsion 
         if len(trans_ids) == 0:
             self.df_rev_repo_trans.to_csv(
                 f"./support/errors/{self.id}_df_reverse_repo_err.csv"

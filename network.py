@@ -35,6 +35,7 @@ class ClassNetwork:
         new_loans_vol,
         new_loans_mean,
         end_repo_period,
+        substitution,
     ):
 
         # init path
@@ -72,6 +73,7 @@ class ClassNetwork:
         self.new_loans_vol = new_loans_vol
         self.new_loans_mean = new_loans_mean
         self.end_repo_period = end_repo_period
+        self.substitution = substitution
 
         # (Re)set the network
         self.reset_network()
@@ -179,10 +181,10 @@ class ClassNetwork:
 
         # generate new loans
         if self.loan_tenor:
-            ar_new_loans = self.generate_new_loans()
+            ar_new_money = self.generate_new_money()
 
             # update the target for the mean reversion of the shocks
-            self.df_banks["initial deposits"] += ar_new_loans
+            self.df_banks["initial deposits"] += (1-self.gamma_new)*ar_new_money
 
         # generate shocks
         arr_shocks = self.generate_shocks()
@@ -194,10 +196,10 @@ class ClassNetwork:
             # create money
             if self.loan_tenor:
                 if self.step % self.loan_period == 0:
-                    self.banks[bank_id].set_money_creation(ar_new_loans[bank_id])
-                    self.banks[bank_id].close_maturing_loans()
-                    if self.beta_new:
-                        self.banks[bank_id].close_maturing_securities()
+                    self.banks[bank_id].set_money_creation(ar_new_money[bank_id])
+                self.banks[bank_id].close_maturing_loans()
+                if self.beta_new:
+                    self.banks[bank_id].close_maturing_securities()
 
             # set the shocks (linear)
             self.banks[bank_id].set_shock(arr_shocks[bank_id])
@@ -229,7 +231,7 @@ class ClassNetwork:
             if self.loan_tenor:
                 self.banks[bank_id].step_enter_central_bank_funding()
 
-            # opt test 
+            # opt: last resort refinancing for all cases  
             self.banks[bank_id].step_enter_central_bank_funding()
 
         # test with the loop 2 here 
@@ -676,7 +678,7 @@ class ClassNetwork:
         return shocks
     
 
-    def generate_new_loans(self):
+    def generate_new_money(self):
         # log normal case 
         # mu = 
         # sigma = 

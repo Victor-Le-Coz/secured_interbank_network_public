@@ -359,7 +359,47 @@ beta_init = [
     "",
     "%",
 ]
-beta_reg = ["beta_reg", r"$\beta$ (%)", r"$\beta$ (%)", "linear", "", "%"]
+beta_reg = [
+    "beta_reg",
+    r"$\beta$ (%)",
+    r"$\beta$ (%)",
+    "linear",
+    "",
+    "%"
+]
+gamma_init = [
+    "gamma_init",
+    r"$\gamma_0$ (%)",
+    r"$\gamma_0$ (%)",
+    "linear",
+    "",
+    "%",
+]
+gamma = [
+    "gamma",
+    r"$\gamma$ (%)",
+    r"$\gamma$ (%)",
+    "linear",
+    "",
+    "%",
+]
+gamma_star = [
+    "gamma_star",
+    r"$\gamma^*$ (%)",
+    r"$\gamma^*$ (%)",
+    "linear",
+    "",
+    "%",
+]
+gamma_new = [
+    "gamma_new",
+    r"$\gamma new$ (%)",
+    r"$\gamma new$ (%)",
+    "linear",
+    "",
+    "%",
+]
+
 alpha_pareto = [
     "alpha_pareto",
     r"alpha patero (log scale)",
@@ -410,6 +450,9 @@ df_plt = pd.DataFrame(
         alpha,
         beta_init,
         beta_reg,
+        gamma_init,
+        gamma,
+        gamma_new,
         alpha_pareto,
         shocks_vol,
         min_repo_trans_size,
