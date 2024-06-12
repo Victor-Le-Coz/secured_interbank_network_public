@@ -12,39 +12,49 @@ import parameters as par
 from tqdm import tqdm
 
 
-def build_args(dic_default_value, dic_ranges):
+def build_args(dic_default_value, list_dic_range):
 
     list_dic_args = []
-    for arg, range in dic_ranges.items():
-        k=1
-        for value in range:
+    for dic_range in list_dic_range:
 
-            # create a dic_args from the default values
-            dic_args = dic_default_value.copy()
 
-            # set the given arg to value and the path to arg/value/
-            dic_args[arg] = value
-            
-            # if the value are repeted we need to define a different path
-            if list_dic_args:
-                if list_dic_args[-1][arg]==value:
-                    dic_args["path_results"] = f"{dic_args['path_results']}{arg}/{value}_#{k}/"
-                    k +=1
+        # build a dic of the dic_args with all the modif of the requested parameters
+        dic_dic_arg_local = {}
+        for arg, range in dic_range.items():
+
+            for i, value in enumerate(range):
+
+                # set the given arg to value
+                if i in dic_dic_arg_local.keys():
+                    dic_dic_arg_local[i][arg] = value
+                    
                 else:
-                    dic_args["path_results"] = f"{dic_args['path_results']}{arg}/{value}/"
-            else:
-                dic_args["path_results"] = f"{dic_args['path_results']}{arg}/{value}/"
+                    # create a dic_args from the default values
+                    dic_arg = dic_default_value.copy()
 
-            # specific case of beta
-            if arg == "beta_reg":
-                dic_args["beta_init"] = value
-                dic_args["beta_star"] = value
+                    # modify one value
+                    dic_arg[arg] = value
 
-            # call the function with the current parameter value
-            list_dic_args.append(dic_args)
+                    # store the dic_args created in a dic of dic args
+                    dic_dic_arg_local.update({i:dic_arg})
+
+        
+        # manage the path
+        arg, range = list(dic_range.items())[0]
+        if len(np.unique(range)) == len(range):
+            for i, value in enumerate(range):
+                dic_dic_arg_local[i]["path_results"] = f"{dic_default_value['path_results']}{arg}/{value}/"
+        else:
+            for i, value in enumerate(range):
+                dic_dic_arg_local[i]["path_results"] = f"{dic_default_value['path_results']}{arg}/{value}_#{i}/"
+
+
+        # store each dic_args in a global list
+        for value in dic_dic_arg_local.values():
+            list_dic_args.append(value)
+                    
 
     return list_dic_args
-
 
 def get_dic_range(path):
 
@@ -61,14 +71,6 @@ def get_dic_range(path):
         ar_range = np.sort(np.array(os.listdir(f"{path}{input_parameter}")))
         dic_range.update({input_parameter: ar_range})
     return dic_range
-
-
-def get_nb_runs(dic_range):
-    nb_runs = 0
-    for key in dic_range.keys():
-        nb_runs += len(dic_range[key])
-    return nb_runs
-
 
 def get_df_network_sensitivity(path):
     float_ok = False
