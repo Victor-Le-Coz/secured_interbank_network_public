@@ -35,6 +35,7 @@ class ClassBank:
         self.gamma = gamma
         self.collateral_value = collateral_value
         self.initial_deposits = initial_deposits
+        
 
         # definition of a dictionary (faster) with the accounting data
         self.dic_balance_sheet = dict.fromkeys(par.accounting_items, 0)
@@ -108,7 +109,7 @@ class ClassBank:
         else:
             self.dic_balance_sheet["securities usable"] = self.beta_init * self.dic_balance_sheet["deposits"] / self.collateral_value
 
-        # The Own-funds are set to match the leverage ratio.
+        # The Own-funds are set to match the leverage ratio. gamma_init
         self.dic_balance_sheet["own funds"] = (
             self.gamma_init / (1.0 - self.gamma_init)
         ) * self.dic_balance_sheet["deposits"]
@@ -774,7 +775,7 @@ class ClassBank:
 
     def update_learning(self, bank, value):
         # Lux's approach: creates a trust between 0 and 1, when value is between 0 and 1, deacing in power 2 toward 0 in case value is 0, converging in power 2 toward 1 in case value is 1
-        self.trust[bank] = self.trust[bank] + 0.5 * (value - self.trust[bank])
+        self.trust[bank] = self.trust[bank] + self.Network.learning_speed * (value - self.trust[bank])
 
     def close_maturing_loans(self):
         "It the exact opposite of money creation. Decrease loans and deposits in the same proportions."

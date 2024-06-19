@@ -545,6 +545,7 @@ def single_run(
     cp_option,
     heavy_plot,
     substitution,
+    learning_speed,
 ):
 
     # initialize ClassNetwork
@@ -575,6 +576,7 @@ def single_run(
         new_loans_mean=new_loans_mean,
         end_repo_period=end_repo_period,
         substitution=substitution,
+        learning_speed=learning_speed,
     )
 
     # initialize ClassDynamics

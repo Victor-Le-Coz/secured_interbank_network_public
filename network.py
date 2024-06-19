@@ -36,6 +36,7 @@ class ClassNetwork:
         new_loans_mean,
         end_repo_period,
         substitution,
+        learning_speed,
     ):
 
         # init path
@@ -74,6 +75,7 @@ class ClassNetwork:
         self.new_loans_mean = new_loans_mean
         self.end_repo_period = end_repo_period
         self.substitution = substitution
+        self.learning_speed = learning_speed
 
         # (Re)set the network
         self.reset_network()
