@@ -135,7 +135,7 @@ class ClassBank:
         for bank in banks:
             self.rev_repo_exp[bank.id] = 0.0
             if bank.id != self.id:
-                self.trust[bank.id] = 0.0
+                self.trust[bank.id] = self.Network.df_banks.loc[bank.id,"total assets"] / self.Network.df_banks["total assets"].sum()
                 self.on_repo_exp[bank.id] = 0.0
                 self.off_repo_exp[bank.id] = 0.0
                 self.banks[bank.id] = bank
@@ -246,21 +246,12 @@ class ClassBank:
                 )
 
             # test the accuracy of self.on_balance repos:
-            assert (
-                abs(
+            assessment  = (abs(
                     sum(self.off_repo_exp.values())
-                    - self.dic_balance_sheet["securities reused"]
-                )
-                < par.float_limit
-            ), (
-                "the sum of the "
-                "off-balance repos {}, "
-                "is not equal to the "
-                "Securities Reused {}".format(
-                    sum(self.off_repo_exp.values()),
-                    self.dic_balance_sheet["securities reused"],
-                )
-            )
+                    - self.dic_balance_sheet["securities reused"]) < par.float_limit)
+            if not(assessment):
+                self.Network.str_output_error = f"***ERROR***: the sum of the off-balance repos {sum(self.off_repo_exp.values())} is not equal to the Securities Reused {self.dic_balance_sheet['securities reused']}. Plot and stop simulation."
+                print(self.Network.str_output_error)
 
             # Case disjunction
             if end > 0.0:
@@ -291,17 +282,13 @@ class ClassBank:
 
                 target_repo_amount_to_close -= end
 
-                assert (
+                assessment =  (
                     self.dic_balance_sheet["securities reused"]
                     >= -par.float_limit
-                ), (
-                    "securities reused negative {} at step {}, due to "
-                    "retrieving of end {}".format(
-                        self.dic_balance_sheet["securities reused"],
-                        self.Network.step,
-                        end,
-                    )
                 )
+                if not(assessment):
+                    self.Network.str_output_error = f"***ERROR***: securities reused negative {self.dic_balance_sheet['securities reused']} at step {self.Network.step}, due to retrieving of end {end}. Plot and stop simulation."
+                    print(self.Network.str_output_error)
 
             # Break the for loop if off balance repos are sufficient to
             # empty the excess liquidity
@@ -322,13 +309,17 @@ class ClassBank:
             end = min(self.on_repo_exp[b], target_repo_amount_to_close)
 
             # test the accuracy of self.on_balance repos:
-            assert (
+            assessment=  (
                 abs(
                     sum(self.on_repo_exp.values())
                     - self.dic_balance_sheet["securities encumbered"]
                 )
                 < par.float_limit
-            ), f"the sum of the on-balance repos {sum(self.on_repo_exp.values())} are not equal to the Securities Encumbered {self.dic_balance_sheet['securities encumbered']}"
+            )
+            
+            if not(assessment):
+                    self.Network.str_output_error = f"***ERROR***: the sum of the on-balance repos {sum(self.on_repo_exp.values())} are not equal to the Securities Encumbered {self.dic_balance_sheet['securities encumbered']}. Plot and stop simulation."
+                    print(self.Network.str_output_error)
 
             if end > 0.0:
 
@@ -408,8 +399,8 @@ class ClassBank:
                 0.0,
             )
 
-        # Assert if the recursive algorithm worked adequately, otherwise print an error
-        assert missing_collateral <= par.float_limit, (
+        # test if the recursive algorithm worked adequately
+        assessment =  missing_collateral <= par.float_limit, (
             self.__str__() + "\nBank {} has not enough collateral to end "
             "its reverse repo with bank {}, missing "
             "amount is {}".format(
@@ -418,51 +409,34 @@ class ClassBank:
                 missing_collateral,
             )
         )
+        if not(assessment):
+            self.Network.str_output_error = f"***ERROR***: bank {self.id} has not enough collateral to end its reverse repo with bank {bank_id}, missing amount is {missing_collateral}. Plot and stop simulation. \n" + self.__str__()
+            print(self.Network.str_output_error)
 
         # Update all the required balance sheet items by the closing of the
         # reverse repo.
         if not(self.Network.beta_new):
-            assert not (
+            assessment = (
                 self.dic_balance_sheet["securities reused"] > par.float_limit
                 and self.dic_balance_sheet["securities usable"] > par.float_limit
-            ), (
-                "both reused {} and "
-                "usable {} "
-                "are positive, "
-                "while normally supposed to use all usable before using "
-                "collateral".format(
-                    self.dic_balance_sheet["securities reused"],
-                    self.dic_balance_sheet["securities usable"],
-                )
             )
+            
+            if not(assessment):
+                self.Network.str_output_error = f"***ERROR***: both reused {self.dic_balance_sheet['securities reused']} and usable {self.dic_balance_sheet['securities usable']} are positive, \n while normally supposed to use all usable before using collateral. Plot and stop simulation." + self.__str__()
+                print(self.Network.str_output_error)
 
 
-        assert (
+        assessment =  (
             abs(
                 self.dic_balance_sheet["securities collateral"]
                 + self.dic_balance_sheet["securities reused"]
                 - self.dic_balance_sheet["reverse repo balance"]
             )
             < par.float_limit
-        ), (
-            "incorrect balance sheet \n securities collateral {},"
-            "\n "
-            "securities reused {}"
-            "\n "
-            "reverse "
-            "repos {} "
-            ""
-            "\n "
-            "difference {}"
-            "".format(
-                self.dic_balance_sheet["securities collateral"],
-                self.dic_balance_sheet["securities reused"],
-                self.dic_balance_sheet["reverse repo balance"],
-                self.dic_balance_sheet["reverse repo balance"]
-                - self.dic_balance_sheet["securities collateral"]
-                - self.dic_balance_sheet["securities reused"],
-            )
         )
+        if not(assessment):
+            self.Network.str_output_error = f"***ERROR***: incorrect balance sheet \n securities collateral {self.dic_balance_sheet['securities collateral']}\n, securities reused {self.dic_balance_sheet['securities reused']}\n, reverse repos {self.dic_balance_sheet['reverse repo balance']} \n, difference {self.dic_balance_sheet['reverse repo balance'] - self.dic_balance_sheet['securities collateral'] - self.dic_balance_sheet['securities reused']}. Plot and stop simulation."
+            print(self.Network.str_output_error)
 
         # Update of the balance sheet items
         self.dic_balance_sheet["cash"] += amount
@@ -615,14 +589,17 @@ class ClassBank:
 
             # Test if the bank agent owns enough collateral to enter
             # into this repo
-            assert (
+            assessment =  (
                 self.dic_balance_sheet["securities usable"]
                 * self.collateral_value
                 + self.dic_balance_sheet["securities collateral"]
                 * self.collateral_value
                 - (repo_ask - rest)
                 > -par.float_limit
-            ), f"{self.__str__()}\nNot Enough Collateral for bank {self.id}"
+            )
+            if not(assessment):
+                self.Network.str_output_error = f"***ERROR***: not Enough Collateral for bank {self.id}. Plot and stop simulation."
+                print(self.Network.str_output_error)
 
             # first use the securities usable then the securities collateral
             securities_usable_decrease = min(
@@ -658,22 +635,16 @@ class ClassBank:
             self.dic_balance_sheet["repo balance"] += repo_ask - rest
 
             if not(self.Network.beta_new): # this test is only valid in case of absnce of collateral creation which is added as usable
-                assert not (
+                assessment =  not (
                     self.dic_balance_sheet["securities reused"] > par.float_limit
                     and self.dic_balance_sheet["securities usable"]
                     > par.float_limit
-                ), (
-                    "both reused {} and "
-                    "usable {} "
-                    "are positive, "
-                    "while normally "
-                    "supposed to use all "
-                    "usable before using "
-                    "collat".format(
-                        self.dic_balance_sheet["securities reused"],
-                        self.dic_balance_sheet["securities usable"],
-                    )
-                )
+                ), 
+                
+                if not(assessment):
+                    self.Network.str_output_error = f"***ERROR***: both reused {self.dic_balance_sheet['securities reused']} and usable {self.dic_balance_sheet['securities reused']} are positive, while normally supposed to use all usable before using collat. Plot and stop simulation."
+                    print(self.Network.str_output_error)
+                
 
             repo_ask = rest
             if rest <= self.Network.min_repo_trans_size or len(bank_list) == 0:
@@ -681,13 +652,10 @@ class ClassBank:
 
         # check for errors, in case of conservative shocks all repo request should be satisfied
         if self.Network.conservative_shock:
-            if repo_ask > par.float_limit:
-                for b in self.banks.keys():
-                    print(self.banks[str(b)])
-            assert repo_ask <= par.float_limit, (
-                "repo request unsatified for bank {},"
-                " for the amount {}".format(self.id, repo_ask)
-            )
+            assessment =  repo_ask <= par.float_limit
+            if not(assessment):
+                self.Network.str_output_error = f"***ERROR***: repo request unsatified for bank {self.id} for the amount {repo_ask}. Plot and stop simulation."
+                print(self.Network.str_output_error)
 
     def enter_reverse_repo(self, bank_id, amount):
         """
@@ -711,9 +679,10 @@ class ClassBank:
         )
 
         # Test if a bank is lending to itself due to a float error.
-        assert self.id != bank_id, "Bank {} is lending to itself".format(
-            self.id
-        )
+        assessment = self.id != bank_id
+        if not(assessment):
+            self.Network.str_output_error = f"***ERROR***: Bank {self.id} is lending to itself. Plot and stop simulation."
+            print(self.Network.str_output_error)
 
         # End the method if the amount that can be lent by the instance of ClassBank is lower than the min_rev_repo_size.
         if reverse_accept <= self.Network.min_repo_trans_size:
@@ -793,12 +762,13 @@ class ClassBank:
             self.dic_balance_sheet["securities usable"] -= collat_decrease / self.collateral_value
             self.dic_balance_sheet["deposits"] -= collat_decrease
 
-            assert (
+            assessment =  (
                 self.dic_balance_sheet["securities usable"]
                 < -par.float_limit
-            ), (
-                self.__str__() + ": not enough securities usable to allow the maturing of the securities."
             )
+            if not(assessment):
+                self.Network.str_output_error = f"***ERROR***: not enough securities usable to allow the maturing of the securities. Plot and stop simulation."
+                print(self.Network.str_output_error)
         
     def liquidity_coverage_ratio(self):
         """
@@ -848,22 +818,7 @@ class ClassBank:
         :return:
         """
         return self.dic_balance_sheet["own funds"] / self.leverage_exposure()
-
-    def check_balance_sheet(self):
-        """
-        Instance method evaluating if accounting constraints are meet for an
-        instance of ClassBank.
-        :return: Breaks the code and returns a description of the bank and
-        time step concerned.
-        """
-        assert (
-            np.abs(self.total_assets() - self.total_liabilities())
-            < par.float_limit
-        ), self.__str__() + "\nAssets don't match Liabilities for bank {} at " "step {}, for the amount {}".format(
-            self.id,
-            self.Network.step,
-            (self.total_assets() - self.total_liabilities()),
-        )
+        
 
     def check_min_reserves(self):
         """
@@ -883,53 +838,14 @@ class ClassBank:
                 print(bank)
                 print(bank.reverse_repo_exposures)
 
-        assert (
+        assessment = (
             self.dic_balance_sheet["cash"]
             - self.alpha * self.dic_balance_sheet["deposits"]
             >= -par.float_limit
-        ), (
-            self.__str__() + "\nMinimum reserves not respected for bank {} at"
-            " "
-            "step {} \n The reverse repos provided to the rest of the network are {}".format(
-                self.id, self.Network.step, self.rev_repo_exp
-            )
         )
-
-    def check_lcr(self):
-        """
-        Instance method evaluating if the LCR constraint is meet for an
-        instance of ClassBank.
-        :return: Breaks the code and returns a description of the bank and
-        time step concerned.
-        """
-        assert (
-            self.dic_balance_sheet["cash"]
-            + self.dic_balance_sheet["securities collateral"]
-            * self.collateral_value
-            + self.dic_balance_sheet["securities usable"]
-            * self.collateral_value
-            - self.dic_balance_sheet["deposits"] * self.beta_reg
-            >= -par.float_limit
-        ), self.__str__() + "\nLCR not at its target value for bank {} at " "step {}".format(
-            self.id, self.Network.step
-        )
-
-    def assert_leverage(self):
-        """
-        Instance method evaluating if the leverage ratio constraint is meet
-        for an instance of ClassBank.
-        :return: Breaks the code and returns a description of the bank and
-        time step concerned.
-        """
-        assert (
-            self.dic_balance_sheet["own funds"]
-            - self.gamma * self.leverage_exposure()
-            > -par.float_limit
-        ), (
-            self.__str__() + "\nLeverage ratio below its regulatory "
-            "requirement for bank {} at step {}"
-            "".format(self.id, self.Network.step)
-        )
+        if not (assessment):
+            self.Network.str_output_error = f"***ERROR***: minimum reserves not respected for bank {self.id} at step {self.Network.step} \n The reverse repos provided to the rest of the network are {self.rev_repo_exp}. Plot and stop simulation."
+            print(self.Network.str_output_error)
 
     def store_df_reverse_repos(self, path):
         self.df_rev_repo_trans.to_csv(f"{path}df_reverse_repos.csv")

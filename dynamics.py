@@ -14,12 +14,6 @@ from warnings import simplefilter
 
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
-class CustomException(Exception):   
-   def __init__(self, value=None, *args, **kwargs):
-     self.parameter = value
-   def __str__(self):
-     return repr(self.parameter)
-
 class ClassDynamics:
     def __init__(
         self,
@@ -458,7 +452,11 @@ class ClassDynamics:
 
             # check if an error occured on this step
             if self.Network.str_output_error:
-                
+
+                # save the error in a text file
+                with open(f"{self.path_results}error.txt", "w") as f:
+                    f.write(f"error at step {self.Network.step}: {self.Network.str_output_error}")
+                        
                 # export all information if not already done
                 if self.Network.step % self.dump_period != 0:
                     self.fill()
@@ -490,12 +488,14 @@ class ClassDynamics:
                 f"gamma_init={self.Network.gamma_init} \n"
                 f"gamma={self.Network.gamma} \n"
                 f"gamma_star={self.Network.gamma_star} \n"
-                f"gamma_new={self.Network.gamma_new} \n"
+                f"gamma_star={self.Network.gamma_star} \n"
+                f"check_leverage_opt={self.Network.check_leverage_opt} \n"
                 f"initialization_method={self.Network.initialization_method} \n"
                 f"alpha_pareto={self.Network.alpha_pareto} \n"
                 f"shock_method={self.Network.shocks_method} \n"
                 f"shocks_law={self.Network.shocks_law} \n"
                 f"shocks_vol={self.Network.shocks_vol} \n"
+                f"learning_speed={self.Network.learning_speed} \n"
                 f"min_repo_trans_size={self.Network.min_repo_trans_size} \n"
                 f"nb_steps={self.nb_steps} \n"
                 f"LCR_mgt_opt={self.Network.LCR_mgt_opt} \n"
@@ -546,6 +546,7 @@ def single_run(
     heavy_plot,
     substitution,
     learning_speed,
+    check_leverage_opt,
 ):
 
     # initialize ClassNetwork
@@ -577,6 +578,7 @@ def single_run(
         end_repo_period=end_repo_period,
         substitution=substitution,
         learning_speed=learning_speed,
+        check_leverage_opt=check_leverage_opt,
     )
 
     # initialize ClassDynamics

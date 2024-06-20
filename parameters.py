@@ -394,8 +394,8 @@ gamma_star = [
 ]
 gamma_new = [
     "gamma_new",
-    r"$\gamma new$ (%)",
-    r"$\gamma new$ (%)",
+    r"$\gamma_{\mathrm{new}}$ (%)",
+    r"$\gamma_{\mathrm{new}}$ (%)",
     "linear",
     "",
     "%",
@@ -425,6 +425,16 @@ min_repo_trans_size = [
     "",
     False,
 ]
+learning_speed = [
+    "learning_speed",
+    r"learning speed (%)",
+    r"learning speed (%)",
+    "linear",
+    "",
+    "%",
+]
+
+test_formating = ["dingo 1", " dingo ", " dingo", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo "]
 
 # get df_plt
 df_plt = pd.DataFrame(
@@ -457,6 +467,7 @@ df_plt = pd.DataFrame(
         alpha_pareto,
         shocks_vol,
         min_repo_trans_size,
+        learning_speed,
     ],
     columns=plt_columns,
 )

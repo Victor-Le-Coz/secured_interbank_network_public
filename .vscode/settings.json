@@ -7,5 +7,6 @@
         ".idea": true,
         ".ipynb_checkpoints": true,
         ".vscode": true
-    }
+    },
+    "editor.formatOnPaste": true
 }

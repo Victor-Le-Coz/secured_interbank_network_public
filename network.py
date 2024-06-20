@@ -37,17 +37,20 @@ class ClassNetwork:
         end_repo_period,
         substitution,
         learning_speed,
+        check_leverage_opt,
     ):
 
-        # init path
-        os.makedirs("./support/errors/", exist_ok=True)
-
         # adequacy tests
-        assert (
-            initialization_method in par.initialization_methods
-        ), "Invalid initialisation method"
-        assert shocks_method in par.shocks_methods, "Invalid shock method"
-
+        assessment  = (initialization_method in par.initialization_methods)
+        if not(assessment):
+            self.str_output_error = "***ERROR***: invalid initialisation method. Plot and stop simulation."
+            print(self.str_output_error)
+        
+        assessment  = (shocks_method in par.shocks_methods)
+        if not(assessment):
+            self.str_output_error = "***ERROR***: invalid shock method. Plot and stop simulation."
+            print(self.str_output_error)
+        
         # initialization of the class parameters.
         self.nb_banks = nb_banks
         self.initial_deposits_size = initial_deposits_size
@@ -76,6 +79,7 @@ class ClassNetwork:
         self.end_repo_period = end_repo_period
         self.substitution = substitution
         self.learning_speed = learning_speed
+        self.check_leverage_opt = check_leverage_opt
 
         # (Re)set the network
         self.reset_network()
@@ -132,12 +136,12 @@ class ClassNetwork:
                 )
             )
 
+        # fill the recording data objects at step 0
+        self.fill_step_df_banks()
+        
         # initialize all banks
         for Bank in self.banks:
             Bank.initialize_banks(self.banks)
-
-        # fill the recording data objects at step 0
-        self.fill_step_df_banks()
 
         # store initial loans
         self.df_banks["initial loans"] = self.df_banks["loans"]
@@ -373,7 +377,7 @@ class ClassNetwork:
         self.check_min_reserves()
         if self.LCR_mgt_opt:
             self.check_lcr()
-        if not(self.end_repo_period):
+        if not(self.end_repo_period) and self.check_leverage_opt:
             self.check_leverage()
 
     def check_balance_sheet(self):
@@ -388,7 +392,7 @@ class ClassNetwork:
             .all()
         )
 
-        if not (assessment):
+        if not(assessment):
             self.str_output_error = "***ERROR***: assets don't match liabilities for one or several banks. Plot and stop simulation."
             print(self.str_output_error)
 
@@ -488,17 +492,16 @@ class ClassNetwork:
             arr_shocks = self.generate_non_conservative_shocks()
 
         # Tests
-        assert (
-            np.min(self.df_banks["deposits"] + arr_shocks) >= 0
-        ), "negative shocks larger than deposits"
+        assessment = (np.min(self.df_banks["deposits"] + arr_shocks) >= 0)
+        if not (assessment):
+            self.str_output_error = "***ERROR***: negative shocks larger than deposits. Plot and stop simulation."
+            print(self.str_output_error)
 
         if self.conservative_shock:
-            assert (
-                abs(arr_shocks.sum()) == 0.0,
-                "Shock doesn't sum to zero, sum is {}".format(
-                    abs(arr_shocks.sum())
-                ),
-            )
+            assessment = (abs(arr_shocks.sum()) == 0.0)
+            if not (assessment):
+                self.str_output_error = f"***ERROR***: Shock doesn't sum to zero but to {arr_shocks.sum()}. Plot and stop simulation."
+                print(self.str_output_error)
 
         return arr_shocks
 
