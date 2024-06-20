@@ -13,10 +13,8 @@ from tqdm import tqdm
 
 
 def build_args(dic_default_value, list_dic_range):
-
     list_dic_args = []
     for dic_range in list_dic_range:
-
 
         # build a dic of the dic_args with all the modif of the requested parameters
         dic_dic_arg_local = {}
@@ -41,13 +39,8 @@ def build_args(dic_default_value, list_dic_range):
         
         # manage the path
         arg, range = list(dic_range.items())[0]
-        if len(np.unique(range)) == len(range):
-            for i, value in enumerate(range):
-                dic_dic_arg_local[i]["path_results"] = f"{dic_default_value['path_results']}{arg}/{value}/"
-        else:
-            for i, value in enumerate(range):
-                dic_dic_arg_local[i]["path_results"] = f"{dic_default_value['path_results']}{arg}/{value}_#{i}/"
-
+        for i, value in enumerate(range):
+            dic_dic_arg_local[i]["path_results"] = f"{dic_default_value['path_results']}{arg}/{i}#{value}/"
 
         # store each dic_args in a global list
         for value in dic_dic_arg_local.values():
@@ -68,63 +61,58 @@ def get_dic_range(path):
 
     dic_range = {}
     for input_parameter in input_parameters:
-        ar_range = np.sort(np.array(os.listdir(f"{path}{input_parameter}")))
-        dic_range.update({input_parameter: ar_range})
+        # ar_range = np.sort(np.array(os.listdir(f"{path}{input_parameter}")))
+        multi_range = os.listdir(f"{path}{input_parameter}")
+        # transform the range in a dic of value as each value can appear several times
+        dic_value = {}
+        for value in multi_range:
+            temp_list = value.split("#")
+            value = temp_list[1]
+            number = temp_list[0]
+            if value in dic_value:
+                dic_value[value].append(number)
+            else:
+                dic_value[value] = [number]
+        dic_range.update({input_parameter: dic_value})
     return dic_range
 
 def get_df_network_sensitivity(path):
-    float_ok = False
 
     # get the input parameters and their ranges
     dic_range = get_dic_range(path)
 
     # initiaze the index of df_network_sensitivity
-    try:
-        index = pd.MultiIndex.from_tuples(
-            [
-                (input_parameter, float(value))
-                for input_parameter in dic_range.keys()
-                for value in dic_range[input_parameter]
-            ]
-        )
-        float_ok = True
-    except:
-        index = pd.MultiIndex.from_tuples(
-            [
-                (input_parameter, value)
-                for input_parameter in dic_range.keys()
-                for value in dic_range[input_parameter]
-            ]
-        )
+    index = pd.MultiIndex.from_tuples(
+        [
+            (input_parameter, float(value), int(number))
+            for input_parameter in dic_range.keys() for value in dic_range[input_parameter].keys() for number in dic_range[input_parameter][value]
+        ]
+    )
 
     # fill-in df_network_sensitivity
     first_round = True
     for input_parameter in tqdm(dic_range.keys()):
-        for value in dic_range[input_parameter]:
-            path_df = (
-                f"{path}{input_parameter}/{value}/df_network_trajectory.csv"
-            )
-            if os.path.exists(path_df):
+        for value in dic_range[input_parameter].keys():
+            for number in dic_range[input_parameter][value]:
+                path_df = (
+                    f"{path}{input_parameter}/{number}#{value}/df_network_trajectory.csv"
+                )
+                if os.path.exists(path_df):
 
-                # load df_network_trajectory
-                df_network_trajectory = pd.read_csv(path_df, index_col=0)
+                    # load df_network_trajectory
+                    df_network_trajectory = pd.read_csv(path_df, index_col=0).dropna(axis=0)
 
-                # initialize at the first round
-                if first_round:
-                    df_network_sensitivity = pd.DataFrame(
-                        index=index, columns=df_network_trajectory.columns
-                    )
-                    first_round = False
+                    # initialize at the first round
+                    if first_round:
+                        df_network_sensitivity = pd.DataFrame(
+                            index=index, columns=df_network_trajectory.columns
+                        )
+                        first_round = False
 
-                # fill with df_network_trajectory
-                if float_ok:
+                    # fill with df_network_trajectory
                     df_network_sensitivity.loc[
-                        (input_parameter, float(value))
+                        (input_parameter, float(value), int(number))
                     ] = df_network_trajectory.iloc[-par.len_statio :].mean()
-                else:
-                    df_network_sensitivity.loc[
-                            (input_parameter, value)
-                        ] = df_network_trajectory.iloc[-par.len_statio :].mean()
 
     # save the results
     df_network_sensitivity.to_csv(f"{path}/df_network_sensitivity.csv")

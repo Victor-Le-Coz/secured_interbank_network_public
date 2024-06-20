@@ -874,7 +874,7 @@ def plot_sensitivity(
     colors = sns.color_palette("flare", n_colors=len(cols))
 
     # filter on index
-    df = df_network_sensitivity.loc[input_parameter].copy()
+    df = df_network_sensitivity.loc[input_parameter].groupby(level=0).mean().copy()
 
     # convert the cols of the df using the convertion of first col
     df = convert_data(df[cols], par.df_plt.loc[cols[0], "convertion"])
