@@ -429,7 +429,7 @@ learning_speed = [
     "learning_speed",
     r"learning speed (%)",
     r"learning speed (%)",
-    "linear",
+    "log",
     "",
     "%",
 ]

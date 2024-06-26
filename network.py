@@ -450,12 +450,20 @@ class ClassNetwork:
         self.df_banks["excess liquidity"] = (
             self.df_banks["cash"] - self.alpha * self.df_banks["deposits"]
         )
-        self.df_banks["reserve ratio"] = ((self.df_banks["cash"] / self.df_banks["deposits"]))*100
-        self.df_banks["liquidity ratio"] = ((self.df_banks["cash"]
-                + self.df_banks["securities collateral"]
-                * self.collateral_value
-                + self.df_banks["securities usable"] * self.collateral_value) / (self.df_banks["deposits"]))*100
-        self.df_banks["leverage ratio"] = (self.df_banks["own funds"] / self.df_banks["total assets"])*100
+        
+        if self.df_banks["deposits"].all() !=0:
+            self.df_banks["reserve ratio"] = ((self.df_banks["cash"] / self.df_banks["deposits"]))*100
+            self.df_banks["liquidity ratio"] = ((self.df_banks["cash"]
+                    + self.df_banks["securities collateral"]
+                    * self.collateral_value
+                    + self.df_banks["securities usable"] * self.collateral_value) / (self.df_banks["deposits"]))*100
+            self.df_banks["leverage ratio"] = (self.df_banks["own funds"] / self.df_banks["total assets"])*100
+        else:
+            self.df_banks["reserve ratio"] = 1
+            self.df_banks["liquidity ratio"] = 1
+            self.df_banks["leverage ratio"] = 1
+        
+        # others
         self.df_banks["borrowings"] = self.df_banks["repo balance"] + self.df_banks["central bank funding"]
 
     # not used ??
@@ -695,8 +703,19 @@ class ClassNetwork:
         #     )
         #     * self.new_loans_mean * self.df_banks["loans"]
         # )
+        
+        # pareto case
+        if not(self.initial_deposits_size):
+            ar_new_loans = (pareto.rvs(
+                        self.alpha_pareto,
+                        loc=0,
+                        scale=1,
+                        size=self.nb_banks,
+                        random_state=None,
+                    )*self.new_loans_mean)
 
         # normal case
-        ar_new_loans = (np.random.randn(self.nb_banks) * self.new_loans_vol + 1)*self.new_loans_mean*self.df_banks["initial loans"]
+        else: 
+            ar_new_loans = (np.random.randn(self.nb_banks) * self.new_loans_vol + 1)*self.new_loans_mean*self.df_banks["initial loans"]
 
         return ar_new_loans

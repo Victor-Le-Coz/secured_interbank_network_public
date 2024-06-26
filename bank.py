@@ -132,10 +132,19 @@ class ClassBank:
         of the ClassNetwork class.
         :return:
         """
+        
+        ar_init_trust = np.random.uniform(0,1,self.Network.nb_banks)
+        
         for bank in banks:
             self.rev_repo_exp[bank.id] = 0.0
             if bank.id != self.id:
-                self.trust[bank.id] = self.Network.df_banks.loc[bank.id,"total assets"] / self.Network.df_banks["total assets"].sum()
+                
+                if not(self.Network.initial_deposits_size):
+                    self.trust[bank.id] = ar_init_trust[bank.id]
+                    
+                else:
+                    self.trust[bank.id] = self.Network.df_banks.loc[bank.id,"total assets"] / self.Network.df_banks["total assets"].sum()
+                 
                 self.on_repo_exp[bank.id] = 0.0
                 self.off_repo_exp[bank.id] = 0.0
                 self.banks[bank.id] = bank
@@ -241,9 +250,7 @@ class ClassBank:
                 - self.dic_balance_sheet["securities reused"]
                 > par.float_limit
             ):
-                print(
-                    f"The end repo amount of bank {self.id} with bank {b} is {end} while the off_balance_repo is {self.off_repo_exp[b]} and the securities reused is {self.dic_balance_sheet['securities reused']}"
-                )
+                print(f"The end repo amount of bank {self.id} with bank {b} is {end} while the off_balance_repo is {self.off_repo_exp[b]} and the securities reused is {self.dic_balance_sheet['securities reused']}")
 
             # test the accuracy of self.on_balance repos:
             assessment  = (abs(
@@ -400,15 +407,7 @@ class ClassBank:
             )
 
         # test if the recursive algorithm worked adequately
-        assessment =  missing_collateral <= par.float_limit, (
-            self.__str__() + "\nBank {} has not enough collateral to end "
-            "its reverse repo with bank {}, missing "
-            "amount is {}".format(
-                self.id,
-                bank_id,
-                missing_collateral,
-            )
-        )
+        assessment =  missing_collateral <= par.float_limit
         if not(assessment):
             self.Network.str_output_error = f"***ERROR***: bank {self.id} has not enough collateral to end its reverse repo with bank {bank_id}, missing amount is {missing_collateral}. Plot and stop simulation. \n" + self.__str__()
             print(self.Network.str_output_error)
@@ -639,7 +638,7 @@ class ClassBank:
                     self.dic_balance_sheet["securities reused"] > par.float_limit
                     and self.dic_balance_sheet["securities usable"]
                     > par.float_limit
-                ), 
+                )
                 
                 if not(assessment):
                     self.Network.str_output_error = f"***ERROR***: both reused {self.dic_balance_sheet['securities reused']} and usable {self.dic_balance_sheet['securities reused']} are positive, while normally supposed to use all usable before using collat. Plot and stop simulation."
@@ -744,7 +743,10 @@ class ClassBank:
 
     def update_learning(self, bank, value):
         # Lux's approach: creates a trust between 0 and 1, when value is between 0 and 1, deacing in power 2 toward 0 in case value is 0, converging in power 2 toward 1 in case value is 1
-        self.trust[bank] = self.trust[bank] + self.Network.learning_speed * (value - self.trust[bank])
+        if not(self.Network.learning_speed):
+            self.trust[bank] = np.random.uniform(0,1)
+        else:
+            self.trust[bank] = self.trust[bank] + self.Network.learning_speed * (value - self.trust[bank])
 
     def close_maturing_loans(self):
         "It the exact opposite of money creation. Decrease loans and deposits in the same proportions."

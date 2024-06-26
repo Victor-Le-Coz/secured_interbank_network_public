@@ -88,19 +88,25 @@ def get_df_network_sensitivity(path):
             for input_parameter in dic_range.keys() for value in dic_range[input_parameter].keys() for number in dic_range[input_parameter][value]
         ]
     )
+    sr_errors = pd.Series(index=index)
 
     # fill-in df_network_sensitivity
     first_round = True
-    for input_parameter in tqdm(dic_range.keys()):
-        for value in dic_range[input_parameter].keys():
+    for input_parameter in dic_range.keys():
+        for value in tqdm(dic_range[input_parameter].keys()):
             for number in dic_range[input_parameter][value]:
+                
+                # collect the results
                 path_df = (
                     f"{path}{input_parameter}/{number}#{value}/df_network_trajectory.csv"
                 )
                 if os.path.exists(path_df):
 
                     # load df_network_trajectory
-                    df_network_trajectory = pd.read_csv(path_df, index_col=0).dropna(axis=0)
+                    try:
+                        df_network_trajectory = pd.read_csv(path_df, index_col=0)
+                    except:
+                        continue
 
                     # initialize at the first round
                     if first_round:
@@ -113,11 +119,20 @@ def get_df_network_sensitivity(path):
                     df_network_sensitivity.loc[
                         (input_parameter, float(value), int(number))
                     ] = df_network_trajectory.iloc[-par.len_statio :].mean()
+                    
+                    
+                # collect the errors
+                path_error = f"{path}{input_parameter}/{number}#{value}/error.txt"
+                if os.path.exists(path_error):
+                    sr_errors.loc[
+                        (input_parameter, float(value), int(number))
+                    ] = open(path_error, "r").read()
 
     # save the results
     df_network_sensitivity.to_csv(f"{path}/df_network_sensitivity.csv")
+    sr_errors.to_csv(f"{path}/sr_errors.csv")
 
-    return df_network_sensitivity
+    return df_network_sensitivity, sr_errors
 
 
 def get_plot_steps_from_days(days, plot_days):
