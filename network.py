@@ -39,6 +39,8 @@ class ClassNetwork:
         learning_speed,
         check_leverage_opt,
         init_money_min,
+        QE_start,
+        QE_stop,
     ):
 
         # adequacy tests
@@ -82,6 +84,8 @@ class ClassNetwork:
         self.learning_speed = learning_speed
         self.check_leverage_opt = check_leverage_opt
         self.init_money_min = init_money_min
+        self.QE_start = QE_start
+        self.QE_stop = QE_stop
 
         # (Re)set the network
         self.reset_network()
@@ -701,31 +705,20 @@ class ClassNetwork:
             if self.step == 0:
                 ar_current_money = np.ones(self.nb_banks)*self.init_money_min
             else:
-                # ar_current_money = self.df_banks["own funds"] / self.gamma_new
-                
-                # # Gabaix 99
-                # ar_new_money = np.zeros(self.nb_banks)
-                # mu = self.new_loans_mean -0.5*self.new_loans_vol**2
-                # ar_shock = np.random.randn(self.nb_banks) * self.new_loans_vol + mu
-                # money_min  = np.exp(self.new_loans_mean*self.step)*self.init_money_min
-                
-                # # loans >= min size
-                # index_normal =  np.where(ar_current_money>=money_min)[0]
-                # ar_new_money[index_normal] = ar_shock[index_normal]*ar_current_money[index_normal]
-                
-                # # loans < min size
-                # index_min =  np.where(ar_current_money<money_min)[0]
-                # ar_new_money[index_min] = np.maximum(ar_shock[index_min],0)*ar_current_money[index_min]
-                
-                # rich get richer 1: log normal shocks of mean 1 and parametrable vol
+                # rich get richer
                 std_control = np.sqrt(np.log(1.0 + self.new_loans_vol**2))
                 ar_random = (np.random.lognormal(mean=-0.5 * std_control**2,sigma=std_control,size=self.nb_banks))
                 ar_new_money = ar_random*self.new_loans_mean*ar_current_money
         
 
-        # case with initialization !!!! to be cleaned , should be initial money here, not initial loans !!!
+        # case with initialization
         else: 
-            initial_money = self.df_banks["initial loans"] / (1-self.beta_new(1-self.gamma_new))
-            ar_new_money = (np.random.randn(self.nb_banks) * self.new_loans_vol + 1)*self.new_loans_mean*initial_money
+            initial_money = self.df_banks["initial loans"] / (1-self.beta_new*(1-self.gamma_new))
+            
+            # no vol around the growth
+            ar_new_money = self.new_loans_mean*initial_money
+            
+            # opt: gaussian vol around the growth
+            # ar_new_money = (np.random.randn(self.nb_banks) * self.new_loans_vol + 1)*self.new_loans_mean*initial_money
             
         return ar_new_money

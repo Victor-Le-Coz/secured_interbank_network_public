@@ -164,12 +164,18 @@ class ClassBank:
             new_money -= new_own_funds
 
         if self.Network.beta_new:
-
-            # we assume the bank buys a bond issued by the governement 
             new_securities = new_money*self.Network.beta_new
-            self.dic_balance_sheet["securities usable"] += new_securities
-            self.dic_balance_sheet["deposits"] += new_securities
-            new_money -= new_securities
+
+            if self.Network.step >= self.Network.QE_start and self.Network.step < self.Network.QE_stop:
+                # the central bank buys the bonds issued by the government and the governement deposits the cash in the banking system
+                self.dic_balance_sheet["cash"] += new_securities
+                self.dic_balance_sheet["deposits"] += new_securities
+                
+            else:
+                # we assume the bank buys a bond issued by the governement 
+                self.dic_balance_sheet["securities usable"] += new_securities
+                self.dic_balance_sheet["deposits"] += new_securities
+                new_money -= new_securities
             
         # The remaining amount is a loan with a fixed maturity
         self.dic_balance_sheet["loans"] += new_money
