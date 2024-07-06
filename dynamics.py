@@ -218,32 +218,31 @@ class ClassDynamics:
                 plot_period=self.plot_period,
                 path=f"{self.path_results}exposure_view/core-periphery/",
             )
-            if self.heavy_plot:
-                cols = df_cpnet.columns
-            else:  # not save all columns if there is no need (spare memory)
-                cols = [plot_char[0] for plot_char in par.cpnet_pvalue]
-            self.df_network_trajectory[cols] = None
+            cols = df_cpnet.columns
             for step in df_cpnet.index:
                 self.df_network_trajectory.loc[step, cols] = df_cpnet.loc[step]
-
+        else:  # not save all columns if there is no need (spare memory)
+            cols = [plot_char[0] for plot_char in par.cpnet_pvalue]
+            self.df_network_trajectory[cols] = None
+            
         # expost powerlaw
         if self.heavy_plot:
             df_powerlaw = em.get_powerlaw(
                 dic_dashed_trajectory=self.dic_dashed_trajectory,
                 days=days,
                 plot_period=self.plot_period,
+                bank_items=par.powerlaw_bank_items,
             )
             cols = df_powerlaw.columns
+            for step in df_powerlaw.index:
+                self.df_network_trajectory.loc[step, cols] = df_powerlaw.loc[step]
         else:  # not save all columns if there is no need (spare memory)
             cols = [plot_char[0] for plot_char in par.powerlaw_pvalue] + [
                 plot_char[0] for plot_char in par.powerlaw_alpha
             ] + [plot_char[0] for plot_char in par.powerlaw_direction]
         
-        self.df_network_trajectory[cols] = pd.DataFrame(index=range(self.nb_steps),columns=cols)
-        
-        if self.heavy_plot:
-            for step in df_powerlaw.index:
-                self.df_network_trajectory.loc[step, cols] = df_powerlaw.loc[step]
+            self.df_network_trajectory[cols] = pd.DataFrame(index=range(self.nb_steps),columns=cols)
+            
 
         # --------------
         # III - transaction view

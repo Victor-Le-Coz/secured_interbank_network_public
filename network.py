@@ -38,6 +38,7 @@ class ClassNetwork:
         substitution,
         learning_speed,
         check_leverage_opt,
+        init_money_min,
     ):
 
         # adequacy tests
@@ -80,6 +81,7 @@ class ClassNetwork:
         self.substitution = substitution
         self.learning_speed = learning_speed
         self.check_leverage_opt = check_leverage_opt
+        self.init_money_min = init_money_min
 
         # (Re)set the network
         self.reset_network()
@@ -185,7 +187,7 @@ class ClassNetwork:
         # Defines an index of the banks
         index = np.arange(self.nb_banks)
 
-        # generate new loans
+        # generate new loansinitial_deposits_size
         if self.loan_tenor:
             ar_new_money = self.generate_new_money()
 
@@ -692,30 +694,38 @@ class ClassNetwork:
     
 
     def generate_new_money(self):
-        # log normal case 
-        # mu = 
-        # sigma = 
-        # ar_new_loans = (
-        #     np.random.lognormal(
-        #         mean=,
-        #         sigma=,
-        #         size=self.nb_banks,
-        #     )
-        #     * self.new_loans_mean * self.df_banks["loans"]
-        # )
-        
-        # pareto case
+                
+        # case if no initialization
         if not(self.initial_deposits_size):
-            ar_new_loans = (pareto.rvs(
-                        self.alpha_pareto,
-                        loc=0,
-                        scale=1,
-                        size=self.nb_banks,
-                        random_state=None,
-                    )*self.new_loans_mean)
+            
+            if self.step == 0:
+                ar_current_money = np.ones(self.nb_banks)*self.init_money_min
+            else:
+                # ar_current_money = self.df_banks["own funds"] / self.gamma_new
+                
+                # # Gabaix 99
+                # ar_new_money = np.zeros(self.nb_banks)
+                # mu = self.new_loans_mean -0.5*self.new_loans_vol**2
+                # ar_shock = np.random.randn(self.nb_banks) * self.new_loans_vol + mu
+                # money_min  = np.exp(self.new_loans_mean*self.step)*self.init_money_min
+                
+                # # loans >= min size
+                # index_normal =  np.where(ar_current_money>=money_min)[0]
+                # ar_new_money[index_normal] = ar_shock[index_normal]*ar_current_money[index_normal]
+                
+                # # loans < min size
+                # index_min =  np.where(ar_current_money<money_min)[0]
+                # ar_new_money[index_min] = np.maximum(ar_shock[index_min],0)*ar_current_money[index_min]
+                
+                # rich get richer 1: log normal shocks of mean 1 and parametrable vol
+                std_control = np.sqrt(np.log(1.0 + self.new_loans_vol**2))
+                ar_random = (np.random.lognormal(mean=-0.5 * std_control**2,sigma=std_control,size=self.nb_banks))
+                ar_new_money = ar_random*self.new_loans_mean*ar_current_money
+        
 
-        # normal case
+        # case with initialization !!!! to be cleaned , should be initial money here, not initial loans !!!
         else: 
-            ar_new_loans = (np.random.randn(self.nb_banks) * self.new_loans_vol + 1)*self.new_loans_mean*self.df_banks["initial loans"]
-
-        return ar_new_loans
+            initial_money = self.df_banks["initial loans"] / (1-self.beta_new(1-self.gamma_new))
+            ar_new_money = (np.random.randn(self.nb_banks) * self.new_loans_vol + 1)*self.new_loans_mean*initial_money
+            
+        return ar_new_money

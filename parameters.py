@@ -101,13 +101,16 @@ cp_algos = [
     # "BE",  # do not take weights into acount
 ]
 
+# power law analysis
+powerlaw_bank_items = ["total assets"]
+
 # for plots per bank using empirical data
 bank_ids = [f"bank_{i}" for i in range(150)]
 
 # --------------------
 # ploting conventions
 
-small_figsize = (6, 3)  # default
+small_figsize = (3, 3)  # default
 slide_figsize = (12, 15)  # for the single trajectories
 halfslide_figsize = (6, 6)  # for the network plots
 
@@ -287,7 +290,7 @@ powerlaw_alpha = [
         ".-",
         "",
     ]
-    for bank_item in bank_items
+    for bank_item in powerlaw_bank_items
     for extension in ["", " over total assets"]
 ]
 benchmark_laws = ["exponential", "lognormal", "power_law"]
@@ -301,7 +304,7 @@ powerlaw_pvalue = [
         "",
     ]
     for benchmark_law in benchmark_laws
-    for bank_item in bank_items
+    for bank_item in powerlaw_bank_items
     for extension in ["", " over total assets"]
 ]
 
@@ -315,7 +318,7 @@ powerlaw_direction = [
         "",
     ]
     for benchmark_law in benchmark_laws
-    for bank_item in bank_items
+    for bank_item in powerlaw_bank_items
     for extension in ["", " over total assets"]
 ]
 

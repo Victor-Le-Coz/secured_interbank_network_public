@@ -13,11 +13,13 @@ from tqdm import tqdm
 
 
 def plot(Dynamics):
+    
+    print("plot dynamics")
 
     # create paths
     path_results = Dynamics.path_results
     os.makedirs(f"{path_results}accounting_view/static/", exist_ok=True)
-    os.makedirs(f"{path_results}accounting_view/power_law/", exist_ok=True)
+    # os.makedirs(f"{path_results}accounting_view/power_law/", exist_ok=True)
     os.makedirs(f"{path_results}transaction_view/", exist_ok=True)
     os.makedirs(f"{path_results}exposure_view/core-periphery/", exist_ok=True)
 
@@ -151,6 +153,7 @@ def plot_all_dashed_trajectory(Dynamics):
             days=days,
             plot_period=plot_period,
             path=f"{path_results}accounting_view/",
+            bank_items=par.powerlaw_bank_items,
         )
 
 

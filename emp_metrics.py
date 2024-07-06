@@ -439,11 +439,12 @@ def step_item_powerlaw(sr_data):
             f"{ind} {benchmark_law}"
             for ind in ["powerlaw direction", "powerlaw p-value"]
             for benchmark_law in par.benchmark_laws
-        ]
+        ],
+        dtype='float64',
     )
 
     # at least 2 data points required with non negligeable size
-    if (len(sr_data.dropna()) > 1) and (sr_data.abs().sum() > par.float_limit):
+    if (len(sr_data.dropna()) > 1) and (sr_data.abs().sum() > 1e-15):
 
         # fit the data with the powerlaw librairy
         powerlaw_fit = powerlaw.Fit(sr_data.dropna())
@@ -472,6 +473,7 @@ def get_powerlaw(
     dic_dashed_trajectory,
     days,
     plot_period,
+    bank_items,
     plot_days=False,
     path=False,
 ):
@@ -487,7 +489,7 @@ def get_powerlaw(
                 for ind in ["powerlaw direction", "powerlaw p-value"]
                 for benchmark_law in par.benchmark_laws
             ]
-            for bank_item in list(dic_dashed_trajectory.values())[0].columns
+            for bank_item in bank_items
         ],
     )
 
@@ -503,7 +505,7 @@ def get_powerlaw(
         # replace values smaller than 0 by nan (avoid powerlaw warnings)
         df = df_banks.mask(df_banks <= 0)
 
-        for bank_item in df.columns:
+        for bank_item in bank_items:
             sr_powerlaw = step_item_powerlaw(df[bank_item])
             df_powerlaw.loc[
                 day, f"powerlaw fit {bank_item}"

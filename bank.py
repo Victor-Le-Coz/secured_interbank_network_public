@@ -153,28 +153,28 @@ class ClassBank:
         self.dic_balance_sheet["deposits"] += shock
         self.dic_balance_sheet["cash"] += shock
 
-    def set_money_creation(self,amount):
+    def set_money_creation(self,new_money):
 
         if self.Network.gamma_new:
 
             # we assume an economic agent recieves an infinit lenght loan and invest it in the capital of the bank 
-            new_own_funds = self.Network.gamma_new*amount
+            new_own_funds = self.Network.gamma_new*new_money
             self.dic_balance_sheet["loans"] += new_own_funds
             self.dic_balance_sheet["own funds"] += new_own_funds
-            amount -= new_own_funds
+            new_money -= new_own_funds
 
         if self.Network.beta_new:
 
             # we assume the bank buys a bond issued by the governement 
-            new_securities = amount*self.Network.beta_new
+            new_securities = new_money*self.Network.beta_new
             self.dic_balance_sheet["securities usable"] += new_securities
             self.dic_balance_sheet["deposits"] += new_securities
-            amount -= new_securities
+            new_money -= new_securities
             
         # The remaining amount is a loan with a fixed maturity
-        self.dic_balance_sheet["loans"] += amount
-        self.dic_balance_sheet["deposits"] += amount
-        self.dic_loans_steps_closing.update({self.Network.step+self.Network.loan_tenor:amount})
+        self.dic_balance_sheet["loans"] += new_money
+        self.dic_balance_sheet["deposits"] += new_money
+        self.dic_loans_steps_closing.update({self.Network.step+self.Network.loan_tenor:new_money})
 
     def lcr_mgt(self):
         """
