@@ -148,6 +148,10 @@ class ClassBank:
                 self.on_repo_exp[bank.id] = 0.0
                 self.off_repo_exp[bank.id] = 0.0
                 self.banks[bank.id] = bank
+                
+    def set_no_trust(self):
+        self.trust = dict.fromkeys(self.trust, 0.0)
+            
 
     def set_shock(self, shock):
         self.dic_balance_sheet["deposits"] += shock
@@ -166,7 +170,7 @@ class ClassBank:
         if self.Network.beta_new:
             new_securities = new_money*self.Network.beta_new
 
-            if self.Network.step >= self.Network.QE_start and self.Network.step < self.Network.QE_stop:
+            if self.Network.step > self.Network.QE_start and self.Network.step < self.Network.QE_stop:
                 # the central bank buys the bonds issued by the government and the governement deposits the cash in the banking system
                 self.dic_balance_sheet["cash"] += new_securities
                 self.dic_balance_sheet["deposits"] += new_securities
@@ -241,67 +245,77 @@ class ClassBank:
         # 1) -------------------------------------------------------------
         # First step, end all off-balance repos, starting by the ones with
         # banks having the lowest trust factor.
-        trust = self.trust.copy()
+        
+        # reshuffle the list of keys 
+        if all(value == 0 for value in self.trust.values()):
+            keys = list(np.random.permutation(np.arange(self.Network.nb_banks)))
+            trust = dict.fromkeys(keys, 0.0)
+        else:
+            trust = self.trust.copy()
 
         # For loop over the sorted list of the other banks, starting by the
         # lowest trust factor.
         for b, t in sorted(
             trust.items(), key=lambda item: item[1], reverse=False
-        ):
-            # Definition of the target amount of off-balance repos to close with a given bank b
-            end = min(self.off_repo_exp[b], target_repo_amount_to_close)
+        ):  
             
-            if (
-                self.off_repo_exp[b]
-                - self.dic_balance_sheet["securities reused"]
-                > par.float_limit
-            ):
-                print(f"The end repo amount of bank {self.id} with bank {b} is {end} while the off_balance_repo is {self.off_repo_exp[b]} and the securities reused is {self.dic_balance_sheet['securities reused']}")
+            # check if bank b if a lender 
+            if b in self.off_repo_exp.keys():
+            
+                # Definition of the target amount of off-balance repos to close with a given bank b
+                end = min(self.off_repo_exp[b], target_repo_amount_to_close)
+                
+                if (
+                    self.off_repo_exp[b]
+                    - self.dic_balance_sheet["securities reused"]
+                    > par.float_limit
+                ):
+                    print(f"The end repo amount of bank {self.id} with bank {b} is {end} while the off_balance_repo is {self.off_repo_exp[b]} and the securities reused is {self.dic_balance_sheet['securities reused']}")
 
-            # test the accuracy of self.on_balance repos:
-            assessment  = (abs(
-                    sum(self.off_repo_exp.values())
-                    - self.dic_balance_sheet["securities reused"]) < par.float_limit)
-            if not(assessment):
-                self.Network.str_output_error = f"***ERROR***: the sum of the off-balance repos {sum(self.off_repo_exp.values())} is not equal to the Securities Reused {self.dic_balance_sheet['securities reused']}. Plot and stop simulation."
-                print(self.Network.str_output_error)
-
-            # Case disjunction
-            if end > 0.0:
-
-                # The bank id b must close its reverse repo with the bank agent self, the instance method end_reverse_repo calls recursively the end_repos method for the bank b in case this latter would not own sufficient colletral to end its reverse repo.
-
-                self.banks[b].end_reverse_repo(self.id, end)
-
-                # Update all the balance sheet items related to the closure of the repo
-                self.dic_balance_sheet["cash"] -= end
-                self.dic_balance_sheet["repo balance"] -= end
-                self.dic_balance_sheet["securities collateral"] += (
-                    end / self.collateral_value
-                )
-                self.dic_balance_sheet["securities reused"] -= (
-                    end / self.collateral_value
-                )
-
-                self.off_repo_exp[b] -= end
-
-                # # update the chains if the remaining amount is negligeable (only for repo with reuse)
-                # if self.off_repo_exp[b] < par.float_limit:
-                #     self.Network.remove_rev_repo_from_chains(b,self.id)
-
-                # # when the off balance repo is below some limit, we set the value of the exposure to 0
-                # if self.off_repo_exp[b] < par.float_limit:
-                #     self.off_repo_exp[b] = 0
-
-                target_repo_amount_to_close -= end
-
-                assessment =  (
-                    self.dic_balance_sheet["securities reused"]
-                    >= -par.float_limit
-                )
+                # test the accuracy of self.on_balance repos:
+                assessment  = (abs(
+                        sum(self.off_repo_exp.values())
+                        - self.dic_balance_sheet["securities reused"]) < par.float_limit)
                 if not(assessment):
-                    self.Network.str_output_error = f"***ERROR***: securities reused negative {self.dic_balance_sheet['securities reused']} at step {self.Network.step}, due to retrieving of end {end}. Plot and stop simulation."
+                    self.Network.str_output_error = f"***ERROR***: the sum of the off-balance repos {sum(self.off_repo_exp.values())} is not equal to the Securities Reused {self.dic_balance_sheet['securities reused']}. Plot and stop simulation."
                     print(self.Network.str_output_error)
+
+                # Case disjunction
+                if end > 0.0:
+
+                    # The bank id b must close its reverse repo with the bank agent self, the instance method end_reverse_repo calls recursively the end_repos method for the bank b in case this latter would not own sufficient colletral to end its reverse repo.
+
+                    self.banks[b].end_reverse_repo(self.id, end)
+
+                    # Update all the balance sheet items related to the closure of the repo
+                    self.dic_balance_sheet["cash"] -= end
+                    self.dic_balance_sheet["repo balance"] -= end
+                    self.dic_balance_sheet["securities collateral"] += (
+                        end / self.collateral_value
+                    )
+                    self.dic_balance_sheet["securities reused"] -= (
+                        end / self.collateral_value
+                    )
+
+                    self.off_repo_exp[b] -= end
+
+                    # # update the chains if the remaining amount is negligeable (only for repo with reuse)
+                    # if self.off_repo_exp[b] < par.float_limit:
+                    #     self.Network.remove_rev_repo_from_chains(b,self.id)
+
+                    # # when the off balance repo is below some limit, we set the value of the exposure to 0
+                    # if self.off_repo_exp[b] < par.float_limit:
+                    #     self.off_repo_exp[b] = 0
+
+                    target_repo_amount_to_close -= end
+
+                    assessment =  (
+                        self.dic_balance_sheet["securities reused"]
+                        >= -par.float_limit
+                    )
+                    if not(assessment):
+                        self.Network.str_output_error = f"***ERROR***: securities reused negative {self.dic_balance_sheet['securities reused']} at step {self.Network.step}, due to retrieving of end {end}. Plot and stop simulation."
+                        print(self.Network.str_output_error)
 
             # Break the for loop if off balance repos are sufficient to
             # empty the excess liquidity
@@ -319,42 +333,47 @@ class ClassBank:
         for b, t in sorted(
             trust.items(), key=lambda item: item[1], reverse=True
         ):
-            end = min(self.on_repo_exp[b], target_repo_amount_to_close)
-
-            # test the accuracy of self.on_balance repos:
-            assessment=  (
-                abs(
-                    sum(self.on_repo_exp.values())
-                    - self.dic_balance_sheet["securities encumbered"]
-                )
-                < par.float_limit
-            )
             
-            if not(assessment):
-                    self.Network.str_output_error = f"***ERROR***: the sum of the on-balance repos {sum(self.on_repo_exp.values())} are not equal to the Securities Encumbered {self.dic_balance_sheet['securities encumbered']}. Plot and stop simulation."
-                    print(self.Network.str_output_error)
+            # check if bank b if a lender 
+            if b in self.on_repo_exp.keys():
+            
+                # define the end amount 
+                end = min(self.on_repo_exp[b], target_repo_amount_to_close)
 
-            if end > 0.0:
-
-                # The bank id b must close its reverse repo with the bank agent self, the instance method end_reverse_repo calls recursively the end_repos method for the bank b in case this latter would not own sufficient colletral to end its reverse repo.
-                self.banks[b].end_reverse_repo(self.id, end)
-
-                self.dic_balance_sheet["cash"] -= end
-                self.dic_balance_sheet["repo balance"] -= end
-                self.dic_balance_sheet["securities usable"] += (
-                    end / self.collateral_value
+                # test the accuracy of self.on_balance repos:
+                assessment=  (
+                    abs(
+                        sum(self.on_repo_exp.values())
+                        - self.dic_balance_sheet["securities encumbered"]
+                    )
+                    < par.float_limit
                 )
-                self.dic_balance_sheet["securities encumbered"] -= (
-                    end / self.collateral_value
-                )
-                self.on_repo_exp[b] -= end
+                
+                if not(assessment):
+                        self.Network.str_output_error = f"***ERROR***: the sum of the on-balance repos {sum(self.on_repo_exp.values())} are not equal to the Securities Encumbered {self.dic_balance_sheet['securities encumbered']}. Plot and stop simulation."
+                        print(self.Network.str_output_error)
 
-                # # when the on balance repo is below some limit, we set the value of the exposure to 0
-                # if self.on_repo_exp[b] < par.float_limit:
-                #     self.on_repo_exp[b] = 0
+                if end > 0.0:
 
-                # fix, it seems the previous version was an error
-                target_repo_amount_to_close -= end
+                    # The bank id b must close its reverse repo with the bank agent self, the instance method end_reverse_repo calls recursively the end_repos method for the bank b in case this latter would not own sufficient colletral to end its reverse repo.
+                    self.banks[b].end_reverse_repo(self.id, end)
+
+                    self.dic_balance_sheet["cash"] -= end
+                    self.dic_balance_sheet["repo balance"] -= end
+                    self.dic_balance_sheet["securities usable"] += (
+                        end / self.collateral_value
+                    )
+                    self.dic_balance_sheet["securities encumbered"] -= (
+                        end / self.collateral_value
+                    )
+                    self.on_repo_exp[b] -= end
+
+                    # # when the on balance repo is below some limit, we set the value of the exposure to 0
+                    # if self.on_repo_exp[b] < par.float_limit:
+                    #     self.on_repo_exp[b] = 0
+
+                    # fix, it seems the previous version was an error
+                    target_repo_amount_to_close -= end
 
             # Break the for loop if on balance repos are sufficient to empty
             # the excess liquidity
@@ -580,6 +599,10 @@ class ClassBank:
         # While loop over the list of banks that could accept to enter into
         # a reverse repo with the instance self
         bank_list = list(self.trust.keys())
+        
+        # reshuffle the order of the bank list
+        bank_list = list(np.random.permutation(bank_list))
+        
         while True:
 
             # algorithm to choose the bank to trade with

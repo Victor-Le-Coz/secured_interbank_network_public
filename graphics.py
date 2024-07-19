@@ -13,8 +13,8 @@ from tqdm import tqdm
 
 
 def plot(Dynamics):
-    
-    print("plot dynamics")
+    if par.detailed_prints:
+        print("plot dynamics")
 
     # create paths
     path_results = Dynamics.path_results
@@ -50,7 +50,7 @@ def plot_network_trajectory(
     cols,
     file_name,
     xscale=False,
-    figsize=par.small_figsize,
+    figsize=par.large_figsize,
 ):
     fig, ax = plt.subplots(figsize=figsize)
     colors = sns.color_palette("flare", n_colors=len(cols))
@@ -79,7 +79,10 @@ def plot_network_trajectory(
     plt.ylabel(par.df_plt.loc[cols[0], "label"])
     if xscale:
         plt.xscale(xscale)
-    plt.yscale(par.df_plt.loc[cols[0], "scale"])
+    if par.df_plt.loc[cols[0], "scale"] == "symlog":
+        plt.yscale(par.df_plt.loc[cols[0], "scale"],linthresh=1e-10)
+    else:
+        plt.yscale(par.df_plt.loc[cols[0], "scale"])
     plt.grid()
     plt.savefig(f"{file_name}", bbox_inches="tight")
     plt.close()
@@ -322,7 +325,7 @@ def plot_degree_distribution(
     days,
     plot_period,
     path,
-    figsize=par.small_figsize,
+    figsize=par.large_figsize,
 ):
 
     os.makedirs(path, exist_ok=True)
@@ -869,7 +872,8 @@ def plot_sensitivity(
     input_parameter,
     cols,
     file_name,
-    figsize=par.small_figsize,
+    figsize=par.large_figsize,
+    q=False,
 ):
 
     # define figure
@@ -877,7 +881,11 @@ def plot_sensitivity(
     colors = sns.color_palette("flare", n_colors=len(cols))
 
     # filter on index
-    df = df_network_sensitivity.loc[input_parameter].groupby(level=0).mean().copy()
+    if not(q):
+        df = df_network_sensitivity.loc[input_parameter].groupby(level=0).apply(lambda group: group.apply(fct.filtered_mean, axis=0)).copy()
+    else:
+        df = df_network_sensitivity.loc[input_parameter].groupby(level=0).quantile(q).copy()
+        
 
     # convert the cols of the df using the convertion of first col
     df = convert_data(df[cols], par.df_plt.loc[cols[0], "convertion"])
@@ -897,11 +905,17 @@ def plot_sensitivity(
 
     # set legend
     lgd = plt.legend(
-        par.df_plt.loc[cols, "legend"], loc="upper left", bbox_to_anchor=(1, 1)
+        par.df_plt.loc[cols, "legend"], 
+        # loc="upper left", 
+        # bbox_to_anchor=(1, 1)
     )
     plt.xlabel(par.df_plt.loc[input_parameter, "label"])
     plt.ylabel(par.df_plt.loc[cols[0], "label"])
     plt.xscale(par.df_plt.loc[input_parameter, "scale"])
+    if par.df_plt.loc[cols[0], "scale"] == "symlog":
+        plt.yscale(par.df_plt.loc[cols[0], "scale"],linthresh=1e-10)
+    else:
+        plt.yscale(par.df_plt.loc[cols[0], "scale"])
     plt.yscale(par.df_plt.loc[cols[0], "scale"])
     plt.grid()
     plt.savefig(
@@ -912,10 +926,10 @@ def plot_sensitivity(
     plt.close()
 
 
-def plot_all_sensitivities(df_network_sensitivity, path):
+def plot_all_sensitivities(df_network_sensitivity, path, q=False):
 
     # loop over the metrics
-    for metric in tqdm(par.df_figures.index):
+    for metric in (par.df_figures.index):
 
         # loop over the input parameters
         for input_parameter in pd.unique(
@@ -934,6 +948,7 @@ def plot_all_sensitivities(df_network_sensitivity, path):
                     for item in par.df_figures.loc[metric, "items"]
                 ],
                 file_name=f"{path}{metric}/{input_parameter}.pdf",
+                q=q
             )
 
 

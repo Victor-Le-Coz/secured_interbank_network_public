@@ -20,6 +20,9 @@ float_limit = 1  # required to model a 1000 bilion euros balance sheet
 # nb of days on which stationary average is computed
 len_statio = 200
 
+# print each metric run name
+detailed_prints = False
+
 # ------------------
 # variables definition
 
@@ -111,6 +114,7 @@ bank_ids = [f"bank_{i}" for i in range(150)]
 # ploting conventions
 
 small_figsize = (3, 3)  # default
+large_figsize = (6, 3)  # default
 slide_figsize = (12, 15)  # for the single trajectories
 halfslide_figsize = (6, 6)  # for the network plots
 
@@ -272,9 +276,9 @@ degree_stats = [
 cpnet_pvalue = [
     [
         f"cpnet p-value {algo}-{agg_period}",
-        r"core-periphery p-value (%)",
+        r"core-periphery p-value",
         f"{algo}-{agg_period} day(s)",
-        "log",
+        "symlog",
         ".-",
         "",
     ]
@@ -406,17 +410,17 @@ gamma_new = [
 
 alpha_pareto = [
     "alpha_pareto",
-    r"alpha patero (log scale)",
-    r"alpha patero (log scale)",
+    r"$\nu$ (log scale)",
+    r"$\nu$  (log scale)",
     "log",
     "",
-    "",
+    False,
 ]
 shocks_vol = [
     "shocks_vol",
-    r"$\sigma$ (%, log scale)",
-    r"$\sigma$ (%, log scale)",
-    "log",
+    r"$\sigma$ (%)",
+    r"$\sigma$ (%)",
+    "linear",
     "",
     "%",
 ]
@@ -430,11 +434,11 @@ min_repo_trans_size = [
 ]
 learning_speed = [
     "learning_speed",
-    r"learning speed (%)",
-    r"learning speed (%)",
+    r"$\lambda$",
+    r"$\lambda$",
     "log",
     "",
-    "%",
+    False,
 ]
 
 test_formating = ["dingo 1", " dingo ", " dingo", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo "]
@@ -583,6 +587,18 @@ figs_cpnet_pvalues = [
     for agg_period in agg_periods + ["weighted"]
 ]  # create one figure per agg period
 
+figs_cpnet_pvalues_opt = [
+    [
+        f"exposure_view/core-periphery/cpnet_pvalue-{algo}",
+        [
+            f"cpnet p-value {algo}-{agg_period}"  # extensions have normaly a space, here we add it in front of algo (which have no space)
+            for agg_period in agg_periods + ["weighted"]
+        ],
+        "",
+    ]
+    for algo in cp_algos
+]  # create one figure per algo
+
 fig_powerlaw_alpha = [
     f"accounting_view/power_law/powerlaw_alpha",
     [
@@ -625,7 +641,7 @@ df_figures = pd.DataFrame(
         # fig_powerlaw_alpha,
         # fig_powerlaw_pvalue,
     ]
-    + figs_cpnet_pvalues,
+    + figs_cpnet_pvalues_opt,
     columns=figures_columns,
 )
 df_figures.set_index(["file_name"], inplace=True)

@@ -10,6 +10,7 @@ from scipy import stats
 import sys
 import parameters as par
 from tqdm import tqdm
+from pathlib import Path
 
 
 def build_args(dic_default_value, list_dic_range):
@@ -56,7 +57,7 @@ def get_dic_range(path):
 
     # exclude from this list df_network_trajectory.csv if it exists
     input_parameters = [
-        rep for rep in repositories if rep != "df_network_sensitivity.csv"
+        rep for rep in repositories if rep != "df_network_sensitivity.csv" and rep != "sr_errors.csv"
     ]
 
     dic_range = {}
@@ -100,25 +101,26 @@ def get_df_network_sensitivity(path):
                 path_df = (
                     f"{path}{input_parameter}/{number}#{value}/df_network_trajectory.csv"
                 )
-                if os.path.exists(path_df):
+                if Path(f"{path}{input_parameter}/{number}#{value}/completed.txt").is_file():
+                    if os.path.exists(path_df):
 
-                    # load df_network_trajectory
-                    try:
-                        df_network_trajectory = pd.read_csv(path_df, index_col=0)
-                    except:
-                        continue
+                        # load df_network_trajectory
+                        try:
+                            df_network_trajectory = pd.read_csv(path_df, index_col=0)
+                        except:
+                            continue
 
-                    # initialize at the first round
-                    if first_round:
-                        df_network_sensitivity = pd.DataFrame(
-                            index=index, columns=df_network_trajectory.columns
-                        )
-                        first_round = False
+                        # initialize at the first round
+                        if first_round:
+                            df_network_sensitivity = pd.DataFrame(
+                                index=index, columns=df_network_trajectory.columns
+                            )
+                            first_round = False
 
-                    # fill with df_network_trajectory
-                    df_network_sensitivity.loc[
-                        (input_parameter, float(value), int(number))
-                    ] = df_network_trajectory.iloc[-par.len_statio :].mean()
+                        # fill with df_network_trajectory
+                        df_network_sensitivity.loc[
+                            (input_parameter, float(value), int(number))
+                        ] = df_network_trajectory.iloc[-par.len_statio :].mean()
                     
                     
                 # collect the errors
@@ -263,3 +265,10 @@ def list_intersection(list1, list2):
 
 def list_exclusion(list1, list2):
     return [x for x in list1 if x not in set(list2)]
+
+
+def filtered_mean(group):
+    mean = group.mean()
+    std = group.std()
+    filtered_group = group[(group >= mean - std) & (group <= mean + std)]
+    return filtered_group.mean()

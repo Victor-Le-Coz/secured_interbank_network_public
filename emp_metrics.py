@@ -13,7 +13,8 @@ import graphics as gx
 
 def get_rev_repo_exposure_stats(dic_arr_binary_adj, days, path=False):
 
-    print("get jaccard")
+    if par.detailed_prints:
+        print("get jaccard")
 
     # initialisation
     df_jaccard = pd.DataFrame(
@@ -24,7 +25,7 @@ def get_rev_repo_exposure_stats(dic_arr_binary_adj, days, path=False):
     )
 
     # loop over the steps
-    for step, day in enumerate(tqdm(days[1:]), 1):
+    for step, day in enumerate((days[1:]), 1):
         for agg_period in par.agg_periods:
             if step > agg_period:
                 df_jaccard.loc[day, f"jaccard index-{agg_period}"] = (
@@ -47,7 +48,8 @@ def get_rev_repo_exposure_stats(dic_arr_binary_adj, days, path=False):
 
 def get_density(dic_arr_binary_adj, days, path=False):
 
-    print("get density")
+    if par.detailed_prints:
+        print("get density")
 
     # define variable
     nb_days, nb_banks, nb_banks = list(dic_arr_binary_adj.values())[0].shape
@@ -61,7 +63,7 @@ def get_density(dic_arr_binary_adj, days, path=False):
     )
 
     # loop over the steps
-    for step, day in enumerate(tqdm(days[1:]), 1):
+    for step, day in enumerate((days[1:]), 1):
         for agg_period in par.agg_periods:
             df_density.loc[
                 day, f"network density-{agg_period}"
@@ -78,7 +80,8 @@ def get_density(dic_arr_binary_adj, days, path=False):
 
 def get_degree_distribution(dic_arr_binary_adj, path=False):
 
-    print("get degree distribution")
+    if par.detailed_prints:
+        print("get degree distribution")
 
     # define variables
     nb_days, nb_banks, nb_banks = list(dic_arr_binary_adj.values())[0].shape
@@ -98,7 +101,7 @@ def get_degree_distribution(dic_arr_binary_adj, path=False):
             {agg_period: np.zeros((nb_days, nb_banks), dtype=np.int16)}
         )
 
-    for step in tqdm(range(1, nb_days)):
+    for step in range(1, nb_days):
         # Build the degree distribution time series - version aggregated.
         for agg_period in par.agg_periods:
 
@@ -141,7 +144,8 @@ def get_degree_distribution(dic_arr_binary_adj, path=False):
 
 def get_degree_stats(dic_degree, days, path=False):
 
-    print("get degree stats")
+    if par.detailed_prints:
+        print("get degree stats")
 
     columns = [
         f"degree{extension}-{agg_period}"
@@ -156,7 +160,7 @@ def get_degree_stats(dic_degree, days, path=False):
     )
 
     # loop over the steps
-    for step, day in enumerate(tqdm(days[1:]), 1):
+    for step, day in enumerate((days[1:]), 1):
         for agg_period in par.agg_periods:
             df_degree_stats.loc[
                 day, f"degree av. network-{agg_period}"
@@ -229,7 +233,8 @@ def get_algo_cpnet(
     plot_period,
 ):
 
-    print(f"core-periphery tests using the {algo} approach")
+    if par.detailed_prints:
+        print(f"core-periphery tests using the {algo} approach")
 
     # initialise results and path
     plot_steps = fct.get_plot_steps_from_period(days, plot_period)
@@ -246,7 +251,8 @@ def get_algo_cpnet(
 
         day = days[step]
 
-        print(f"test on day {day}")
+        if par.detailed_prints:
+            print(f"test on day {day}")
 
         # build nx object
         bank_network = nx.from_numpy_array(
@@ -272,8 +278,8 @@ def get_cpnet(
     plot_period,
     path=False,
 ):
-
-    print("run core-periphery tests")
+    if par.detailed_prints:
+        print("run core-periphery tests")
 
     # initialise results
     df_cpnet = pd.DataFrame(
@@ -290,7 +296,7 @@ def get_cpnet(
         ],
     )
 
-    for agg_period in tqdm(list(dic_arr_binary_adj.keys()) + ["weighted"]):
+    for agg_period in list(dic_arr_binary_adj.keys()) + ["weighted"]:
 
         # case dijonction for the dictionary of adjency periods
         if agg_period == "weighted":
@@ -329,8 +335,9 @@ def fig_gini(x):
 
 
 def get_transaction_stats(df_rev_repo_trans, extension, days, path=False, opt_mat_ending_trans=True):
-
-    print(f"get transaction stats{extension}")
+    
+    if par.detailed_prints:
+        print(f"get transaction stats{extension}")
 
     # initialisation
     df_transaction_stats = pd.DataFrame(
@@ -338,7 +345,7 @@ def get_transaction_stats(df_rev_repo_trans, extension, days, path=False, opt_ma
     )
 
     # loop over the steps
-    for step, day in enumerate(tqdm(days[1:]), start=1):
+    for step, day in enumerate((days[1:]), start=1):
 
         # repo transactions maturity av. network
         if opt_mat_ending_trans:
@@ -397,7 +404,8 @@ def get_transaction_stats(df_rev_repo_trans, extension, days, path=False, opt_ma
 
 def get_exposure_stats(arr_rev_repo_exp_adj, days, path=False):
 
-    print("get exposure stats")
+    if par.detailed_prints:
+        print("get exposure stats")
 
     # initialisation
     df_exposures_stats = pd.DataFrame(
@@ -409,7 +417,7 @@ def get_exposure_stats(arr_rev_repo_exp_adj, days, path=False):
     )
 
     # loop over the steps
-    for step, day in enumerate(tqdm(days)):
+    for step, day in enumerate((days)):
         ar_rev_repo_exp_adj_non_zero = arr_rev_repo_exp_adj[step][
             np.nonzero(arr_rev_repo_exp_adj[step])
         ]
@@ -477,8 +485,8 @@ def get_powerlaw(
     plot_days=False,
     path=False,
 ):
-
-    print("run power law tests")
+    if par.detailed_prints:
+        print("run power law tests")
 
     # initialise results
     df_powerlaw = pd.DataFrame(
@@ -562,7 +570,8 @@ def run_n_plot_powerlaw(df, path):
 
 def get_df_deposits(df_mmsr_unsecured, dic_dashed_trajectory):
 
-    print("get df_deposits")
+    if par.detailed_prints:
+        print("get df_deposits")
 
     # filter only on the deposits instruments
     df_mmsr_unsecured = df_mmsr_unsecured[
@@ -609,8 +618,8 @@ def get_df_deposits_variations_by_bank(
     df_delta_deposits_over_assets,
     path,
 ):
-
-    print("get df_deposits_variations_by_bank")
+    if par.detailed_prints:
+        print("get df_deposits_variations_by_bank")
 
     # rename all columns
     df_delta_deposits = df_delta_deposits.rename(
@@ -657,8 +666,8 @@ def get_df_deposits_variations(
     df_delta_deposits_over_assets,
     path,
 ):
-
-    print("get df_deposits_variation")
+    if par.detailed_prints:
+        print("get df_deposits_variation")
 
     # build df_deposits variations
     df_deposits_variations = pd.DataFrame()

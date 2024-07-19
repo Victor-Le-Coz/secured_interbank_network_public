@@ -41,6 +41,8 @@ class ClassNetwork:
         init_money_min,
         QE_start,
         QE_stop,
+        no_trust_start,
+        no_trust_stop,
     ):
 
         # adequacy tests
@@ -86,6 +88,8 @@ class ClassNetwork:
         self.init_money_min = init_money_min
         self.QE_start = QE_start
         self.QE_stop = QE_stop
+        self.no_trust_start = no_trust_start
+        self.no_trust_stop = no_trust_stop
 
         # (Re)set the network
         self.reset_network()
@@ -204,6 +208,9 @@ class ClassNetwork:
         # loop 1: money creation + payment shocks + LCR mgt - enter or end cb funding
         index = np.random.permutation(index)  # permutation
         for bank_id in index:
+            
+            if self.step > self.no_trust_start and self.step < self.no_trust_stop:
+                self.banks[bank_id].set_no_trust()
 
             # create money
             if self.loan_tenor:
@@ -480,10 +487,11 @@ class ClassNetwork:
     def update_df_rev_repo_trans(self):
 
         # print
-        print("get df_rev_repo_trans")
+        if par.detailed_prints:
+            print("get df_rev_repo_trans")
 
         dfs = []
-        for Bank in tqdm(self.banks):
+        for Bank in (self.banks):
             dfs.append(Bank.df_rev_repo_trans)
         self.df_rev_repo_trans = pd.concat(
             dfs,
@@ -698,25 +706,29 @@ class ClassNetwork:
     
 
     def generate_new_money(self):
+        
+        ar_current_money = self.df_banks["own funds"]/self.gamma_new
                 
         # case if no initialization
         if not(self.initial_deposits_size):
             
+            std_control = np.sqrt(np.log(1.0 + self.new_loans_vol**2))
+            ar_random = np.random.lognormal(mean=-0.5 * std_control**2,sigma=std_control,size=self.nb_banks)
+            
             if self.step == 0:
-                ar_current_money = np.ones(self.nb_banks)*self.init_money_min
+                # ar_new_money = np.ones(self.nb_banks)*self.init_money_min
+                ar_new_money = ar_random*self.init_money_min
+                
             else:
                 # rich get richer
-                std_control = np.sqrt(np.log(1.0 + self.new_loans_vol**2))
-                ar_random = (np.random.lognormal(mean=-0.5 * std_control**2,sigma=std_control,size=self.nb_banks))
                 ar_new_money = ar_random*self.new_loans_mean*ar_current_money
         
 
         # case with initialization
         else: 
-            initial_money = self.df_banks["initial loans"] / (1-self.beta_new*(1-self.gamma_new))
             
             # no vol around the growth
-            ar_new_money = self.new_loans_mean*initial_money
+            ar_new_money = self.new_loans_mean*ar_current_money
             
             # opt: gaussian vol around the growth
             # ar_new_money = (np.random.randn(self.nb_banks) * self.new_loans_vol + 1)*self.new_loans_mean*initial_money

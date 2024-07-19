@@ -9,6 +9,8 @@ import pandas as pd
 import parameters as par
 import emp_preprocessing as ep
 import emp_metrics as em
+from pathlib import Path
+import sys
 
 from warnings import simplefilter 
 
@@ -24,6 +26,8 @@ class ClassDynamics:
         plot_period,
         cp_option,
         heavy_plot,
+        opt_keep_old_results=False,
+        opt_no_plot=False,
     ):
         # initialization of the class parameters.
         self.Network = Network
@@ -34,40 +38,53 @@ class ClassDynamics:
         
         self.plot_period = plot_period
         self.heavy_plot = heavy_plot
+        self.early_termination = False
+        self.opt_no_plot = opt_no_plot
 
         # Create the required path to store the results
-        fct.delete_n_init_path(self.path_results)
+        if opt_keep_old_results:
+            if Path(f"{self.path_results}completed.txt").is_file():
+                if not(Path(f"{self.path_results}error.txt").is_file()):
+                    # save the fact that a run was avoided
+                    with open(f"{self.path_results}avoided.txt", "w") as f:
+                        f.write(f"avoided run")
+                    # set the earl termination to True
+                    self.early_termination = True
 
-        # network trajectories
-        self.df_network_trajectory = pd.DataFrame(index=range(self.nb_steps))
+        # if the run did not work
+        if not(self.early_termination):
+            fct.delete_n_init_path(self.path_results)
 
-        # individual trajectory
-        self.single_bank_id = 0  # the selected single bank id
-        self.df_bank_trajectory = pd.DataFrame(index=range(self.nb_steps))
+            # network trajectories
+            self.df_network_trajectory = pd.DataFrame(index=range(self.nb_steps))
 
-        # dashed trajectory for all banks
-        self.dic_dashed_trajectory = {}
+            # individual trajectory
+            self.single_bank_id = 0  # the selected single bank id
+            self.df_bank_trajectory = pd.DataFrame(index=range(self.nb_steps))
 
-        # reverse repo adj exposure: array (nb_steps * nb_banks * nb_banks)
-        self.arr_rev_repo_exp_adj = np.zeros(
-            (self.nb_steps, self.Network.nb_banks, self.Network.nb_banks),
-            dtype=np.float32,
-        )
+            # dashed trajectory for all banks
+            self.dic_dashed_trajectory = {}
 
-        # binary adj exposure: dic of array of binary adj matrices
-        self.dic_arr_binary_adj = {}
-        for agg_period in par.agg_periods:
-            self.dic_arr_binary_adj.update(
-                {
-                    agg_period: np.zeros(
-                        (
-                            self.nb_steps,
-                            self.Network.nb_banks,
-                            self.Network.nb_banks,
-                        )
-                    )
-                }
+            # reverse repo adj exposure: array (nb_steps * nb_banks * nb_banks)
+            self.arr_rev_repo_exp_adj = np.zeros(
+                (self.nb_steps, self.Network.nb_banks, self.Network.nb_banks),
+                dtype=np.float32,
             )
+
+            # binary adj exposure: dic of array of binary adj matrices
+            self.dic_arr_binary_adj = {}
+            for agg_period in par.agg_periods:
+                self.dic_arr_binary_adj.update(
+                    {
+                        agg_period: np.zeros(
+                            (
+                                self.nb_steps,
+                                self.Network.nb_banks,
+                                self.Network.nb_banks,
+                            )
+                        )
+                    }
+                )
 
     def fill_step(self):
 
@@ -336,10 +353,11 @@ class ClassDynamics:
         # exposure view
 
         # print
-        print("get arr_rev_repo_exp_adj")
+        if par.detailed_prints:
+            print("get arr_rev_repo_exp_adj")
 
         # loop over the rows of df_rev_repo_trans
-        for index, row in tqdm(self.Network.df_rev_repo_trans.iterrows()):
+        for index, row in (self.Network.df_rev_repo_trans.iterrows()):
 
             # get the tenor (fill by current step if tenor is empty)
             if np.isnan(row["end_step"]):
@@ -381,7 +399,8 @@ class ClassDynamics:
         # exposure view
 
         # print
-        print("get arr_binary_adj (numba)")
+        if par.detailed_prints:
+            print("get arr_binary_adj (numba)")
 
         # convert list to array
         arr_agg_period = np.array(par.agg_periods)
@@ -425,51 +444,60 @@ class ClassDynamics:
 
     def simulate(self):
 
-        # record and store trajectories & parameters used at step 0
-        self.save_param()
-        self.fill_step()
-
-        print("simulate the repo market")
-
-        # simulate the network
-        for _ in tqdm(range(self.nb_steps - 1)):
-
-            # run one step of the network
-            self.Network.step_network()
-
-            # debug check memory
-            fct.check_memory()
-
-            # record information
+        if not(self.early_termination):
+            # record and store trajectories & parameters used at step 0
+            self.save_param()
             self.fill_step()
 
-            # export record, dump, and plot
-            if self.Network.step % self.dump_period == 0:
-                self.fill()
-                self.dump()
-                gx.plot(self)
+            print("simulate the repo market")
 
-            # check if an error occured on this step
-            if self.Network.str_output_error:
+            # simulate the network
+            for _ in tqdm(range(self.nb_steps - 1)):
 
-                # save the error in a text file
-                with open(f"{self.path_results}error.txt", "w") as f:
-                    f.write(f"error at step {self.Network.step}: {self.Network.str_output_error}")
-                        
-                # export all information if not already done
-                if self.Network.step % self.dump_period != 0:
+                # run one step of the network
+                self.Network.step_network()
+
+                # debug check memory
+                fct.check_memory()
+
+                # record information
+                self.fill_step()
+
+                # export record, dump, and plot
+                if self.Network.step % self.dump_period == 0:
                     self.fill()
                     self.dump()
+                    if not(self.opt_no_plot):
+                        gx.plot(self)
+
+                # check if an error occured on this step
+                if self.Network.str_output_error:
+
+                    # save the error in a text file
+                    with open(f"{self.path_results}error.txt", "w") as f:
+                        f.write(f"error at step {self.Network.step}: {self.Network.str_output_error}")
+                            
+                    # export all information if not already done
+                    if self.Network.step % self.dump_period != 0:
+                        self.fill()
+                        self.dump()
+                        if not(self.opt_no_plot):
+                            gx.plot(self)
+
+                    # end the loop
+                    break
+
+            # store the final step (if not already done)
+            if self.Network.step % self.dump_period != 0:
+                self.fill()
+                self.dump()
+                if not(self.opt_no_plot):
                     gx.plot(self)
-
-                # end the loop
-                break
-
-        # store the final step (if not already done)
-        if self.Network.step % self.dump_period != 0:
-            self.fill()
-            self.dump()
-            gx.plot(self)
+                
+            # record that the execution was completed
+            if self.Network.step >= self.nb_steps - 100:
+                with open(f"{self.path_results}completed.txt", "w") as f:
+                    f.write(f"Completed until step {self.Network.step} with sucess !")
 
     def save_param(self):
 
@@ -487,7 +515,7 @@ class ClassDynamics:
                 f"gamma_init={self.Network.gamma_init} \n"
                 f"gamma={self.Network.gamma} \n"
                 f"gamma_star={self.Network.gamma_star} \n"
-                f"gamma_star={self.Network.gamma_star} \n"
+                f"gamma_new={self.Network.gamma_new} \n"
                 f"check_leverage_opt={self.Network.check_leverage_opt} \n"
                 f"initialization_method={self.Network.initialization_method} \n"
                 f"alpha_pareto={self.Network.alpha_pareto} \n"
@@ -503,7 +531,12 @@ class ClassDynamics:
                 f"new_loans_vol={self.Network.new_loans_vol} \n"
                 f"new_loans_mean={self.Network.new_loans_mean} \n"
                 f"end_repo_period={self.Network.end_repo_period} \n"
-                f"substitution={self.Network.substitution}"
+                f"substitution={self.Network.substitution}\n"
+                f"init_money_min={self.Network.init_money_min}\n"
+                f"QE_start={self.Network.QE_start}\n"
+                f"QE_stop={self.Network.QE_stop}\n"
+                f"no_trust_start={self.Network.no_trust_start}\n"
+                f"no_trust_stop={self.Network.no_trust_stop}"
             )
 
         # # print the parameter to terminal
@@ -546,6 +579,11 @@ def single_run(
     substitution,
     learning_speed,
     check_leverage_opt,
+    init_money_min,
+    QE_start,
+    QE_stop,
+    no_trust_start,
+    no_trust_stop,
 ):
 
     # initialize ClassNetwork
@@ -578,6 +616,11 @@ def single_run(
         substitution=substitution,
         learning_speed=learning_speed,
         check_leverage_opt=check_leverage_opt,
+        init_money_min=init_money_min,
+        QE_start=QE_start,
+        QE_stop=QE_stop,
+        no_trust_start=no_trust_start,
+        no_trust_stop=no_trust_stop,
     )
 
     # initialize ClassDynamics
@@ -589,10 +632,15 @@ def single_run(
         plot_period=plot_period,
         cp_option=cp_option,
         heavy_plot=heavy_plot,
+        opt_keep_old_results=True,
+        opt_no_plot=False,
     )
 
     # simulate
     Dynamics.simulate()
+    
+    if Dynamics.early_termination:
+        return "early termination"
 
     # return error if any
     if Network.str_output_error:
