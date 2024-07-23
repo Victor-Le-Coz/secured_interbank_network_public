@@ -25,7 +25,7 @@ init_money_min = 1e-2 # 10 million money units, minimum for a bank license
 # shocks on deposits
 shocks_method="non-conservative"
 shocks_law="normal-mean-reverting"
-shocks_vol=0.08 # 0.08
+shocks_vol=0.07 # 0.08
 
 
 # speed of learning
