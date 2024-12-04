@@ -1,21 +1,17 @@
 import pandas as pd
 import data_mapping as dm
 
-
 def list_exclusion(list1, list2):
     return [x for x in list1 if x not in set(list2)]
-
 
 # -----------------
 # run features
 
 # aggregation periods for the definition of links
 agg_periods = [1, 50, 100, 250]
-# agg_periods = [1, 50]
 
 # limit to the float precision
-# float_limit = 1e-9  # required to model a 1000 bilion euros balance sheet
-float_limit = 1  # required to model a 1000 bilion euros balance sheet
+float_limit = 1e-9  # required to model a 1000 billion euros balance sheet
 
 # nb of days on which stationary average is computed
 len_statio = 200
