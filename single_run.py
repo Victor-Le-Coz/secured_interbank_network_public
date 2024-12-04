@@ -1,6 +1,9 @@
 from dynamics import ClassDynamics
 from network import ClassNetwork
 
+import sys
+sys.setrecursionlimit(int(1e3))
+
 # parameter setting
 nb_banks=50
 path_results="./results/single_run/test/"

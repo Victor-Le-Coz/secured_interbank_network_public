@@ -352,12 +352,14 @@ class ClassDynamics:
         # ------------
         # exposure view
 
-        # print
-        if par.detailed_prints:
-            print("get arr_rev_repo_exp_adj")
+        # # print
+        # if par.detailed_prints:
+        #     print("get arr_rev_repo_exp_adj")
+            
+        print("get arr_rev_repo_exp_adj")
 
         # loop over the rows of df_rev_repo_trans
-        for index, row in (self.Network.df_rev_repo_trans.iterrows()):
+        for index, row in tqdm(self.Network.df_rev_repo_trans.iterrows()):
 
             # get the tenor (fill by current step if tenor is empty)
             if np.isnan(row["end_step"]):
@@ -374,7 +376,7 @@ class ClassDynamics:
                 ]
 
         # loop over the steps to clean values close to zero (or negative)
-        for step in range(self.Network.step + 1):
+        for step in tqdm(range(self.Network.step + 1)):
             self.arr_rev_repo_exp_adj[step][
                 self.arr_rev_repo_exp_adj[step] < self.Network.min_repo_trans_size
             ] = 0

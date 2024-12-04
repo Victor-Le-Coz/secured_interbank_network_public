@@ -3,7 +3,7 @@ from network import ClassNetwork
 
 # parameter setting
 nb_banks=300
-path_results="./results/single_run/rgm_300_test_init_log/"
+path_results="./results/single_run/rgm_300_test_init_log_low_vol/"
 
 
 # reg ratios
@@ -25,7 +25,7 @@ init_money_min = 1e-2 # 10 million money units, minimum for a bank license
 # shocks on deposits
 shocks_method="non-conservative"
 shocks_law="normal-mean-reverting"
-shocks_vol=0.07 # 0.08
+shocks_vol=0.08 # 0.08
 
 
 # speed of learning
@@ -36,7 +36,7 @@ min_repo_trans_size=1e-8  # 1e-8
 
 # dynamics & ploting
 nb_steps=int(40e3) #int(10e3)
-dump_period=int(40e3) #int(5e2)
+dump_period=int(2e3) #int(5e2)
 plot_period=int(40e3) #int(5e2)
 cp_option=True
 heavy_plot=False
@@ -52,7 +52,7 @@ check_leverage_opt = False # to avoid killing the run if one or several banks ar
 # money creation
 loan_tenor=nb_steps #nb_steps # if int, money creation / if false. no new loans
 loan_period=1
-new_loans_vol = 5 #5 standard deviation around the mean creation of loans (if initial deposits size not False)
+new_loans_vol = 1 #5 standard deviation around the mean creation of loans (if initial deposits size not False)
 new_loans_mean = 10e-2/250 #2e-2/250 daily mean increase in loans expressed as a percentage of the intital loans, meaning linear growth (or of the current loans, then meaning exponential growth)
 beta_new = beta_reg # if number, new colat / if false, no new colat 
 gamma_new = 2*gamma_star
