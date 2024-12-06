@@ -1,11 +1,12 @@
 import pandas as pd
-import data_mapping as dm
+
 
 def list_exclusion(list1, list2):
     return [x for x in list1 if x not in set(list2)]
 
 # -----------------
 # run features
+
 
 # aggregation periods for the definition of links
 agg_periods = [1, 50, 100, 250]
@@ -53,13 +54,10 @@ other_items = [
     "total liabilities",
     "borrowings"
 ]
-finrep_items = list_exclusion(
-    list(dm.dic_finrep_columns.values()), accounting_items + other_items
-)
 
 # bank items
 # bank_items = accounting_items + other_items + finrep_items # for empirical data
-bank_items = accounting_items + other_items # for empirical data
+bank_items = accounting_items + other_items  # for empirical data
 
 regulatory_ratios = ["reserve ratio", "liquidity ratio", "leverage ratio"]
 
@@ -437,7 +435,8 @@ learning_speed = [
     False,
 ]
 
-test_formating = ["dingo 1", " dingo ", " dingo", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo "]
+test_formating = ["dingo 1", " dingo ", " dingo", " dingo ", " dingo ", " dingo ",
+                  " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo ", " dingo "]
 
 # get df_plt
 df_plt = pd.DataFrame(
@@ -575,7 +574,8 @@ figs_cpnet_pvalues = [
     [
         f"exposure_view/core-periphery/cpnet_pvalue-{agg_period}",
         [
-            f"cpnet p-value {algo}-{agg_period}"  # extensions have normaly a space, here we add it in front of algo (which have no space)
+            # extensions have normaly a space, here we add it in front of algo (which have no space)
+            f"cpnet p-value {algo}-{agg_period}"
             for algo in cp_algos
         ],
         "",
@@ -587,7 +587,8 @@ figs_cpnet_pvalues_opt = [
     [
         f"exposure_view/core-periphery/cpnet_pvalue-{algo}",
         [
-            f"cpnet p-value {algo}-{agg_period}"  # extensions have normaly a space, here we add it in front of algo (which have no space)
+            # extensions have normaly a space, here we add it in front of algo (which have no space)
+            f"cpnet p-value {algo}-{agg_period}"
             for agg_period in agg_periods + ["weighted"]
         ],
         "",
@@ -598,7 +599,8 @@ figs_cpnet_pvalues_opt = [
 fig_powerlaw_alpha = [
     f"accounting_view/power_law/powerlaw_alpha",
     [
-        f"powerlaw alpha {bank_item}"  # extensions have normaly a space, here we add it in front of algo (which have no space)
+        # extensions have normaly a space, here we add it in front of algo (which have no space)
+        f"powerlaw alpha {bank_item}"
         for bank_item in bank_items
     ],
     "",
@@ -606,14 +608,14 @@ fig_powerlaw_alpha = [
 fig_powerlaw_pvalue = [
     f"accounting_view/power_law/powerlaw_pvalue",
     [
-            f"{metric} {bank_item}"
-            for metric in [
-                f"{ind} {benchmark_law}"
-                for ind in ["powerlaw direction", "powerlaw p-value"]
-                for benchmark_law in benchmark_laws
-            ]
-            for bank_item in bank_items
-        ],
+        f"{metric} {bank_item}"
+        for metric in [
+            f"{ind} {benchmark_law}"
+            for ind in ["powerlaw direction", "powerlaw p-value"]
+            for benchmark_law in benchmark_laws
+        ]
+        for bank_item in bank_items
+    ],
     "",
 ]
 

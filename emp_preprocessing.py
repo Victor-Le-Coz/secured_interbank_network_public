@@ -7,7 +7,6 @@ from numba import jit
 import parameters as par
 import os
 from more_itertools import consecutive_groups
-import data_mapping as dm
 import random
 
 
@@ -175,101 +174,6 @@ def reduce_size(df_mmsr_secured, df_mmsr_unsecured, path):
             open(f"{path}pickle/df_mmsr_unsecured.pickle", "wb"),
             protocol=pickle.HIGHEST_PROTOCOL,
         )
-
-
-def get_df_mmsr_secured_clean(
-    df_mmsr_secured,
-    compute_tenor=False,
-    flag_isin=False,
-    sett_filter=False,
-    path=False,
-):
-    """
-    **MMSR reporting instructions for evergreen repos**
-
-    The reporting of evergreen repos is defined by the MMSR reporting instruction, paragraph 3.1 https://www.ecb.europa.eu/stats/money/mmss/shared/files/MMSR-Reporting_instructions.pdf
-
-    Evergreen are reported with the notice period defined as the maturity date and rolled over every day (reporting a new line in MMSR each day) until the product is cancelled.
-
-    To detect an evergreen we flag all transactions that are repeted across several days with the exact same counterparties, nominal amount and tenor.
-    """
-
-    print("get df_mmsr_secured_clean")
-
-    # ------------------------------------------
-    # 1 - build the start_step and tenor columns
-
-    print("count the business days")
-
-    # get the start_step (nb of the business day)
-    df_mmsr_secured = df_mmsr_secured.merge(
-        dm.df_ECB_calendar, left_on="trade_date", right_index=True, how="left"
-    )
-    df_mmsr_secured.rename(columns={"bday": "start_step"}, inplace=True)
-
-    # get the tenor (in business days)
-    if compute_tenor:
-        df_mmsr_secured = df_mmsr_secured.merge(
-            dm.df_ECB_calendar,
-            left_on="maturity_date",
-            right_index=True,
-            how="left",
-        )
-        df_mmsr_secured.rename(columns={"bday": "end_step"}, inplace=True)
-        df_mmsr_secured["tenor"] = (
-            df_mmsr_secured["end_step"] - df_mmsr_secured["start_step"]
-        )
-
-    else:
-        # from the maturity band
-        df_mmsr_secured["tenor"] = df_mmsr_secured["maturity_band"]
-        df_mmsr_secured.replace({"tenor": dm.dic_tenor}, inplace=True)
-
-    # ------------------------------------------
-    # 3 - find the evergreen and clean them
-    df_evergreen, df_evergreen_clean = get_df_evergreen(
-        df_mmsr_secured, flag_isin, sett_filter
-    )
-
-    # ------------------------------------------
-    # 2 - flag the evergreen repos in the mmsr data base
-    df_mmsr_secured = df_mmsr_secured.merge(
-        df_evergreen["evergreen"],
-        left_index=True,
-        right_index=True,
-        how="left",
-    )
-    df_mmsr_secured["evergreen"].fillna(False, inplace=True)
-
-    # ------------------------------------------
-    # 4 - build the df_mmsr_secured_clean
-    df_mmsr_secured_clean = pd.concat(
-        [
-            df_mmsr_secured[~df_mmsr_secured["evergreen"]],
-            df_evergreen_clean[df_evergreen_clean["evergreen"]],
-        ]
-    )[dm.mmsr_secured_clean_columns]
-    df_mmsr_secured_clean.reset_index(inplace=True, drop=True)
-
-    # ------------------------------------------
-    # 5 - save
-    if path:
-        os.makedirs(f"{path}pickle/", exist_ok=True)
-        df_mmsr_secured.to_csv(f"{path}pickle/df_mmsr_secured.csv")
-        df_mmsr_secured_clean.to_csv(f"{path}pickle/df_mmsr_secured_clean.csv")
-
-        pickle.dump(
-            df_mmsr_secured,
-            open(f"{path}pickle/df_mmsr_secured.pickle", "wb"),
-            protocol=pickle.HIGHEST_PROTOCOL,
-        )
-        pickle.dump(
-            df_mmsr_secured_clean,
-            open(f"{path}pickle/df_mmsr_secured_clean.pickle", "wb"),
-            protocol=pickle.HIGHEST_PROTOCOL,
-        )
-
-    return df_mmsr_secured, df_mmsr_secured_clean
 
 
 def get_df_evergreen(df_mmsr_secured, flag_isin, sett_filter):
@@ -536,100 +440,6 @@ def get_dic_rev_repo_exp_adj_from_df_mmsr_secured_expanded(
     return dic_rev_repo_exp_adj
 
 
-def get_dic_rev_repo_exp_adj_from_mmsr_secured_clean(
-    df_mmsr_secured_clean, path=False, plot_period=False
-):
-
-    print("get dic_rev_repo_exp_adj from df_mmsr_secured_clean")
-
-    # filter only on the reverse repo i.e. lending cash
-    df_mmsr_secured_clean = df_mmsr_secured_clean[
-        df_mmsr_secured_clean["trns_type"]
-    ]
-
-    # create an Numpy array of the unique LEI of the entities from either report agent or counterparties
-    leis = pd.unique(
-        df_mmsr_secured_clean[["cntp_lei", "report_agent_lei"]].values.ravel(
-            "K"
-        )
-    )
-
-    # define the list of dates in the mmsr database
-    days = pd.to_datetime(
-        sorted(
-            list(
-                set(
-                    df_mmsr_secured_clean["trade_date"].dt.strftime("%Y-%m-%d")
-                )
-            )
-        )
-    )
-
-    # initialisation of a dictionary of the observed rev repo exposure adj
-    dic_rev_repo_exp_adj = {}
-    for day in pd.bdate_range(
-        start=days[0],
-        end=days[-1],
-        freq="C",
-        holidays=dm.holidays,
-    ):
-        dic_rev_repo_exp_adj.update(
-            {day: pd.DataFrame(columns=leis, index=leis, data=0)}
-        )
-
-    # building of the matrices and storage in the dictionary observed_path (evergreen are already retreated in df_mmsr_clean)
-    for index in tqdm(df_mmsr_secured_clean.index):
-        for day in pd.bdate_range(
-            start=df_mmsr_secured_clean.loc[index, "trade_date"],
-            end=min(
-                df_mmsr_secured_clean.loc[index, "maturity_date"],
-                pd.to_datetime(days[-1]),
-            ),
-            freq="C",
-            holidays=dm.holidays,
-        ):
-            dic_rev_repo_exp_adj[day].loc[
-                df_mmsr_secured_clean.loc[index, "report_agent_lei"],
-                df_mmsr_secured_clean.loc[index, "cntp_lei"],
-            ] = (
-                dic_rev_repo_exp_adj[day].loc[
-                    df_mmsr_secured_clean.loc[index, "report_agent_lei"],
-                    df_mmsr_secured_clean.loc[index, "cntp_lei"],
-                ]
-                + df_mmsr_secured_clean.loc[index, "trns_nominal_amt"]
-            )
-
-    # pickle dump
-    if path:
-        os.makedirs(f"{path}pickle/", exist_ok=True)
-        pickle.dump(
-            dic_rev_repo_exp_adj,
-            open(f"{path}pickle/dic_rev_repo_exp_adj.pickle", "wb"),
-            protocol=pickle.HIGHEST_PROTOCOL,
-        )
-
-    # save to csv for the plot_days
-    if plot_period:
-        days = list(dic_rev_repo_exp_adj.keys())
-        plot_days = fct.get_plot_days_from_period(days, plot_period)
-    else:
-        plot_days = list(dic_rev_repo_exp_adj.keys())
-        for day in plot_days:
-
-            day_print = day.strftime("%Y-%m-%d")
-
-            os.makedirs(
-                f"{path}data/exposure_view/adj_matrices/weighted/",
-                exist_ok=True,
-            )
-            fct.dump_np_array(
-                dic_rev_repo_exp_adj[day],
-                f"{path}data/exposure_view/adj_matrices/weighted/arr_reverse_repo_adj_{day_print}.csv",
-            )
-
-    return dic_rev_repo_exp_adj
-
-
 def load_dic_rev_repo_exp_adj(path):
     return pickle.load(open(f"{path}pickle/dic_rev_repo_exp_adj.pickle", "rb"))
 
@@ -851,7 +661,7 @@ def get_df_finrep_clean(df_finrep, path):
     df_finrep_clean = df_finrep.copy()
 
     # addapt the day to the lastest business day
-    app_func = lambda row: get_closest_bday(row["qdate"])
+    def app_func(row): return get_closest_bday(row["qdate"])
 
     df_finrep_clean["qdate"] = df_finrep_clean.apply(app_func, axis=1)
 
@@ -865,11 +675,6 @@ def get_df_finrep_clean(df_finrep, path):
         )
 
     return df_finrep_clean
-
-
-def get_closest_bday(input_timestamp):
-    bbday = pd.offsets.CustomBusinessDay(holidays=dm.holidays)
-    return bbday.rollforward(input_timestamp)
 
 
 def load_input_data_csv(path):

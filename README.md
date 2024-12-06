@@ -1,52 +1,38 @@
-# secured-inter-bank-network
-Here is a description of the structure of the project
 
-## module dynamics
-Definition of ClassDynamics.
-This class is initialised using and instance Network of ClassNetwork.
-This class initialises also an instance of ClassGraphics.
-This class simulate a Network and stores all the historical information about this Network.
-Most metrics are computed using the their definition in the module emp_metrics and stored in df_network_trajectory, a DataFrame with the historical information at network level.
-The metrics specific to one bank are store in df_bank_trajectory.
-The information about each individual bank across time is not stored in general, except the transaction information in df_reverse_repo and their associated exposure view (store in adj matrix) in arr_rev_repo_exp_adj (a nb_steps * nb_banks * nb_banks numpy array).
-After aggregation in rolling windows, the binary adjencies are stored in dic_arr_binary_adj.
-An other exception is dic_in_degree, dic_out_degree, dic_degree, which stores, for each agg_period, an array of the degree per bank across time.
+# Research Code: Agent-Based Model of the Banking Network
+This repository contains the research code for an agent-based model (ABM) of the banking network. The model simulates the interactions between banks in an interbank network, focusing on the dynamics of reserve repo transactions and the resulting exposures. The primary goal is to analyze the stability and systemic risk within the banking network under various scenarios.
 
-## module network (subclass of dynamics)
-Definition of ClassNetwork.
-This class is initialises nb_banks instances of ClassBank.
-It defines how to simulate the network for one step.
-It maintains the time with Network.step.
-It maintains df_banks, a DataFrame with all the exposure information about each bank at a given time step.
+## Key Components
 
-## module bank (subclass of network)
-Definition of the ClassBank.
-This class has access to Network and to all the other instances of ClassBank in the Network.
-This class maintains at local level the history of the reserve repo transaction of this Bank lended to the other intances of ClassBank.
+### 1. ClassDynamics
+The `ClassDynamics` is the core of the simulation, responsible for initializing the network and graphics modules. It simulates the network over time and stores historical data, including network-level metrics and bank-specific metrics. The historical data is stored in DataFrames and numpy arrays for further analysis.
 
-## module Graphics (subclass of dynamics)
-Definition of the ClassGraphics.
-This class plots the trajectory of the states of the network across time using df_network_trajectory, df_bank_trajectory, arr_rev_repo_exp_adj, dic_arr_binary_adj, and dic_degree.
+### 2. ClassNetwork
+The `ClassNetwork` manages the creation of bank instances and the simulation of network steps. It maintains a DataFrame with exposure information for each bank at each time step, facilitating the analysis of interbank relationships and systemic risk.
 
-## notebook emp_analysis
-Notebook to run all empirical measures on the MMSR data base.
+### 3. ClassBank
+The `ClassBank` represents individual banks within the network. Each bank has access to the network and other banks, allowing it to record and manage its reserve repo transactions. This class is crucial for simulating the behavior and interactions of banks in the network.
 
-# module emp_metrics
-Definition of all the metrics used for both the simulation and the empirical measures.
+### 4. ClassGraphics
+The `ClassGraphics` handles the visualization of the network's state over time. It uses the historical data stored in various DataFrames and arrays to plot the trajectories of network metrics and bank-specific metrics, providing insights into the network's evolution.
 
-# module emp_preprocessing
-Functions to transform transactions into exposures and exposures into binary adj matrices.
+### 5. emp_metrics Module
+This module defines all the metrics used for both simulation and empirical analysis. These metrics are essential for evaluating the performance and stability of the banking network under different conditions.
 
-# module emp_fake_date
-Definition of a fake MMSR transactions, MMSR exposure view, and FINREP data bases to test the empirical analysis tools
+### 6. emp_preprocessing Module
+The `emp_preprocessing` module contains functions to transform transaction data into exposure data and then into binary adjacency matrices. These transformations are necessary for analyzing the network structure and dynamics.
 
-## notebook tools
-For tests, analysis, dev work.
+### 7. emp_fake_data Module
+This module provides fake MMSR transaction data, exposure views, and FINREP databases for testing the empirical analysis tools. It ensures that the analysis methods are robust and reliable.
 
-## module funcitons
-Useful functions used in the project
+### 8. network_statistics Module
+The `network_statistics` module defines a class for computing network statistics based on the original article by Blasques (2018). These statistics help in understanding the structural properties and systemic risk of the network.
 
-## module network_statistics
-Definition of a Class analytics for the computation of the network statistics in the original article from Blasques (2018)
+### 9. Notebooks
+The repository includes several Jupyter notebooks for running empirical measures on the MMSR database, testing, analysis, and development work. These notebooks facilitate the exploration and validation of the model and its components.
 
+### 10. Functions Module
+This module contains various utility functions used throughout the project. These functions support the main simulation and analysis tasks, ensuring efficient and effective code execution.
+
+This research code provides a comprehensive framework for studying the dynamics and stability of interbank networks using an agent-based modeling approach. It enables researchers to simulate different scenarios, analyze the resulting data, and gain insights into the factors influencing systemic risk in the banking sector.
 
