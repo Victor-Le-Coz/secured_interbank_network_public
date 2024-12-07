@@ -15,6 +15,7 @@ support/
 /matplotlib-lebxwh_c/
 .history/
 /dask_logs/
+.DS_Store
 
 
 # C extensions
