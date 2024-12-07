@@ -9,7 +9,7 @@ class ClassBank:
     # instance of Class Banks">
     def __init__(
         self,
-        Network,  # pointeur vers network (pour éviter les boucle for dans network)
+        Network,
         id,
         initial_deposits,
         alpha_init,
