@@ -12,7 +12,7 @@ def list_exclusion(list1, list2):
 agg_periods = [1, 50, 100, 250]
 
 # limit to the float precision
-float_limit = 1e-9  # required to model a 1000 billion euros balance sheet
+float_limit = 1e-3  # units precision is 1 million monetary units
 
 # nb of days on which stationary average is computed
 len_statio = 200
